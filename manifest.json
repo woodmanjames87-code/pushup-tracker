@@ -1,0 +1,15 @@
+{
+  "name": "Push-Up Tracker",
+  "short_name": "PushUps",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#121212",
+  "description": "Offline push-up logger.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2554/2554032.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

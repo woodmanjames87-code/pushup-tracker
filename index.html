@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Push-Up Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PushUps">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Push-Up Tracker</h1>
+        </header>
+        
+        <main>
+            <div class="stat-card">
+                <span class="label">Total Today</span>
+                <div id="today-count" class="big-number">0</div>
+            </div>
+
+            <div class="input-group">
+                <button id="minus-btn" class="btn-round">-</button>
+                <input type="number" id="pushup-input" value="10" inputmode="numeric">
+                <button id="plus-btn" class="btn-round">+</button>
+            </div>
+
+            <button id="log-btn" class="btn-primary">LOG PUSH-UPS</button>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
