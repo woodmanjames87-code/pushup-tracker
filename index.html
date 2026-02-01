@@ -11,9 +11,10 @@
     <meta name="apple-mobile-web-app-title" content="PushUps">
 </head>
 <body>
-    <div class="app-container">
+    <div id="tracker-page" class="app-container">
         <header>
             <h1>Push-Up Tracker</h1>
+            <button id="go-to-settings" class="btn-icon">⚙️</button>
         </header>
         
         <main>
@@ -21,22 +22,22 @@
                 <span class="label">Total Today</span>
                 <div id="today-count" class="big-number">0</div>
             </div>
-
-            <div class="input-group">
-                <button id="minus-btn" class="btn-round">-</button>
-                <input type="number" id="pushup-input" value="25" inputmode="numeric">
-                <button id="plus-btn" class="btn-round">+</button>
-            </div>
-
-            <button id="log-btn" class="btn-primary">LOG PUSH-UPS</button>
-
-            <div class="history-container">
-                <h3>Last 7 Days</h3>
-                <ul id="history-list"></ul>
-            </div>
-
-        </main>
+            </main>
     </div>
+
+    <div id="settings-page" class="app-container" style="display: none;">
+        <header>
+            <button id="back-to-tracker" class="btn-icon">←</button>
+            <h1>Settings</h1>
+        </header>
+        
+        <section class="settings-section">
+            <h3>Manage Today's Sets</h3>
+            <div id="edit-sets-list">
+                </div>
+        </section>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
