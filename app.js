@@ -1,22 +1,54 @@
-const todayCountDisplay = document.getElementById('today-count');
-const inputField = document.getElementById('pushup-input');
-const historyList = document.getElementById('history-list');
-const editSetsList = document.getElementById('edit-sets-list');
+/*************************************************
+ * DOM REFERENCES
+ *************************************************/
+const logBtn = document.getElementById('log-btn');
 const logModal = document.getElementById('log-modal');
 const modalInput = document.getElementById('modal-input');
-const logBtn = document.getElementById('log-btn');
 const cancelBtn = document.getElementById('modal-cancel');
 const okBtn = document.getElementById('modal-ok');
 
-// Page Elements
 const trackerPage = document.getElementById('tracker-page');
 const settingsPage = document.getElementById('settings-page');
-
-// Nav Buttons
 const goToSettingsBtn = document.getElementById('go-to-settings');
 const backToTrackerBtn = document.getElementById('back-to-tracker');
+const editSetsList = document.getElementById('edit-sets-list');
 
-// NAVIGATION LOGIC
+/*************************************************
+ * CONSTANTS & CONFIG
+ *************************************************/
+const STORAGE_KEY = 'workout-data';
+const currentExercise = 'pushups';
+
+const GOALS = {
+    DAYS_PER_WEEK: 7,
+    ON_TRACK_DAYS: 4,
+    IMPROVE_DAYS: 5, 
+    WINDOW_DAYS: 30
+};
+
+/*************************************************
+ * STORAGE HELPERS
+ *************************************************/
+function loadData() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+}
+
+function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getDateKey(date = new Date()) {
+    return date.toISOString().split('T')[0];
+}
+
+function getDayTotal(data, date) {
+    const key = getDateKey(date);
+    return (data[key] && data[key][currentExercise]) ? data[key][currentExercise].reduce((a, b) => a + b, 0) : 0;
+}
+
+/*************************************************
+ * NAVIGATION
+ *************************************************/
 goToSettingsBtn.onclick = () => {
     trackerPage.style.display = 'none';
     settingsPage.style.display = 'flex';
@@ -29,85 +61,65 @@ backToTrackerBtn.onclick = () => {
     updateDisplay();
 };
 
-let currentExercise = "pushups";
-
-const GOALS = {
-    DAYS_PER_WEEK: 7,
-    ON_TRACK_DAYS: 4,
-    IMPROVE_DAYS: 5, 
-    WINDOW_DAYS: 30
-};
-
-// 1. Open Modal
+/*************************************************
+ * LOGGING FLOW
+ *************************************************/
 logBtn.onclick = () => {
-    modalInput.value = ''; // Set to blank
+    modalInput.value = '';
     logModal.style.display = 'flex';
-    // This timeout ensures the iPhone browser is ready to focus 
-    // and pull up the numeric keypad immediately.
-    setTimeout(() => {
-        modalInput.focus();
-    }, 50); 
+    setTimeout(() => modalInput.focus(), 50);
 };
 
-// 2. Close Modal (Cancel)
-cancelBtn.onclick = () => {
-    logModal.style.display = 'none';
-};
+cancelBtn.onclick = () => logModal.style.display = 'none';
 
-// 3. Confirm & Save (OK)
 okBtn.onclick = () => {
     const reps = parseInt(modalInput.value);
     if (isNaN(reps) || reps <= 0) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    let data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    const data = loadData();
+    const todayKey = getDateKey();
     
-    if (!data[today]) data[today] = {};
-    if (!data[today][currentExercise]) data[today][currentExercise] = [];
+    if (!data[todayKey]) data[todayKey] = {};
+    if (!data[todayKey][currentExercise]) data[todayKey][currentExercise] = [];
     
-    data[today][currentExercise].push(reps);
+    data[todayKey][currentExercise].push(reps);
+    saveData(data);
     
-    localStorage.setItem('workout-data', JSON.stringify(data));
-    
-    logModal.style.display = 'none'; // Hide popup
-    updateDisplay(); // Refresh the bento widgets
+    logModal.style.display = 'none';
+    updateDisplay();
 };
 
+/*************************************************
+ * STATS ENGINE (Merged & Complete)
+ *************************************************/
 function computeStats() {
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    const data = loadData();
     const today = new Date();
     
-    const getVal = (dateObj) => {
-        const k = dateObj.toISOString().split('T')[0];
-        return (data[k] && data[k][currentExercise]) ? data[k][currentExercise].reduce((a, b) => a + b, 0) : 0;
-    };
-
-    const getDateKey = (date) => date.toISOString().split('T')[0];
-
     // Basic Totals
-    const todayTotal = getVal(today);
+    const todayTotal = getDayTotal(data, today);
     const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const yesterdayTotal = getVal(yest);
+    const yesterdayTotal = getDayTotal(data, yest);
 
-    // Weekly Data & Total
+    // Weekly Data
     let weeklyData = [];
     let weeklyTotal = 0;
     for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const v = getVal(d);
+        const d = new Date(); d.setDate(today.getDate() - i);
+        const v = getDayTotal(data, d);
         weeklyData.push(v);
         weeklyTotal += v;
     }
 
-    // Daily Goal Logic (Avg/Median of last 14 active days)
+    // Daily Goal (Avg/Median of last 14 active days)
     let activeValues = [];
     for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const v = getVal(d);
+        const d = new Date(); d.setDate(today.getDate() - i);
+        const v = getDayTotal(data, d);
         if (v > 0) activeValues.push(v);
     }
 
-    let dailyGoal = 60; // Your floor
+    let dailyGoal = 60; 
     if (activeValues.length > 0) {
         const sum = activeValues.reduce((a, b) => a + b, 0);
         const avg = sum / activeValues.length;
@@ -118,54 +130,40 @@ function computeStats() {
     }
 
     // 30-Day Windows
-    const thirtyGoal = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK));
     const thirtyImprov = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK));
-
     let total30 = 0;
     for (let i = 0; i < 30; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        total30 += getVal(d);
+        const d = new Date(); d.setDate(today.getDate() - i);
+        total30 += getDayTotal(data, d);
     }
     const avg30 = Number((total30 / 30).toFixed(1));
 
     // Streaks
     let streak = todayTotal > 0 ? 1 : 0;
     for (let i = 1; i < 30; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        if (getVal(d) > 0) streak++; else break;
+        const d = new Date(); d.setDate(today.getDate() - i);
+        if (getDayTotal(data, d) > 0) streak++; else break;
     }
 
-    // Best Streak
+    // Best Streak (All time)
     const allKeys = Object.keys(data).sort();
     let bestStreak = 0, currentStreak = 0;
     if (allKeys.length) {
         let d = new Date(allKeys[0]);
-        const last = new Date();
-        while (d <= last) {
-            if (getVal(d) > 0) currentStreak++; else currentStreak = 0;
+        while (d <= today) {
+            if (getDayTotal(data, d) > 0) currentStreak++; else currentStreak = 0;
             bestStreak = Math.max(bestStreak, currentStreak);
             d.setDate(d.getDate() + 1);
         }
     }
 
-    // Rest Days
-    let restStreak = 0;
-    for (let i = 0; i < 30; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        if (getVal(d) === 0) restStreak++; else break;
-    }
-
+    // Rest Days (Last 14)
     const rest14 = Array.from({ length: 14 }, (_, i) => {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        return getVal(d) === 0 ? 1 : 0;
+        const d = new Date(); d.setDate(today.getDate() - i);
+        return getDayTotal(data, d) === 0 ? 1 : 0;
     }).reduce((a, b) => a + b, 0);
 
-    const active30 = Object.keys(data).filter(k => {
-        const d = new Date(); d.setDate(d.getDate() - 29);
-        return k >= getDateKey(d) && k <= getDateKey(today) && (data[k][currentExercise] || []).length > 0;
-    }).length;
-
-    // Trend Label
+    // Trend
     const trendPct = avg30 / dailyGoal;
     let trend = { label: "Below Target", color: "#ff3b30" };
     if (trendPct >= (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK)) {
@@ -174,17 +172,15 @@ function computeStats() {
         trend = { label: "On Track", color: "#34c759" };
     }
 
-    return {
-        todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, thirtyGoal,
-        thirtyImprov, streak, bestStreak, restStreak, rest14,
-        total30, avg30, active30, trend, weeklyData
-    };
+    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData };
 }
 
+/*************************************************
+ * UI RENDERING
+ *************************************************/
 function updateDisplay() {
     const s = computeStats();
 
-    // 1. Daily Progress Section
     document.getElementById('today-val').innerText = s.todayTotal;
     document.getElementById('yest-val').innerText = s.yesterdayTotal;
     document.getElementById('goal-text').innerText = `Goal: ${s.dailyGoal}`;
@@ -193,11 +189,9 @@ function updateDisplay() {
     document.getElementById('progress-bar-green').style.width = Math.min(pct, 1) * 100 + "%";
     document.getElementById('progress-bar-blue').style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
 
-    // 2. Streaks & Rest
     document.getElementById('streak-val').innerText = s.streak;
     document.getElementById('rest-val').innerText = s.rest14;
 
-    // 3. Weekly Chart
     const chart = document.getElementById('bar-chart');
     chart.innerHTML = '';
     const maxWeek = Math.max(...s.weeklyData, 1);
@@ -207,52 +201,40 @@ function updateDisplay() {
     });
     document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
 
-    // 4. 30-Day Trend
-    const trendFill = document.getElementById('trend-fill');
     const trendPct30 = (s.total30 / s.thirtyImprov) * 100;
-    trendFill.style.width = Math.min(trendPct30, 100) + "%";
-    
+    document.getElementById('trend-fill').style.width = Math.min(trendPct30, 100) + "%";
     document.getElementById('trend-label').innerText = s.trend.label;
     document.getElementById('trend-label').style.color = s.trend.color;
     document.getElementById('avg-30').innerText = `Avg: ${s.avg30}/day`;
 }
 
+/*************************************************
+ * SETTINGS LOGIC
+ *************************************************/
 function renderEditList() {
-    const today = new Date().toISOString().split('T')[0];
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    const todaySets = (data[today] && data[today][currentExercise]) ? data[today][currentExercise] : [];
+    const data = loadData();
+    const todayKey = getDateKey();
+    const sets = data[todayKey]?.[currentExercise] || [];
 
     editSetsList.innerHTML = '';
-    todaySets.forEach((reps, index) => {
-        const div = document.createElement('div');
-        div.className = 'edit-item';
-        div.innerHTML = `
-            <span>Set ${index + 1}: <strong>${reps}</strong></span>
-            <button class="btn-delete" onclick="deleteSet(${index})">Delete</button>
-        `;
-        editSetsList.appendChild(div);
+    sets.forEach((reps, i) => {
+        editSetsList.insertAdjacentHTML('beforeend', `
+            <div class="edit-item">
+                <span>Set ${i + 1}: <strong>${reps}</strong></span>
+                <button class="btn-delete" onclick="deleteSet(${i})">Delete</button>
+            </div>
+        `);
     });
 }
 
-window.deleteSet = (index) => {
-    const today = new Date().toISOString().split('T')[0];
-    let data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    data[today][currentExercise].splice(index, 1);
-    localStorage.setItem('workout-data', JSON.stringify(data));
+window.deleteSet = (i) => {
+    const data = loadData();
+    const todayKey = getDateKey();
+    data[todayKey][currentExercise].splice(i, 1);
+    saveData(data);
     renderEditList();
+    updateDisplay();
 };
 
-logBtn.addEventListener('click', () => {
-    const today = new Date().toISOString().split('T')[0];
-    let data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    if (!data[today]) data[today] = {};
-    if (!data[today][currentExercise]) data[today][currentExercise] = [];
-    data[today][currentExercise].push(parseInt(inputField.value));
-    localStorage.setItem('workout-data', JSON.stringify(data));
-    updateDisplay();
-});
-
-document.getElementById('plus-btn').onclick = () => inputField.value = parseInt(inputField.value) + 1;
-document.getElementById('minus-btn').onclick = () => inputField.value = Math.max(0, parseInt(inputField.value) - 1);
-
+// Start
 updateDisplay();
