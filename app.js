@@ -1,8 +1,12 @@
 const todayCountDisplay = document.getElementById('today-count');
 const inputField = document.getElementById('pushup-input');
-const logBtn = document.getElementById('log-btn');
 const historyList = document.getElementById('history-list');
 const editSetsList = document.getElementById('edit-sets-list');
+const logModal = document.getElementById('log-modal');
+const modalInput = document.getElementById('modal-input');
+const logBtn = document.getElementById('log-btn');
+const cancelBtn = document.getElementById('modal-cancel');
+const okBtn = document.getElementById('modal-ok');
 
 // Page Elements
 const trackerPage = document.getElementById('tracker-page');
@@ -32,6 +36,41 @@ const GOALS = {
     ON_TRACK_DAYS: 4,
     IMPROVE_DAYS: 5, 
     WINDOW_DAYS: 30
+};
+
+// 1. Open Modal
+logBtn.onclick = () => {
+    modalInput.value = ''; // Set to blank
+    logModal.style.display = 'flex';
+    // This timeout ensures the iPhone browser is ready to focus 
+    // and pull up the numeric keypad immediately.
+    setTimeout(() => {
+        modalInput.focus();
+    }, 50); 
+};
+
+// 2. Close Modal (Cancel)
+cancelBtn.onclick = () => {
+    logModal.style.display = 'none';
+};
+
+// 3. Confirm & Save (OK)
+okBtn.onclick = () => {
+    const reps = parseInt(modalInput.value);
+    if (isNaN(reps) || reps <= 0) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    let data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    
+    if (!data[today]) data[today] = {};
+    if (!data[today][currentExercise]) data[today][currentExercise] = [];
+    
+    data[today][currentExercise].push(reps);
+    
+    localStorage.setItem('workout-data', JSON.stringify(data));
+    
+    logModal.style.display = 'none'; // Hide popup
+    updateDisplay(); // Refresh the bento widgets
 };
 
 function computeStats() {

@@ -17,71 +17,78 @@
             <button id="go-to-settings" class="btn-icon">⚙️</button>
         </header>
         
-<main>
-    <div class="widget-card">
-        <h3>Daily Progress</h3>
-        <div class="stat-row">
-            <span id="goal-text" class="label-small">Goal: 70</span>
-        </div>
-        <div class="progress-container">
-            <div id="progress-bar-green" class="bar-fill green"></div>
-            <div id="progress-bar-blue" class="bar-fill blue"></div>
-        </div>
-        <div class="numbers-row">
-            <div class="stat-item">Today: <span id="today-val">0</span></div>
-            <div class="stat-item">Yesterday: <span id="yest-val">0</span></div>
-        </div>
-    </div>
-
-    <div class="input-group">
-        <button id="minus-btn" class="btn-round">-</button>
-        <input type="number" id="pushup-input" value="10" inputmode="numeric">
-        <button id="plus-btn" class="btn-round">+</button>
-    </div>
-    <button id="log-btn" class="btn-primary">LOG SET</button>
-
-    <div class="widget-card">
-        <div class="streak-row">
-            <span class="streak-tag">Streak: <span id="streak-val">0</span></span>
-            <span class="rest-tag">Rest Days: <span id="rest-val">0</span>/14</span>
-        </div>
-        
-        <div class="chart-section">
-            <h3 id="weekly-title">Last 7 Days: 0</h3>
-            <div id="bar-chart" class="bar-chart"></div>
-            <div id="bar-labels" class="bar-labels"></div>
-        </div>
-
-        <div class="trend-section">
-            <h3>30-Day Trend</h3>
-            <div class="segmented-track">
-                <div class="segment red"></div>
-                <div class="segment yellow"></div>
-                <div class="segment green-bg"></div>
-                <div id="trend-fill" class="trend-fill"></div>
+        <main>
+            <div class="widget-card">
+                <h3>Daily Progress</h3>
+                <div class="stat-row">
+                    <span id="goal-text" class="label-small">Goal: 70</span>
+                </div>
+                <div class="progress-container">
+                    <div id="progress-bar-green" class="bar-fill green"></div>
+                    <div id="progress-bar-blue" class="bar-fill blue"></div>
+                </div>
+                <div class="numbers-row">
+                    <div class="stat-item">Today: <span id="today-val">0</span></div>
+                    <div class="stat-item">Yesterday: <span id="yest-val">0</span></div>
+                </div>
             </div>
-            <div class="trend-footer">
-                <span id="trend-label">On Track</span>
-                <span id="avg-30">Avg: 0/day</span>
+
+            <button id="log-btn" class="btn-primary">LOG SET</button>
+
+            <div class="widget-card">
+                <div class="streak-row">
+                    <span class="streak-tag">Streak: <span id="streak-val">0</span></span>
+                    <span class="rest-tag">Rest Days: <span id="rest-val">0</span>/14</span>
+                </div>
+                
+                <div class="chart-section">
+                    <h3 id="weekly-title">Last 7 Days: 0</h3>
+                    <div id="bar-chart" class="bar-chart"></div>
+                    <div id="bar-labels" class="bar-labels"></div>
+                </div>
+
+                <div class="trend-section">
+                    <h3>30-Day Trend</h3>
+                    <div class="segmented-track">
+                        <div class="segment red"></div>
+                        <div class="segment yellow"></div>
+                        <div class="segment green-bg"></div>
+                        <div id="trend-fill" class="trend-fill"></div>
+                    </div>
+                    <div class="trend-footer">
+                        <span id="trend-label">On Track</span>
+                        <span id="avg-30">Avg: 0/day</span>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</main>
+        </main>
     </div>
 
     <div id="settings-page" class="app-container" style="display: none;">
         <header>
             <button id="back-to-tracker" class="btn-icon">←</button>
             <h1>Settings</h1>
-            <div style="width: 40px;"></div> </header>
+            <div style="width: 40px;"></div> 
+        </header>
         
         <main>
             <section class="settings-section">
                 <h3>Edit Today's Sets</h3>
-                <div id="edit-sets-list">
-                    </div>
+                <div id="edit-sets-list"></div>
             </section>
         </main>
+    </div>
+
+    <div id="log-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Log Push-ups</h3>
+            <p>How many reps did you do?</p>
+            <input type="number" id="modal-input" pattern="[0-9]*" inputmode="numeric" placeholder="0">
+            <div class="modal-buttons">
+                <button id="modal-cancel" class="btn-secondary">Cancel</button>
+                <button id="modal-ok" class="btn-primary-small">OK</button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
