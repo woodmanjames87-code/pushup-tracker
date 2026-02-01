@@ -192,14 +192,37 @@ function updateDisplay() {
     document.getElementById('streak-val').innerText = s.streak;
     document.getElementById('rest-val').innerText = s.rest14;
 
-    const chart = document.getElementById('bar-chart');
-    chart.innerHTML = '';
-    const maxWeek = Math.max(...s.weeklyData, 1);
-    s.weeklyData.forEach(v => {
-        const h = (v / maxWeek) * 50;
-        chart.insertAdjacentHTML('beforeend', `<div class="bar-unit" style="height:${h}px; opacity:${v > 0 ? 1 : 0.3}"></div>`);
-    });
-    document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
+    // 3. Weekly Chart, Labels, and Axes
+const chart = document.getElementById('bar-chart');
+const labelContainer = document.getElementById('bar-labels');
+chart.innerHTML = '';
+labelContainer.innerHTML = '';
+
+const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const maxVal = Math.max(...s.weeklyData, 1);
+const midVal = Math.round(maxVal / 2);
+
+// Update Side Numbers
+document.getElementById('axis-max-l').innerText = maxVal;
+document.getElementById('axis-max-r').innerText = maxVal;
+document.getElementById('axis-mid-l').innerText = midVal;
+document.getElementById('axis-mid-r').innerText = midVal;
+
+s.weeklyData.forEach((v, i) => {
+    // 1. Create Bar
+    const hPercentage = (v / maxVal) * 100;
+    chart.insertAdjacentHTML('beforeend', `
+        <div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>
+    `);
+    
+    // 2. Create Day Label
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dayLetter = days[d.getDay()];
+    labelContainer.insertAdjacentHTML('beforeend', `<span class="day-label">${dayLetter}</span>`);
+});
+
+document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
 
     const trendPct30 = (s.total30 / s.thirtyImprov) * 100;
     document.getElementById('trend-fill').style.width = Math.min(trendPct30, 100) + "%";

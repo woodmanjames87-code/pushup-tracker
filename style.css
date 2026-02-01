@@ -155,20 +155,70 @@ h3 {
     border-radius: 8px;
 }
 
-/* Weekly Chart */
+/* =========================
+   Weekly Chart Section
+   ========================= */
+
+/* The outer container holding Axis + Bars + Axis */
+.chart-with-axis {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 70px; 
+    margin-top: 10px;
+    position: relative;
+}
+
+/* Side Numbers (Max, Mid, 0) */
+.axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    width: 20px;
+}
+
+.axis.left { text-align: right; }
+.axis.right { text-align: left; }
+
+/* The actual bar container */
 .bar-chart {
+    flex: 1;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    height: 60px;
-    margin-top: 10px;
+    height: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Individual Bars */
 .bar-unit {
-    width: 16px;
+    width: 16px; 
     background: var(--fitness-green);
-    border-radius: 4px;
-    transition: height 0.3s ease;
+    /* Soft gradient for a premium look */
+    background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%);
+    border-radius: 4px 4px 1px 1px;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 2px; /* Ensures 0 days aren't invisible */
+}
+
+/* Day Labels Row (S M T W T F S) */
+.bar-labels {
+    display: flex;
+    justify-content: space-between;
+    /* Aligns letters exactly under bars by skipping the axis width */
+    margin: 8px 28px 0 28px; 
+}
+
+.day-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    width: 16px; /* Matches bar-unit width */
+    text-align: center;
+    font-weight: 700;
 }
 
 /* =========================
