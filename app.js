@@ -38,7 +38,10 @@ function saveData(data) {
 }
 
 function getDateKey(date = new Date()) {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function getDayTotal(data, date) {
@@ -99,7 +102,7 @@ logForm.onsubmit = (e) => {
 };
 
 /*************************************************
- * STATS ENGINE (Merged & Complete)
+ * STATS ENGINE 
  *************************************************/
 function computeStats() {
     const data = loadData();
@@ -139,7 +142,9 @@ function computeStats() {
     }
 
     // 30-Day Windows
+    const thirtyGoal = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK));
     const thirtyImprov = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK));
+    
     let total30 = 0;
     for (let i = 0; i < 30; i++) {
         const d = new Date(); d.setDate(today.getDate() - i);
@@ -147,12 +152,27 @@ function computeStats() {
     }
     const avg30 = Number((total30 / 30).toFixed(1));
 
+    let active30 = 0;
+    for (let i = 0; i <30; i++) {
+        const d = new Date(); d.setDate(today.getDate() - i);
+        if (getDayTotal(data, d) > 0) active30++;
+    }
     // Streaks
     let streak = todayTotal > 0 ? 1 : 0;
     for (let i = 1; i < 30; i++) {
         const d = new Date(); d.setDate(today.getDate() - i);
         if (getDayTotal(data, d) > 0) streak++; else break;
     }
+
+    // Rest Streak (Days since last workout)
+    let restStreak = 0;
+    // We start from yesterday if today's total is 0
+    let startDay = getDayTotal(data, today) > 0 ? -1 : 0; 
+    for (let i = startDay === -1 ? 0 : 0; i < 365; i++) {
+        const d = new Date(); d.setDate(today.getDate() - i);
+        if (getDayTotal(data, d) === 0) restStreak++; else break;
+    }
+    if (getDayTotal(data, today) > 0) restStreak = 0;
 
     // Best Streak (All time)
     const allKeys = Object.keys(data).sort();
@@ -181,7 +201,7 @@ function computeStats() {
         trend = { label: "On Track", color: "#34c759" };
     }
 
-    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData };
+    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, thirtyGoal, active30, restStreak, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData };
 }
 
 /*************************************************
@@ -200,6 +220,22 @@ function updateDisplay() {
 
     document.getElementById('streak-val').innerText = s.streak;
     document.getElementById('rest-val').innerText = s.rest14;
+
+    document.getElementById('total-30-val').innerText = s.total30;
+    document.getElementById('trend-label').innerText = `Trend: ${s.trend.label}`;
+    document.getElementById('trend-label').style.color = s.trend.color;
+
+    document.getElementById('active-30-val').innerText = `${s.active30}/30`;
+    document.getElementById('avg-30').innerText = `${s.avg30}/day`;
+
+    document.getElementById('thirty-goal-val').innerText = s.thirtyGoal;
+    document.getElementById('thirty-improv-val').innerText = s.thirtyImprov;
+
+
+    // If you want a "Rest Day" indicator:
+    if (s.restStreak > 1) {
+        document.getElementById('rest-val').innerText = `${s.restStreak} Day Rest`;
+    }
 
     // 3. Weekly Chart, Labels, and Axes
 const chart = document.getElementById('bar-chart');

@@ -56,6 +56,9 @@
           <span class="streak-tag">
             Streak: <span id="streak-val">0</span>
           </span>
+          <span id="rest-streak-tag" class="rest-tag" style="display:none;">
+          Rest Streak: <span id="rest-streak-val">0</span>
+          </span>
           <span class="rest-tag">
             Rest Days: <span id="rest-val">0</span>/14
           </span>
@@ -84,19 +87,28 @@
         </div>
 
         <div class="trend-section">
-          <h3>30-Day Trend</h3>
+        <h3>30-Day Performance Trend</h3>
+        <p class="label-tiny">Total: <span id="total-30-val">0</span> — Achieve goal 4/7 days to stay on track</p>
 
-          <div class="segmented-track">
+        <div class="segmented-track">
             <div class="segment red"></div>
             <div class="segment yellow"></div>
             <div class="segment green-bg"></div>
             <div id="trend-fill" class="trend-fill"></div>
-          </div>
+        </div>
 
-          <div class="trend-footer">
-            <span id="trend-label">On Track</span>
-            <span id="avg-30">Avg: 0/day</span>
-          </div>
+        <div class="trend-footer-grid">
+            <div class="trend-col-left">
+            <div id="trend-label" style="font-weight: 600; font-size: 0.9rem;">On Track</div>
+            <div class="label-tiny">Active Days: <span id="active-30-val">0/30</span></div>
+            <div class="label-tiny">Avg: <span id="avg-30">0/day</span></div>
+            </div>
+
+            <div class="trend-col-right">
+            <div class="label-tiny">30-Day Goal:</div>
+            <div class="label-tiny"><span id="thirty-goal-val">0</span> - <span id="thirty-improv-val">0</span></div>
+            </div>
+        </div>
         </div>
       </div>
     </main>
