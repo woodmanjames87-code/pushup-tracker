@@ -121,29 +121,33 @@
   </section>
 
   <!-- LOG MODAL -->
-  <div id="log-modal" class="modal-overlay" hidden>
-    <div class="modal-content" role="dialog" aria-modal="true">
-      <h3>Log Push-ups</h3>
-      <p>How many reps did you do?</p>
+    <div id="log-modal" class="modal-overlay">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <h3>Log Push-ups</h3>
+            <p>How many reps did you do?</p>
+    
+            <form id="log-form" action="#">
+            <input
+                type="number"
+                id="modal-input"
+                inputmode="numeric"
+                min="1"
+                pattern="[0-9]*"
+                placeholder="0"
+                required
+            >
 
-      <input
-        type="number"
-        id="modal-input"
-        inputmode="numeric"
-        min="1"
-        placeholder="0"
-      >
-
-      <div class="modal-buttons">
-        <button id="modal-cancel" class="btn-secondary" type="button">
-          Cancel
-        </button>
-        <button id="modal-ok" class="btn-primary-small" type="button">
-          OK
-        </button>
-      </div>
+            <div class="modal-buttons">
+                <button id="modal-cancel" class="btn-secondary" type="button">
+                Cancel
+                </button>
+                <button id="modal-ok" class="btn-primary-small" type="submit">
+                OK
+                </button>
+            </div>
+            </form>
+        </div>
     </div>
-  </div>
 
   <script src="app.js"></script>
 </body>

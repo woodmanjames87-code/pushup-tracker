@@ -67,12 +67,21 @@ backToTrackerBtn.onclick = () => {
 logBtn.onclick = () => {
     modalInput.value = '';
     logModal.style.display = 'flex';
-    setTimeout(() => modalInput.focus(), 50);
+    modalInput.focus();
+    setTimeout(() => {
+        modalInput.focus();
+        // This 'click' simulates a second interaction to force the keyboard
+        modalInput.click(); 
+    }, 10); 
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
 
-okBtn.onclick = () => {
+const logForm = document.getElementById('log-form');
+
+logForm.onsubmit = (e) => {
+    e.preventDefault(); // Prevents the page from refreshing
+    
     const reps = parseInt(modalInput.value);
     if (isNaN(reps) || reps <= 0) return;
 
