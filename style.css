@@ -79,3 +79,39 @@ input {
     font-size: 1.2rem;
     font-weight: bold;
 }
+.history-container {
+    width: 100%;
+    margin-top: 30px;
+    padding-bottom: 50px; /* Space for scrolling */
+}
+
+h3 {
+    color: #888;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#history-list {
+    list-style: none;
+    padding: 0;
+}
+
+.history-item {
+    background: var(--card-bg);
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.history-date {
+    color: #888;
+}
+
+.history-val {
+    color: var(--primary);
+    font-weight: bold;
+}
