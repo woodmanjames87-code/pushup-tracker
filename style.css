@@ -35,18 +35,17 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
 
 main {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px; /* Uniform spacing between Bento cards */
 }
 
 /* =========================
-   2. Header & Buttons
+   2. Typography & Headers
    ========================= */
 header {
     width: 100%;
@@ -56,11 +55,37 @@ header {
     margin-bottom: 10px;
 }
 
+h3 { 
+    color: var(--text-muted); 
+    font-size: 0.8rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.label-tiny {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+/* =========================
+   3. Buttons
+   ========================= */
 .btn-icon {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.8rem; /* Slightly larger for the symbol */
+    line-height: 1;
     cursor: pointer;
+    color: var(--text-muted); /* Muted looks more "pro" for settings */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.btn-icon:hover {
     color: var(--text);
 }
 
@@ -71,7 +96,7 @@ header {
     width: 100%;
     padding: 15px;
     border-radius: 12px;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
     transition: transform 0.1s ease;
@@ -82,24 +107,22 @@ header {
 }
 
 /* =========================
-   3. Widget Cards & Fitness UI
+   4. Widget Cards (The Bento Boxes)
    ========================= */
 .widget-card {
     background: var(--widget-bg);
     width: 100%;
-    padding: 20px;
+    padding: 18px;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-h3 { 
-    color: var(--text-muted); 
-    font-size: 0.8rem; 
-    text-transform: uppercase; 
-    margin-bottom: 10px; 
-    letter-spacing: 0.5px;
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* Progress Bars */
@@ -109,7 +132,7 @@ h3 {
     border-radius: 8px;
     position: relative;
     overflow: hidden;
-    margin: 10px 0;
+    margin: 4px 0 8px 0;
 }
 
 .bar-fill {
@@ -121,12 +144,12 @@ h3 {
 }
 
 .bar-fill.green {
-    background: linear-gradient(to bottom, #39e639 0%, #2db32d 60%, #1e7a1e 100%);
+    background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%);
     box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
 }
 
 .bar-fill.blue {
-    background: #007AFF;
+    background: var(--primary);
     box-shadow: -3px 0 5px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.4);
     z-index: 2;
 }
@@ -139,56 +162,44 @@ h3 {
     overflow: hidden;
     position: relative;
     background: #1c1c1e;
-    margin: 10px 0;
+    margin: 2px;
 }
 
 .segment { height: 100%; }
-.segment.red { width: 28%; background: rgba(231, 76, 60, 0.45); }
-.segment.yellow { width: 28%; background: rgba(241, 196, 15, 0.45); }
-.segment.green-bg { width: 44%; background: rgba(15, 77, 15, 0.45); }
+.segment.red { width: 28%; background: rgba(231, 76, 60, 0.3); }
+.segment.yellow { width: 28%; background: rgba(241, 196, 15, 0.3); }
+.segment.green-bg { width: 44%; background: rgba(57, 230, 57, 0.15); }
 
-.trend-section h3 {
-    margin-bottom: 2px;
-}
-
-.label-tiny {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    line-height: 1.3;
+.trend-fill {
+    position: absolute;
+    height: 100%;
+    background: var(--fitness-green);
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(57, 230, 57, 0.3);
 }
 
 .trend-footer-grid {
     display: flex;
-    justify-content: space-between; /* Pushes vs2 to the right */
+    justify-content: space-between;
     align-items: flex-start;
-    margin-top: 8px;
+    margin-top: 2px;
 }
 
 .trend-col-right {
-    text-align: right; /* Corresponds to rightAlignText() */
-}
-
-.trend-fill {
-    /* Using a slightly more premium color for the fill */
-    background: var(--fitness-green);
-    box-shadow: 0 0 10px rgba(57, 230, 57, 0.3);
+    text-align: right;
 }
 
 /* =========================
-   Weekly Chart Section
+   5. Weekly Chart Section
    ========================= */
-
-/* The outer container holding Axis + Bars + Axis */
 .chart-with-axis {
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    height: 70px; 
-    margin-top: 10px;
-    position: relative;
+    height: 75px; 
+    margin-top: 6px;
 }
 
-/* Side Numbers (Max, Mid, 0) */
 .axis {
     display: flex;
     flex-direction: column;
@@ -203,7 +214,6 @@ h3 {
 .axis.left { text-align: right; }
 .axis.right { text-align: left; }
 
-/* The actual bar container */
 .bar-chart {
     flex: 1;
     display: flex;
@@ -213,46 +223,40 @@ h3 {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Individual Bars */
 .bar-unit {
     width: 16px; 
-    background: var(--fitness-green);
-    /* Soft gradient for a premium look */
     background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%);
     border-radius: 4px 4px 1px 1px;
-    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 2px; /* Ensures 0 days aren't invisible */
+    transition: height 0.3s ease;
 }
 
-/* Day Labels Row (S M T W T F S) */
 .bar-labels {
     display: flex;
     justify-content: space-between;
-    /* Aligns letters exactly under bars by skipping the axis width */
     margin: 8px 28px 0 28px; 
 }
 
-.day-label {
+.day-letter {
     font-size: 0.7rem;
     color: var(--text-muted);
-    width: 16px; /* Matches bar-unit width */
+    width: 16px;
     text-align: center;
-    font-weight: 700;
+    font-weight: bold;
 }
 
 /* =========================
-   4. Badges & Tags
+   6. Tags & Badges
    ========================= */
 .streak-row {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
 .streak-tag, .rest-tag {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
     font-weight: bold;
     display: inline-flex;
     align-items: center;
@@ -272,7 +276,7 @@ h3 {
 }
 
 /* =========================
-   5. Modals & Popups
+   7. Modals
    ========================= */
 .modal-overlay {
     position: fixed;
@@ -292,7 +296,6 @@ h3 {
     width: 85%;
     max-width: 320px;
     text-align: center;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
 }
 
 #modal-input {
@@ -312,30 +315,27 @@ h3 {
     gap: 12px;
 }
 
-.btn-secondary {
-    background: #3a3a3c;
-    color: white;
-    border: none;
+.btn-secondary, .btn-primary-small {
     flex: 1;
     padding: 14px;
     border-radius: 12px;
     font-weight: bold;
+    border: none;
+    cursor: pointer;
 }
 
-.btn-primary-small {
-    background: var(--primary);
-    color: white;
-    border: none;
-    flex: 1;
-    padding: 14px;
-    border-radius: 12px;
-    font-weight: bold;
-}
+.btn-secondary { background: #3a3a3c; color: white; }
+.btn-primary-small { background: var(--primary); color: white; }
 
 /* =========================
-   6. Settings & Utility
+   8. Settings & Utility
    ========================= */
-.history-item, .edit-item {
+#settings-page {
+    display: none;
+    width: 100%;
+}
+
+.edit-item {
     background: var(--card-bg);
     display: flex;
     justify-content: space-between;
@@ -352,13 +352,6 @@ h3 {
     padding: 8px 14px;
     border-radius: 8px;
     font-weight: bold;
-}
-
-#settings-page {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
 }
 
 .hidden { display: none !important; }

@@ -24,94 +24,83 @@
     <header>
       <h1>Push-Ups</h1>
       <button id="go-to-settings" class="btn-icon" type="button" aria-label="Settings">
-        ⚙️
+        &#9881;
       </button>
     </header>
 
     <main>
-      <div class="widget-card">
+    <div class="widget-card">
+        <div class="header-row">
         <h3>Daily Progress</h3>
-
-        <div class="stat-row">
-          <span id="goal-text" class="label-small">Goal: 70</span>
+        <span id="goal-text" class="label-tiny">Goal: 70</span>
         </div>
-
+        
         <div class="progress-container">
-          <div id="progress-bar-green" class="bar-fill green"></div>
-          <div id="progress-bar-blue" class="bar-fill blue"></div>
+        <div id="progress-bar-green" class="bar-fill green"></div>
+        <div id="progress-bar-blue" class="bar-fill blue"></div>
         </div>
 
-        <div class="numbers-row">
-          <div class="stat-item">Today: <span id="today-val">0</span></div>
-          <div class="stat-item">Yesterday: <span id="yest-val">0</span></div>
+        <div class="numbers-row" style="display: flex; justify-content: center; gap: 20px; margin-top: 0;">
+        <div class="label-tiny">Today: <span id="today-val" style="color: white; font-weight: bold;">0</span></div>
+        <div class="label-tiny">Yesterday: <span id="yest-val" style="color: white; font-weight: bold;">0</span></div>
         </div>
-      </div>
+    </div>
 
-      <button id="log-btn" class="btn-primary" type="button">
-        LOG SET
-      </button>
+    <button id="log-btn" class="btn-primary" type="button">LOG SET</button>
 
-      <div class="widget-card">
+    <div class="widget-card">
         <div class="streak-row">
-          <span class="streak-tag">
-            Streak: <span id="streak-val">0</span>
-          </span>
-          <span id="rest-streak-tag" class="rest-tag" style="display:none;">
-          Rest Streak: <span id="rest-streak-val">0</span>
-          </span>
-          <span class="rest-tag">
-            Rest Days: <span id="rest-val">0</span>/14
-          </span>
+        <span class="streak-tag"> Streak: <span id="streak-val">0</span></span>
+        <span id="rest-streak-tag" class="rest-tag" style="display:none;"> Rest Streak: <span id="rest-streak-val">0</span></span>
+        <span class="rest-tag"> Rest Days: <span id="rest-val">0</span>/14</span>
         </div>
+    </div>
 
+    <div class="widget-card"
         <div class="chart-section">
-            <h3 id="weekly-title">Last 7 Days: 0</h3>
-    
-            <div class="chart-with-axis">
-                <div class="axis left">
-                    <span id="axis-max-l">0</span>
-                    <span id="axis-mid-l">0</span>
-                    <span>0</span>
-                </div>
-
-                <div id="bar-chart" class="bar-chart"></div>
-
-                <div class="axis right">
-                    <span id="axis-max-r">0</span>
-                    <span id="axis-mid-r">0</span>
-                    <span>0</span>
-                </div>
+        <h3 id="weekly-title">Last 7 Days: 0</h3>
+        <div class="chart-with-axis">
+            <div class="axis left">
+            <span id="axis-max-l">0</span>
+            <span id="axis-mid-l">0</span>
+            <span>0</span>
             </div>
-    
-            <div id="bar-labels" class="bar-labels"></div>
+            <div id="bar-chart" class="bar-chart"></div>
+            <div class="axis right">
+            <span id="axis-max-r">0</span>
+            <span id="axis-mid-r">0</span>
+            <span>0</span>
+            </div>
         </div>
+        <div id="bar-labels" class="bar-labels"></div>
+        </div>
+    </div>
 
-        <div class="trend-section">
+    <div class="widget-card trend-section">
         <h3>30-Day Performance Trend</h3>
         <p class="label-tiny">Total: <span id="total-30-val">0</span> — Achieve goal 4/7 days to stay on track</p>
 
         <div class="segmented-track">
-            <div class="segment red"></div>
-            <div class="segment yellow"></div>
-            <div class="segment green-bg"></div>
-            <div id="trend-fill" class="trend-fill"></div>
+        <div class="segment red"></div>
+        <div class="segment yellow"></div>
+        <div class="segment green-bg"></div>
+        <div id="trend-fill" class="trend-fill"></div>
         </div>
 
         <div class="trend-footer-grid">
-            <div class="trend-col-left">
+        <div class="trend-col-left">
             <div id="trend-label" style="font-weight: 600; font-size: 0.9rem;">On Track</div>
             <div class="label-tiny">Active Days: <span id="active-30-val">0/30</span></div>
-            <div class="label-tiny">Avg: <span id="avg-30">0/day</span></div>
-            </div>
-
-            <div class="trend-col-right">
+            <div class="label-tiny"><span id="avg-30">0/day</span></div>
+        </div>
+        <div class="trend-col-right">
             <div class="label-tiny">30-Day Goal:</div>
             <div class="label-tiny"><span id="thirty-goal-val">0</span> - <span id="thirty-improv-val">0</span></div>
-            </div>
         </div>
         </div>
-      </div>
+    </div>
     </main>
+
   </section>
 
   <!-- SETTINGS PAGE -->

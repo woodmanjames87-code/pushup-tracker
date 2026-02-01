@@ -243,7 +243,7 @@ const labelContainer = document.getElementById('bar-labels');
 chart.innerHTML = '';
 labelContainer.innerHTML = '';
 
-const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const days = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
 const maxVal = Math.max(...s.weeklyData, 1);
 const midVal = Math.round(maxVal / 2);
 
