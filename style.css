@@ -120,3 +120,80 @@ h3 { color: #888; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 1
     font-size: 0.8rem;
     font-weight: bold;
 }
+
+/* Widget Cards */
+.widget-card {
+    background: #2a2a2d; /* Matches your Scriptable UI.COLORS.card */
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+/* Progress Bars */
+.progress-container {
+    height: 16px;
+    background: rgba(15, 77, 15, 0.4);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.bar-fill {
+    height: 100%;
+    position: absolute;
+    left: 0;
+    border-radius: 8px;
+    transition: width 0.3s ease;
+}
+
+.bar-fill.green {
+    background: linear-gradient(to bottom, #39e639 0%, #2db32d 60%, #1e7a1e 100%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
+}
+
+.bar-fill.blue {
+    background: #007AFF;
+    box-shadow: -3px 0 5px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.4);
+    z-index: 2;
+}
+
+/* 30-Day Segmented Bar */
+.segmented-track {
+    height: 16px;
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background: #1c1c1e;
+}
+
+.segment { height: 100%; }
+.segment.red { width: 28%; background: rgba(231, 76, 60, 0.45); }
+.segment.yellow { width: 28%; background: rgba(241, 196, 15, 0.45); }
+.segment.green-bg { width: 44%; background: rgba(15, 77, 15, 0.45); }
+
+.trend-fill {
+    position: absolute;
+    height: 100%;
+    background: #39e639;
+    width: 0%;
+    border-radius: 8px;
+}
+
+/* Weekly Chart */
+.bar-chart {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 50px;
+    margin-top: 10px;
+}
+
+.bar-unit {
+    width: 16px;
+    background: #39e639;
+    border-radius: 4px;
+}

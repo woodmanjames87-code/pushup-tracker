@@ -17,25 +17,56 @@
             <button id="go-to-settings" class="btn-icon">⚙️</button>
         </header>
         
-        <main>
-            <div class="stat-card">
-                <span class="label">Total Today</span>
-                <div id="today-count" class="big-number">0</div>
-            </div>
+<main>
+    <div class="widget-card">
+        <h3>Daily Progress</h3>
+        <div class="stat-row">
+            <span id="goal-text" class="label-small">Goal: 70</span>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar-green" class="bar-fill green"></div>
+            <div id="progress-bar-blue" class="bar-fill blue"></div>
+        </div>
+        <div class="numbers-row">
+            <div class="stat-item">Today: <span id="today-val">0</span></div>
+            <div class="stat-item">Yesterday: <span id="yest-val">0</span></div>
+        </div>
+    </div>
 
-            <div class="input-group">
-                <button id="minus-btn" class="btn-round">-</button>
-                <input type="number" id="pushup-input" value="10" inputmode="numeric">
-                <button id="plus-btn" class="btn-round">+</button>
-            </div>
+    <div class="input-group">
+        <button id="minus-btn" class="btn-round">-</button>
+        <input type="number" id="pushup-input" value="10" inputmode="numeric">
+        <button id="plus-btn" class="btn-round">+</button>
+    </div>
+    <button id="log-btn" class="btn-primary">LOG SET</button>
 
-            <button id="log-btn" class="btn-primary">LOG SET</button>
+    <div class="widget-card">
+        <div class="streak-row">
+            <span class="streak-tag">Streak: <span id="streak-val">0</span></span>
+            <span class="rest-tag">Rest Days: <span id="rest-val">0</span>/14</span>
+        </div>
+        
+        <div class="chart-section">
+            <h3 id="weekly-title">Last 7 Days: 0</h3>
+            <div id="bar-chart" class="bar-chart"></div>
+            <div id="bar-labels" class="bar-labels"></div>
+        </div>
 
-            <div class="history-container">
-                <h3>Last 7 Days</h3>
-                <ul id="history-list"></ul>
+        <div class="trend-section">
+            <h3>30-Day Trend</h3>
+            <div class="segmented-track">
+                <div class="segment red"></div>
+                <div class="segment yellow"></div>
+                <div class="segment green-bg"></div>
+                <div id="trend-fill" class="trend-fill"></div>
             </div>
-        </main>
+            <div class="trend-footer">
+                <span id="trend-label">On Track</span>
+                <span id="avg-30">Avg: 0/day</span>
+            </div>
+        </div>
+    </div>
+</main>
     </div>
 
     <div id="settings-page" class="app-container" style="display: none;">
