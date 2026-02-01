@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Push-Up Tracker</title>
+    <title>Workout Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PushUps">
+    <meta name="apple-mobile-web-app-title" content="Workout">
 </head>
 <body>
     <div id="tracker-page" class="app-container">
         <header>
-            <h1>Push-Up Tracker</h1>
+            <h1>Push-Ups</h1>
             <button id="go-to-settings" class="btn-icon">⚙️</button>
         </header>
         
@@ -22,20 +22,35 @@
                 <span class="label">Total Today</span>
                 <div id="today-count" class="big-number">0</div>
             </div>
-            </main>
+
+            <div class="input-group">
+                <button id="minus-btn" class="btn-round">-</button>
+                <input type="number" id="pushup-input" value="10" inputmode="numeric">
+                <button id="plus-btn" class="btn-round">+</button>
+            </div>
+
+            <button id="log-btn" class="btn-primary">LOG SET</button>
+
+            <div class="history-container">
+                <h3>Last 7 Days</h3>
+                <ul id="history-list"></ul>
+            </div>
+        </main>
     </div>
 
     <div id="settings-page" class="app-container" style="display: none;">
         <header>
             <button id="back-to-tracker" class="btn-icon">←</button>
             <h1>Settings</h1>
-        </header>
+            <div style="width: 40px;"></div> </header>
         
-        <section class="settings-section">
-            <h3>Manage Today's Sets</h3>
-            <div id="edit-sets-list">
-                </div>
-        </section>
+        <main>
+            <section class="settings-section">
+                <h3>Edit Today's Sets</h3>
+                <div id="edit-sets-list">
+                    </div>
+            </section>
+        </main>
     </div>
 
     <script src="app.js"></script>
