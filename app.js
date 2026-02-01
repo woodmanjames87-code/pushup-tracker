@@ -231,11 +231,13 @@ function updateDisplay() {
     document.getElementById('thirty-goal-val').innerText = s.thirtyGoal;
     document.getElementById('thirty-improv-val').innerText = s.thirtyImprov;
 
-
-    // If you want a "Rest Day" indicator:
-    if (s.restStreak > 1) {
-        document.getElementById('rest-val').innerText = `${s.restStreak} Day Rest`;
-    }
+    const restStreakTag = document.getElementById('rest-streak-tag');
+        if (s.restStreak > 0) {
+            restStreakTag.style.display = 'inline-flex'; // Changed to inline-flex to match tags
+           document.getElementById('rest-streak-val').innerText = s.restStreak;
+        } else {
+            restStreakTag.style.display = 'none';
+        }
 
     // 3. Weekly Chart, Labels, and Axes
 const chart = document.getElementById('bar-chart');
