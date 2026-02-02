@@ -7,9 +7,10 @@
   "description": "Offline push-up logger.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2554/2554032.png",
+      "src": "pushup-icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

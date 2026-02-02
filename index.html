@@ -45,9 +45,7 @@
         <div class="label-tiny">Yesterday: <span id="yest-val" style="color: white; font-weight: bold;">0</span></div>
         </div>
     </div>
-
-    <button id="log-btn" class="btn-primary" type="button">LOG SET</button>
-
+   
     <div class="widget-card">
         <div class="streak-row">
             <span class="streak-tag">
@@ -121,8 +119,21 @@
 
     <main>
       <section class="settings-section">
-        <h3>Edit Today's Sets</h3>
-        <div id="edit-sets-list"></div>
+        <h3>Edit Entries</h3>
+        
+        <div class="date-picker-container">
+          <label for="edit-date-picker" class="label-tiny">Select Date to Edit:</label>
+          <input type="date" id="edit-date-picker">
+        </div>
+
+        <hr class="divider">
+
+        <div id="edit-sets-list">
+          </div>
+
+        <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
+          + Add Set to Selected Date
+        </button>
       </section>
     </main>
   </section>
@@ -158,4 +169,5 @@
 
   <script src="app.js"></script>
 </body>
+ <button id="floating-log-btn" class="btn-primary floating-btn"> + LOG SET</button>
 </html>

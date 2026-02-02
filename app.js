@@ -1,7 +1,12 @@
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log("Offline Mode Active"))
+    .catch(err => console.log("Offline Mode Failed", err));
+}
 /*************************************************
  * DOM REFERENCES
  *************************************************/
-const logBtn = document.getElementById('log-btn');
+const floatingLogBtn = document.getElementById('floating-log-btn');
 const logModal = document.getElementById('log-modal');
 const modalInput = document.getElementById('modal-input');
 const cancelBtn = document.getElementById('modal-cancel');
@@ -55,19 +60,21 @@ function getDayTotal(data, date) {
 goToSettingsBtn.onclick = () => {
     trackerPage.style.display = 'none';
     settingsPage.style.display = 'flex';
+    floatingLogBtn.style.display = 'none';
     renderEditList();
 };
 
 backToTrackerBtn.onclick = () => {
     settingsPage.style.display = 'none';
     trackerPage.style.display = 'flex';
+    floatingLogBtn.style.display = 'block';
     updateDisplay();
 };
 
 /*************************************************
  * LOGGING FLOW
  *************************************************/
-logBtn.onclick = () => {
+floatingLogBtn.onclick = () => {
     modalInput.value = '';
     logModal.style.display = 'flex';
     modalInput.focus();
@@ -281,12 +288,32 @@ document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTota
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/
+// 1. We need to store the "currently selected date" globally
+let selectedEditDate = getDateKey(); // Defaults to today
+
+// 2. Setup the Date Picker
+const datePicker = document.getElementById('edit-date-picker');
+datePicker.value = selectedEditDate;
+
+// 3. Update the view when the date changes
+datePicker.addEventListener('change', (e) => {
+    selectedEditDate = e.target.value; // e.g., "2024-05-20"
+    renderEditList(); 
+});
+
+// 4. Your updated Render Function
 function renderEditList() {
     const data = loadData();
-    const todayKey = getDateKey();
-    const sets = data[todayKey]?.[currentExercise] || [];
+    // Instead of todayKey, we use the date from the picker
+    const sets = data[selectedEditDate]?.[currentExercise] || [];
 
     editSetsList.innerHTML = '';
+
+    if (sets.length === 0) {
+        editSetsList.innerHTML = '<p class="h3" style="text-align:center;">No sets for this date.</p>';
+        return;
+    }
+
     sets.forEach((reps, i) => {
         editSetsList.insertAdjacentHTML('beforeend', `
             <div class="edit-item">
@@ -297,14 +324,47 @@ function renderEditList() {
     });
 }
 
+// 5. Your updated Delete Function
 window.deleteSet = (i) => {
     const data = loadData();
-    const todayKey = getDateKey();
-    data[todayKey][currentExercise].splice(i, 1);
-    saveData(data);
-    renderEditList();
-    updateDisplay();
+    // Use selectedEditDate so we delete from the day we are looking at!
+    if (data[selectedEditDate] && data[selectedEditDate][currentExercise]) {
+        data[selectedEditDate][currentExercise].splice(i, 1);
+        saveData(data);
+        renderEditList(); // Refresh the settings list
+        updateDisplay();  // Refresh the main dashboard charts/streaks
+    }
 };
+// Listener for the "Add Past Set" button
+document.getElementById('btn-add-past').addEventListener('click', () => {
+    const reps = prompt("Enter reps for this set:");
+    
+    // Validate that it's a number and not empty
+    if (reps !== null && reps.trim() !== "" && !isNaN(reps)) {
+        addSetToDate(selectedEditDate, parseInt(reps));
+    }
+});
 
+function addSetToDate(dateKey, reps) {
+    const data = loadData();
+
+    // 1. Ensure the date object exists
+    if (!data[dateKey]) {
+        data[dateKey] = {};
+    }
+
+    // 2. Ensure the exercise array exists for that date
+    if (!data[dateKey][currentExercise]) {
+        data[dateKey][currentExercise] = [];
+    }
+
+    // 3. Push the new reps into the array
+    data[dateKey][currentExercise].push(reps);
+
+    // 4. Save and Refresh everything
+    saveData(data);
+    renderEditList(); // Refresh the list you are looking at
+    updateDisplay();  // Force the charts and streaks to recalculate
+}
 // Start
 updateDisplay();

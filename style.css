@@ -8,7 +8,7 @@
     --primary: #007aff;
     --fitness-green: #39e639;
     --text: #ffffff;
-    --text-muted: #989393;
+    --text-muted: #888888;
     --danger: #ff3b30;
     --orange: #ff9f0a;
 }
@@ -33,6 +33,7 @@ body {
     width: 100%;
     max-width: 400px;
     padding: 20px;
+    padding-bottom: 100px;
     display: flex;
     flex-direction: column;
 }
@@ -104,6 +105,23 @@ h3 {
 
 .btn-primary:active {
     transform: scale(0.98);
+}
+
+.floating-btn {
+    position: fixed; /* Pins it relative to the screen, not the content */
+    bottom: 30px;    /* Distance from the bottom */
+    left: 50%;       /* Center it horizontally */
+    transform: translateX(-50%); /* Perfectly aligns the center of the button */
+    
+    width: 85%;      /* Make it wide and easy to hit with a thumb */
+    max-width: 400px;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    
+    /* Shadow makes it look like it's "floating" above the cards */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 999;    /* Ensures it stays on top of all other cards */
 }
 
 /* =========================
@@ -360,6 +378,39 @@ h3 {
     padding: 8px 14px;
     border-radius: 8px;
     font-weight: bold;
+}
+/* Style the date picker container */
+.date-picker-container {
+    margin-bottom: 20px;
+}
+
+/* Style the actual input box */
+#edit-date-picker {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #1c1c1e; /* Matches your background */
+    border: 1px solid #3a3a3c;   /* Subtle border */
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;    /* Removes default iOS styling */
+    -moz-appearance: none;
+    min-height: 1.2em;
+}
+
+/* Change the color of the calendar icon (for Chrome/Android) */
+#edit-date-picker::-webkit-calendar-picker-indicator {
+    filter: invert(1); /* Turns the black icon white */
+    cursor: pointer;
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid #3a3a3c;
+    margin: 20px 0;
 }
 
 .hidden { display: none !important; }
