@@ -1,6 +1,6 @@
-/* =========================
-   1. Global Variables & Reset
-   ========================= */
+/* =================================================
+   1. CORE VARIABLES & RESET
+   ================================================= */
 :root {
     --bg-color: #121212;
     --card-bg: #1e1e1e;
@@ -11,6 +11,7 @@
     --text-muted: #888888;
     --danger: #ff3b30;
     --orange: #ff9f0a;
+    --track-bg: #1c1c1e;
 }
 
 *, *::before, *::after {
@@ -29,11 +30,14 @@ body {
     line-height: 1.4;
 }
 
+/* =================================================
+   2. APP LAYOUT & STRUCTURE
+   ================================================= */
 .app-container {
     width: 100%;
     max-width: 400px;
-    padding: 20px;
-    padding-bottom: 100px;
+    margin: 0 auto;
+    padding: 20px 20px 120px 20px;
     display: flex;
     flex-direction: column;
 }
@@ -42,12 +46,9 @@ main {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Uniform spacing between Bento cards */
+    gap: 12px;
 }
 
-/* =========================
-   2. Typography & Headers
-   ========================= */
 header {
     width: 100%;
     display: flex;
@@ -56,77 +57,116 @@ header {
     margin-bottom: 10px;
 }
 
+.divider {
+    border: 0;
+    border-top: 1px solid #3a3a3c;
+    margin: 20px 0;
+}
+
+.hidden { 
+    display: none !important; 
+}
+
+#settings-page {
+    display: none; /* Default to hidden */
+}
+
+/* =================================================
+   3. TYPOGRAPHY
+   ================================================= */
+h1 { font-size: 1.5rem; font-weight: 800; }
+h2 { font-size: 1.2rem; }
 h3 { 
     color: var(--text); 
     font-size: 0.8rem; 
     text-transform: uppercase; 
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
 }
 
 .label-tiny {
     font-size: 0.75rem;
     color: var(--text-muted);
-    line-height: 1.3;
 }
 
-/* =========================
-   3. Buttons
-   ========================= */
-.btn-icon {
-    background: none;
-    border: none;
-    font-size: 1.8rem; /* Slightly larger for the symbol */
-    line-height: 1;
-    cursor: pointer;
-    color: var(--text-muted); /* Muted looks more "pro" for settings */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s ease;
+.label-mini {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: bold;
 }
 
-.btn-icon:hover {
-    color: var(--text);
-}
-
+/* =================================================
+   4. BUTTONS
+   ================================================= */
 .btn-primary {
     background: var(--primary);
     color: white;
     border: none;
-    width: 100%;
     padding: 15px;
     border-radius: 12px;
     font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.1s ease;
-}
-
-.btn-primary:active {
-    transform: scale(0.98);
 }
 
 .floating-btn {
-    position: fixed; /* Pins it relative to the screen, not the content */
-    bottom: 30px;    /* Distance from the bottom */
-    left: 50%;       /* Center it horizontally */
-    transform: translateX(-50%); /* Perfectly aligns the center of the button */
-    
-    width: 85%;      /* Make it wide and easy to hit with a thumb */
-    max-width: 400px;
-    padding: 16px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    
-    /* Shadow makes it look like it's "floating" above the cards */
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 360px;
+    z-index: 999;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    z-index: 999;    /* Ensures it stays on top of all other cards */
 }
 
-/* =========================
-   4. Widget Cards (The Bento Boxes)
-   ========================= */
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.btn-delete {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+.btn-secondary, .btn-primary-small {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: opacity 0.2s;
+}
+
+.btn-secondary { 
+    background: #3a3a3c; 
+    color: white; 
+}
+
+.btn-primary-small { 
+    background: var(--primary); 
+    color: white; 
+}
+
+/* Fix for the wide "Add Set" button in Settings */
+#btn-add-past {
+    width: 100%;
+    margin-top: 15px;
+}
+
+/* =================================================
+   5. WIDGET CARDS (BENTO BOXES)
+   ================================================= */
 .widget-card {
     background: var(--widget-bg);
     width: 100%;
@@ -141,16 +181,19 @@ h3 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 4px;
 }
 
-/* Progress Bars */
+/* =================================================
+   6. PROGRESS BARS & TRACKS
+   ================================================= */
 .progress-container {
     height: 16px;
-    background: rgba(15, 77, 15, 0.4);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     position: relative;
     overflow: hidden;
-    margin: 4px 0 8px 0;
+    margin: 8px 0;
 }
 
 .bar-fill {
@@ -158,84 +201,52 @@ h3 {
     position: absolute;
     left: 0;
     border-radius: 8px;
-    transition: width 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .bar-fill.green {
     background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%);
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
 }
 
 .bar-fill.blue {
     background: var(--primary);
-    box-shadow: -3px 0 5px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.4);
     z-index: 2;
 }
 
-/* 30-Day Segmented Bar */
+/* Segmented Trends */
 .segmented-track {
     height: 16px;
     display: flex;
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    background: #1c1c1e;
-    margin: 2px;
+    background: var(--track-bg);
+    margin: 8px 0;
 }
 
 .segment { height: 100%; }
-.segment.red { width: 28%; background: rgba(231, 76, 60, 0.3); }
-.segment.yellow { width: 28%; background: rgba(241, 196, 15, 0.3); }
-.segment.green-bg { width: 44%; background: rgba(57, 230, 57, 0.15); }
+.segment.red { width: 28%; background: rgba(231, 76, 60, 0.2); }
+.segment.yellow { width: 28%; background: rgba(241, 196, 15, 0.2); }
+.segment.green-bg { width: 44%; background: rgba(57, 230, 57, 0.1); }
 
 .trend-fill {
     position: absolute;
     height: 100%;
     background: var(--fitness-green);
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(57, 230, 57, 0.3);
+    transition: width 0.5s ease;
 }
 
-.trend-footer-grid {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-top: 2px;
-}
-
-.trend-col-right {
-    text-align: right;
-}
-
-/* =========================
-   5. Weekly Chart Section
-   ========================= */
-#weekly-title {
-    margin-left: 28px;
-    margin-bottom: 4px;
-}
-
+/* =================================================
+   7. CHARTS (WEEKLY & MONTHLY)
+   ================================================= */
 .chart-with-axis {
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    height: 75px; 
-    margin-top: 6px;
+    height: 75px;
+    margin-top: 10px;
 }
-
-.axis {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    font-weight: bold;
-    width: 20px;
-}
-
-.axis.left { text-align: right; }
-.axis.right { text-align: left; }
 
 .bar-chart {
     flex: 1;
@@ -247,175 +258,106 @@ h3 {
 }
 
 .bar-unit {
-    width: 16px; 
-    background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%);
+    width: 16px;
+    background: linear-gradient(to bottom, var(--fitness-green), #2db32d);
     border-radius: 4px 4px 1px 1px;
-    transition: height 0.3s ease;
+}
+
+.bar-unit.legacy { width: 18px; }
+
+/* Axis Labels */
+.axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    width: 20px;
 }
 
 .bar-labels {
     display: flex;
     justify-content: space-between;
-    margin: 4px 28px 0 28px; 
+    margin: 4px 28px 0 28px;
 }
 
-.day-label {
-    font-size: 0.7rem;
+.day-label, .month-label {
+    font-size: 0.65rem;
     color: var(--text-muted);
-    width: 16px;
-    text-align: center;
     font-weight: bold;
+    text-align: center;
 }
 
-/* =========================
-   6. Tags & Badges
-   ========================= */
+/* Monthly Specific Logic */
+.monthly-bar-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+/* =================================================
+   8. TAGS & BADGES
+   ================================================= */
 .streak-row {
     display: flex;
     justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 0px;
 }
 
 .streak-tag, .rest-tag {
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 0.75rem;
     font-weight: bold;
-    display: inline-flex;
-    white-space: nowrap;
-    align-items: center;
     border: 1px solid transparent;
 }
 
 .streak-tag {
-    background: rgba(255, 159, 10, 0.15);
+    background: rgba(255, 159, 10, 0.1);
     color: var(--orange);
-    border-color: rgba(255, 159, 10, 0.3);
+    border-color: rgba(255, 159, 10, 0.2);
 }
 
 .rest-tag {
-    background: rgba(10, 132, 255, 0.15);
+    background: rgba(10, 132, 255, 0.1);
     color: var(--primary);
-    border-color: rgba(10, 132, 255, 0.3);
+    border-color: rgba(10, 132, 255, 0.2);
 }
 
-/* =========================
-   7. Modals
-   ========================= */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(8px);
-}
-
-.modal-content {
-    background: #2c2c2e;
-    padding: 25px;
-    border-radius: 24px;
-    width: 85%;
-    max-width: 320px;
-    text-align: center;
-}
-
-#modal-input {
-    width: 100%;
-    background: #1c1c1e;
-    border: 1px solid #3a3a3c;
-    color: white;
-    font-size: 2.5rem;
-    padding: 15px;
-    border-radius: 16px;
-    margin: 20px 0;
-    text-align: center;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 12px;
-}
-
-.btn-secondary, .btn-primary-small {
-    flex: 1;
-    padding: 14px;
-    border-radius: 12px;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-secondary { background: #3a3a3c; color: white; }
-.btn-primary-small { background: var(--primary); color: white; }
-
-/* =========================
-   8. Settings & Utility
-   ========================= */
-#settings-page {
-    display: none;
-    width: 100%;
-}
-
+/* =================================================
+   9. SETTINGS & EDITING
+   ================================================= */
 .settings-header {
-    display: flex !important; /* Forces flex if something else was overriding it */
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto 20px auto;
-}
-
-.edit-item {
-    background: var(--card-bg);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-}
-
-.btn-delete {
-    background: var(--danger);
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-weight: bold;
-}
-
-#display-date-label {
-    margin: 0;
-    font-size: 1rem; 
-    font-weight: 700;
-    color: #ffffff;
-    white-space: nowrap;
+    margin-bottom: 20px;
+    gap: 10px;
 }
 
 .date-picker-trigger {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #2c2c2e;
+    background: #2c2c2e;
     padding: 8px 16px;
     border-radius: 10px;
     border: 1px solid #3a3a3c;
     cursor: pointer;
+    display: flex;
+    align-items: center;
     min-width: 140px;
-    height: 40px; /* Fixed height helps desktop alignment */
+    height: 40px;
 }
 
 .trigger-text {
-    color: #007aff;
+    color: var(--primary);
     font-weight: 600;
-    pointer-events: none; /* 🚀 CRITICAL: Clicks pass through to the input */
+    font-size: 0.85rem;
+    pointer-events: none; /* Makes clicks pass through to input */
     z-index: 1;
 }
 
@@ -425,20 +367,18 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0; /* Ensures it's invisible */
+    opacity: 0; /* Invisible but clickable */
     cursor: pointer;
-    z-index: 10; /* Ensures it sits on top of the text */
-    margin: 0;
-    padding: 0;
-    border: none;
-    display: block !important; /* Keeps it active but invisible */
+    z-index: 2;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-/* For some browsers, the 'calendar icon' needs to be scaled to fill the box */
+/* Force the calendar icon to be huge so the whole box is clickable */
 #edit-date-picker::-webkit-calendar-picker-indicator {
     position: absolute;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     margin: 0;
@@ -446,15 +386,52 @@ h3 {
     cursor: pointer;
 }
 
-/* Visual feedback when tapped */
-.date-picker-trigger:active {
-    background-color: #3a3a3c;
+.edit-item {
+    background: var(--card-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
 }
 
-.divider {
-    border: 0;
-    border-top: 1px solid #3a3a3c;
+/* =================================================
+   10. MODALS
+   ================================================= */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.modal-content {
+    background: #2c2c2e;
+    padding: 30px;
+    border-radius: 28px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
+}
+
+#modal-input {
+    width: 100%;
+    background: #1c1c1e;
+    border: 1px solid #3a3a3c;
+    color: white;
+    font-size: 3rem;
+    padding: 10px;
+    border-radius: 16px;
     margin: 20px 0;
+    text-align: center;
 }
 
-.hidden { display: none !important; }
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+}

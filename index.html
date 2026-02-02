@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    <div class="widget-card"
+    <div class="widget-card">
         <div class="chart-section">
         <h3 id="weekly-title">Last 7 Days: 0</h3>
         <div class="chart-with-axis">
@@ -103,6 +103,61 @@
         </div>
         </div>
     </div>
+
+    <div id="legacy-insights" class="widget-card">
+        <div class="header-row">
+            <h3 style="color: var(--fitness-green); margin: 0;">Legacy Insights</h3>
+            <span id="legacy-projected" class="label-tiny"></span>
+        </div>
+        
+        <div class="header-row" style="margin-top: 4px; opacity: 0.7;">
+            <span id="legacy-since" class="label-tiny"></span>
+            <span id="legacy-active-days" class="label-tiny"></span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0;">
+            <div>
+                <div class="label-tiny">ALL-TIME TOTAL</div>
+                <div id="stat-all-time" style="font-size: 1.4rem; font-weight: 800;">0</div>
+            </div>
+            <div>
+                <div class="label-tiny">PERSONAL BEST</div>
+                <div id="stat-pb" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green);">0</div>
+            </div>
+            <div>
+                <div id="label-ytd" class="label-tiny">YTD TOTAL</div>
+                <div id="stat-ytd" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green);">0</div>
+            </div>
+            <div>
+                <div class="label-tiny">100+ CLUB</div>
+                <div id="stat-century" style="font-size: 1.4rem; font-weight: 800; color: var(--orange);">0</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+            <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px;">NEXT MILESTONE: 0</div>
+            <div class="progress-container" style="background: #1c1c1e;">
+                <div id="milestone-fill" class="bar-fill green" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="label-tiny" style="text-align: center; margin-bottom: 8px;">VOLUME BY INTENSITY</div>
+        <div class="segmented-track">
+            <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%;"></div>
+            <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%;"></div>
+            <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%;"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div id="monthly-chart" class="chart-with-axis" style="height: 60px;">
+            </div>
+    </div>
+
     </main>
 
   </section>

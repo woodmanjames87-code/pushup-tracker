@@ -112,7 +112,8 @@ logForm.onsubmit = (e) => {
 function computeStats() {
     const data = loadData();
     const today = new Date();
-    
+    const currentYearStr = today.getFullYear().toString();
+
     // Basic Totals
     const todayTotal = getDayTotal(data, today);
     const yest = new Date(); yest.setDate(yest.getDate() - 1);
@@ -171,13 +172,16 @@ function computeStats() {
 
     // Rest Streak (Days since last workout)
     let restStreak = 0;
-    // We start from yesterday if today's total is 0
-    let startDay = getDayTotal(data, today) > 0 ? -1 : 0; 
-    for (let i = startDay === -1 ? 0 : 0; i < 365; i++) {
+    for (let i = 0; i < 365; i++) {
         const d = new Date(); d.setDate(today.getDate() - i);
-        if (getDayTotal(data, d) === 0) restStreak++; else break;
+        if (getDayTotal(data, d) === 0) {
+            restStreak++;
+        } else {
+            // If they worked out today, we don't count today as a rest day
+            if (i === 0) restStreak = 0; 
+            break;
+        }
     }
-    if (getDayTotal(data, today) > 0) restStreak = 0;
 
     // Best Streak (All time)
     const allKeys = Object.keys(data).sort();
@@ -206,7 +210,60 @@ function computeStats() {
         trend = { label: "On Track", color: "#34c759" };
     }
 
-    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, thirtyGoal, active30, restStreak, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData };
+// --- All-Time Data ---
+    let allTimeTotal = 0;
+    let ytdTotal = 0;
+    let pb = 0;
+    let centuryDays = 0;
+    let activeDays = 0;
+    let eliteVol = 0, solidVol = 0, lightVol = 0;
+    
+    // One loop to rule them all (All-Time Stats)
+    allKeys.forEach(dateKey => {
+        const val = getDayTotal(data, new Date(dateKey + 'T00:00:00'));
+        if (val > 0) {
+            allTimeTotal += val;
+            activeDays++;
+            if (val > pb) pb = val;
+            if (val >= 100) { centuryDays++; eliteVol += val; }
+            else if (val >= 50) { solidVol += val; }
+            else { lightVol += val; }
+            
+            if (dateKey.startsWith(currentYearStr)) {
+                ytdTotal += val;
+            }
+        }
+    });
+
+    // --- Legacy Calculations ---
+    const firstDateObj = allKeys.length ? new Date(allKeys[0] + 'T00:00:00') : today;
+    const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }).toUpperCase();
+    
+    const diffTime = Math.abs(today - firstDateObj);
+    const totalDaysElapsed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    const lifetimeAvg = Math.round(allTimeTotal / totalDaysElapsed);
+
+    // Monthly Chart (Last 6 Months)
+    const monthlyData = {};
+    for (let i = 5; i >= 0; i--) {
+        let d = new Date(); d.setDate(1); d.setMonth(today.getMonth() - i);
+        const label = d.toLocaleString('default', { month: 'short' });
+        const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[label] = allKeys
+            .filter(date => date.startsWith(monthPrefix))
+            .reduce((s, date) => s + getDayTotal(data, new Date(date + 'T00:00:00')), 0);
+    }
+
+    const nextMilestone = Math.ceil((allTimeTotal + 1) / 5000) * 5000;
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const daysInYearSoFar = Math.max(Math.ceil((today - startOfYear) / 86400000), 1);
+    const projectedYearly = Math.round((ytdTotal / daysInYearSoFar) * 365);
+
+
+    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, thirtyGoal, active30,
+        restStreak, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData,
+        allTimeTotal, ytdTotal, pb, centuryDays, lifetimeAvg, monthlyData, nextMilestone, projectedYearly,
+        currentYearStr, eliteVol, solidVol, lightVol, firstDateStr, totalDaysElapsed, activeDays };
 }
 
 /*************************************************
@@ -215,6 +272,7 @@ function computeStats() {
 function updateDisplay() {
     const s = computeStats();
 
+    // --- 1. DAILY STATS & PROGRESS ---
     document.getElementById('today-val').innerText = s.todayTotal;
     document.getElementById('yest-val').innerText = s.yesterdayTotal;
     document.getElementById('goal-text').innerText = `Goal: ${s.dailyGoal}`;
@@ -224,69 +282,94 @@ function updateDisplay() {
     document.getElementById('progress-bar-blue').style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
 
     document.getElementById('streak-val').innerText = s.streak;
-    document.getElementById('rest-val').innerText = s.rest14;
+    const restStreakTag = document.getElementById('rest-streak-tag');
+    if (s.restStreak > 0) {
+        restStreakTag.style.display = 'inline-flex';
+        document.getElementById('rest-streak-val').innerText = s.restStreak;
+    } else {
+        restStreakTag.style.display = 'none';
+    }
 
+    // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     document.getElementById('total-30-val').innerText = s.total30;
-    document.getElementById('trend-label').innerText = `Trend: ${s.trend.label}`;
-    document.getElementById('trend-label').style.color = s.trend.color;
-
     document.getElementById('active-30-val').innerText = `${s.active30}/30`;
-    document.getElementById('avg-30').innerText = `${s.avg30}/day`;
-
+    document.getElementById('avg-30').innerText = `Avg: ${s.avg30}/day`;
     document.getElementById('thirty-goal-val').innerText = s.thirtyGoal;
     document.getElementById('thirty-improv-val').innerText = s.thirtyImprov;
-
-    const restStreakTag = document.getElementById('rest-streak-tag');
-        if (s.restStreak > 0) {
-            restStreakTag.style.display = 'inline-flex'; // Changed to inline-flex to match tags
-           document.getElementById('rest-streak-val').innerText = s.restStreak;
-        } else {
-            restStreakTag.style.display = 'none';
-        }
-
-    // 3. Weekly Chart, Labels, and Axes
-const chart = document.getElementById('bar-chart');
-const labelContainer = document.getElementById('bar-labels');
-chart.innerHTML = '';
-labelContainer.innerHTML = '';
-
-const days = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
-const maxVal = Math.max(...s.weeklyData, 1);
-const midVal = Math.round(maxVal / 2);
-
-// Update Side Numbers
-document.getElementById('axis-max-l').innerText = maxVal;
-document.getElementById('axis-max-r').innerText = maxVal;
-document.getElementById('axis-mid-l').innerText = midVal;
-document.getElementById('axis-mid-r').innerText = midVal;
-
-s.weeklyData.forEach((v, i) => {
-    // 1. Create Bar
-    const hPercentage = (v / maxVal) * 100;
-    chart.insertAdjacentHTML('beforeend', `
-        <div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>
-    `);
-    
-    // 2. Create Day Label
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const dayLetter = days[d.getDay()];
-    labelContainer.insertAdjacentHTML('beforeend', `<span class="day-label">${dayLetter}</span>`);
-});
-
-document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
 
     const trendPct30 = (s.total30 / s.thirtyImprov) * 100;
     document.getElementById('trend-fill').style.width = Math.min(trendPct30, 100) + "%";
     document.getElementById('trend-label').innerText = s.trend.label;
     document.getElementById('trend-label').style.color = s.trend.color;
-    document.getElementById('avg-30').innerText = `Avg: ${s.avg30}/day`;
+
+    // --- 3. WEEKLY CHART ---
+    const chart = document.getElementById('bar-chart');
+    const labelContainer = document.getElementById('bar-labels');
+    chart.innerHTML = '';
+    labelContainer.innerHTML = '';
+    const days = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
+    const maxVal = Math.max(...s.weeklyData, 1);
+    const midVal = Math.round(maxVal / 2);
+    
+    document.getElementById('axis-max-l').innerText = maxVal;
+    document.getElementById('axis-max-r').innerText = maxVal;
+    document.getElementById('axis-mid-l').innerText = midVal;
+    document.getElementById('axis-mid-r').innerText = midVal;
+
+    s.weeklyData.forEach((v, i) => {
+        const hPercentage = (v / maxVal) * 100;
+        chart.insertAdjacentHTML('beforeend', `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`);
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        labelContainer.insertAdjacentHTML('beforeend', `<span class="day-label">${days[d.getDay()]}</span>`);
+    });
+    document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
+
+    // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
+    if (s.allTimeTotal > 0) {
+        document.getElementById('legacy-projected').innerText = `${s.currentYearStr} PROJ: ${s.projectedYearly.toLocaleString()}`;
+        document.getElementById('legacy-since').innerText = `SINCE ${s.firstDateStr}`;
+        document.getElementById('legacy-active-days').innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed}`;
+        
+        document.getElementById('stat-all-time').innerText = s.allTimeTotal.toLocaleString();
+        document.getElementById('stat-pb').innerText = s.pb.toLocaleString();
+        document.getElementById('stat-ytd').innerText = s.ytdTotal.toLocaleString();
+        document.getElementById('stat-century').innerText = s.centuryDays;
+
+        // Milestone Progress
+        document.getElementById('label-next-milestone').innerText = `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`;
+        const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
+        document.getElementById('milestone-fill').style.width = Math.min(milestonePct, 100) + "%";
+
+        // Intensity Pill
+        const total = s.allTimeTotal || 1;
+        document.getElementById('pill-elite').style.width = (s.eliteVol / total * 100) + "%";
+        document.getElementById('pill-solid').style.width = (s.solidVol / total * 100) + "%";
+        document.getElementById('pill-light').style.width = (s.lightVol / total * 100) + "%";
+
+        // Monthly Chart
+        const monthlyChart = document.getElementById('monthly-chart');
+        monthlyChart.innerHTML = '';
+        const monthEntries = Object.entries(s.monthlyData);
+        const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
+
+        monthEntries.forEach(([label, val]) => {
+            const hPct = (val / maxMonth) * 100;
+            monthlyChart.insertAdjacentHTML('beforeend', `
+                <div class="monthly-bar-container">
+                    <span class="label-tiny" style="font-size:0.5rem; margin-bottom:2px;">${val > 0 ? val : ''}</span>
+                    <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2}"></div>
+                    <span class="month-label">${label.toUpperCase()}</span>
+                </div>
+            `);
+        });
+    }
 }
 
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/
-// 1. We need to store the "currently selected date" globally
+// 1. Store the "currently selected date" globally
 let selectedEditDate = getDateKey(); // Defaults to today
 
 // 2. Setup the Date Picker
@@ -299,7 +382,7 @@ datePicker.addEventListener('change', (e) => {
     renderEditList(); 
 });
 
-// Update Date Label
+// Date Label
 function updateDateLabel(dateKey) {
     const label = document.getElementById('display-date-label');
     const todayKey = getDateKey();
@@ -316,10 +399,10 @@ function updateDateLabel(dateKey) {
         });
     }
 }
-// 4. Your updated Render Function
+// 4. Render Function
 function renderEditList() {
     updateDateLabel(selectedEditDate);
-    
+
     const data = loadData();
     // Instead of todayKey, we use the date from the picker
     const sets = data[selectedEditDate]?.[currentExercise] || [];
@@ -341,7 +424,7 @@ function renderEditList() {
     });
 }
 
-// 5. Your updated Delete Function
+// 5. Delete Function
 window.deleteSet = (i) => {
     const data = loadData();
     // Use selectedEditDate so we delete from the day we are looking at!
