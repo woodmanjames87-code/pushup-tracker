@@ -362,13 +362,13 @@ h3 {
 }
 
 .settings-header {
-    display: flex;
-    flex-direction: row; /* Forces them side-by-side */
-    align-items: center; /* Centers them vertically against each other */
-    justify-content: space-between; /* Pushes Label to left, Button to right */
-    gap: 15px;
-    margin-bottom: 20px;
-    padding: 0 5px; /* Adds a little breathing room from the screen edges */
+    display: flex !important; /* Forces flex if something else was overriding it */
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 20px auto;
 }
 
 .edit-item {
@@ -402,11 +402,14 @@ h3 {
     position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     background-color: #2c2c2e;
-    padding: 8px 14px; /* Slightly tighter padding for the inline look */
+    padding: 8px 16px;
     border-radius: 10px;
     border: 1px solid #3a3a3c;
-    flex-shrink: 0; /* Prevents the button from squishing */
+    cursor: pointer;
+    min-width: 140px;
+    height: 40px; /* Fixed height helps desktop alignment */
 }
 
 .trigger-text {
@@ -422,11 +425,13 @@ h3 {
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0;
+    opacity: 0; /* Ensures it's invisible */
     cursor: pointer;
-    z-index: 2; /* Sits on top of the text */
-    /* Forces the clickable area to fill the whole box on all browsers */
-    display: block;
+    z-index: 10; /* Ensures it sits on top of the text */
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: block !important; /* Keeps it active but invisible */
 }
 
 /* For some browsers, the 'calendar icon' needs to be scaled to fill the box */
