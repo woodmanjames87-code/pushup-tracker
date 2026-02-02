@@ -1,24 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-  <title>Workout Tracker</title>
-
-  <!-- PWA -->
+<!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#121212">
 
   <!-- iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Workout">
 
   <link rel="stylesheet" href="style.css">
-</head>
 
-<body>
   <!-- TRACKER PAGE -->
   <section id="tracker-page" class="app-container" data-page="tracker">
     <header>
@@ -27,11 +13,12 @@
         &#9881;
       </button>
     </header>
+          <hr class="divider">
 
     <main>
+    <h3>Daily Progress</h3>
     <div class="widget-card">
         <div class="header-row">
-        <h3>Daily Progress</h3>
         <span id="goal-text" class="label-tiny">Goal: 70</span>
         </div>
         
@@ -40,9 +27,9 @@
         <div id="progress-bar-blue" class="bar-fill blue"></div>
         </div>
 
-        <div class="numbers-row" style="display: flex; justify-content: center; gap: 20px; margin-top: 0;">
-        <div class="label-tiny">Today: <span id="today-val" style="color: white; font-weight: bold;">0</span></div>
-        <div class="label-tiny">Yesterday: <span id="yest-val" style="color: white; font-weight: bold;">0</span></div>
+        <div class="daily-numbers-row">
+            <div class="label-tiny">Today: <span id="today-val" style="color: white; font-weight: bold;">0</span></div>
+            <div class="label-tiny">Yesterday: <span id="yest-val" style="color: white; font-weight: bold;">0</span></div>
         </div>
     </div>
    
@@ -60,9 +47,10 @@
         </div>
     </div>
 
+    <h3> Last 7 Days</h3>
     <div class="widget-card">
+        <p class="label-tiny"><span id="weekly-title"></span></p>
         <div class="chart-section">
-        <h3 id="weekly-title">Last 7 Days: 0</h3>
         <div class="chart-with-axis">
             <div class="axis left">
             <span id="axis-max-l">0</span>
@@ -79,9 +67,9 @@
         <div id="bar-labels" class="bar-labels"></div>
         </div>
     </div>
-
+    
+    <h3>30-Day Performance Trend</h3>
     <div class="widget-card trend-section">
-        <h3>30-Day Performance Trend</h3>
         <p class="label-tiny">Total: <span id="total-30-val">0</span> — Achieve goal 4/7 days to stay on track</p>
 
         <div class="segmented-track">
@@ -93,7 +81,7 @@
 
         <div class="trend-footer-grid">
         <div class="trend-col-left">
-            <div id="trend-label" style="font-weight: 600; font-size: 0.9rem;">On Track</div>
+            <div id="trend-label">On Track</div>
             <div class="label-tiny">Active Days: <span id="active-30-val">0/30</span></div>
             <div class="label-tiny"><span id="avg-30">0/day</span></div>
         </div>
@@ -104,17 +92,20 @@
         </div>
     </div>
 
+    <h3>Legacy Insights</h3>
     <div id="legacy-insights" class="widget-card">
-        <div class="header-row">
-            <h3 style="color: var(--fitness-green); margin: 0;">Legacy Insights</h3>
+        <div class="header-row">     
+            <span id="legacy-since" class="label-tiny"></span>
             <span id="legacy-projected" class="label-tiny"></span>
         </div>
         
-        <div class="header-row" style="margin-top: 4px; opacity: 0.7;">
-            <span id="legacy-since" class="label-tiny"></span>
+        <div class="header-row" >
             <span id="legacy-active-days" class="label-tiny"></span>
         </div>
+        <div class="divider"></div>
 
+        <div id="monthly-chart" class="chart-with-axis" style="height: 60px;">
+            </div>
         <div class="divider"></div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0;">
@@ -145,17 +136,18 @@
 
         <div class="divider"></div>
 
-        <div class="label-tiny" style="text-align: center; margin-bottom: 8px;">VOLUME BY INTENSITY</div>
+        <div class="label-tiny" style="text-align: center; margin-bottom: 4px;">VOLUME BY INTENSITY</div>
         <div class="segmented-track">
             <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%;"></div>
             <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%;"></div>
             <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%;"></div>
         </div>
+        <div class="intensity-legend">
+            <div class="legend-item"><span class="dot green"></span>Elite (100+)</div>
+            <div class="legend-item"><span class="dot orange"></span>Solid (50-99)</div>
+            <div class="legend-item"><span class="dot red"></span>Light (<50)</div>
+        </div>
 
-        <div class="divider"></div>
-
-        <div id="monthly-chart" class="chart-with-axis" style="height: 60px;">
-            </div>
     </div>
 
     </main>
@@ -175,8 +167,8 @@
     <main>
       <section class="settings-section">
           <hr class="divider">
-          <h3 class="label-tiny" style="margin-bottom: 10px; opacity: 0.7;">EDIT ENTRIES</h3>
-          
+          <h3 style="margin-bottom: 10px; opacity: 0.7;">EDIT ENTRIES</h3>
+          <div class="widget-card">
           <div class="settings-header">
               <h2 id="display-date-label">Today</h2> 
               <div class="date-picker-trigger">
@@ -185,14 +177,12 @@
               </div>
           </div>
 
-
-
           <div id="edit-sets-list"></div>
 
           <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
               + Add Set to Selected Date
           </button>
-          
+          </div>
           <hr class="divider">
 
       </section>
@@ -230,6 +220,3 @@
   
     <button id="floating-log-btn" class="btn-primary floating-btn"> + LOG SET</button>
     <script src="app.js"></script>
-</body>
-
-</html>

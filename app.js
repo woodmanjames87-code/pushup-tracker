@@ -81,8 +81,12 @@ floatingLogBtn.onclick = () => {
     modalInput.value = '';
     logModal.style.display = 'flex';
 
-    modalInput.inputMode = "numeric";
-        modalInput.focus();  
+    modalInput.inputMode = "decimal";
+    setTimeout(() => {
+        modalInput.focus();
+        // This 'click' simulates a second interaction to force the keyboard
+        modalInput.click(); 
+    }, 50); 
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -287,7 +291,7 @@ function updateDisplay() {
         restStreakTag.style.display = 'none';
     }
     document.getElementById('rest-val').innerText = s.rest14;
-
+    
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     document.getElementById('total-30-val').innerText = s.total30;
     document.getElementById('active-30-val').innerText = `${s.active30}/30`;
@@ -321,7 +325,7 @@ function updateDisplay() {
         d.setDate(d.getDate() - (6 - i));
         labelContainer.insertAdjacentHTML('beforeend', `<span class="day-label">${days[d.getDay()]}</span>`);
     });
-    document.getElementById('weekly-title').innerText = `Last 7 Days: ${s.weeklyTotal}`;
+    document.getElementById('weekly-title').innerText = `Total: ${s.weeklyTotal}`;
 
     // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
     if (s.allTimeTotal > 0) {
@@ -355,7 +359,7 @@ function updateDisplay() {
             const hPct = (val / maxMonth) * 100;
             monthlyChart.insertAdjacentHTML('beforeend', `
                 <div class="monthly-bar-container">
-                    <span class="label-tiny" style="font-size:0.5rem; margin-bottom:2px;">${val > 0 ? val : ''}</span>
+                    <span class="label-tiny chart-value">${val > 0 ? val : ''}</span>
                     <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2}"></div>
                     <span class="month-label">${label.toUpperCase()}</span>
                 </div>
@@ -434,11 +438,20 @@ window.deleteSet = (i) => {
     }
 };
 // Listener for the "Add Past Set" button
-document.getElementById('btn-add-past').onclick = () => {
+document.getElementById('btn-add-past').addEventListener('click', () => {
+    // 1. Prepare the modal
     modalInput.value = '';
     logModal.style.display = 'flex';
-    modalInput.focus();
-};
+    
+    // 2. Set input mode to force the number pad
+    modalInput.inputMode = "decimal"; 
+    
+    // 3. Focus it so the keyboard slides up automatically
+    setTimeout(() => {
+        modalInput.focus();
+        modalInput.click(); 
+    }, 50); 
+});
 
 function addSetToDate(dateKey, reps) {
     const data = loadData();
