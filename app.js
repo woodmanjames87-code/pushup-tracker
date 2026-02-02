@@ -82,11 +82,10 @@ floatingLogBtn.onclick = () => {
     logModal.style.display = 'flex';
 
     modalInput.inputMode = "decimal";
-    setTimeout(() => {
         modalInput.focus();
         // This 'click' simulates a second interaction to force the keyboard
         modalInput.click(); 
-    }, 50); 
+ 
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -445,12 +444,9 @@ document.getElementById('btn-add-past').addEventListener('click', () => {
     
     // 2. Set input mode to force the number pad
     modalInput.inputMode = "decimal"; 
-    
-    // 3. Focus it so the keyboard slides up automatically
-    setTimeout(() => {
+
         modalInput.focus();
         modalInput.click(); 
-    }, 50); 
 });
 
 function addSetToDate(dateKey, reps) {
