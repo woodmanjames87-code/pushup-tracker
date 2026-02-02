@@ -61,6 +61,8 @@ goToSettingsBtn.onclick = () => {
     trackerPage.style.display = 'none';
     settingsPage.style.display = 'flex';
     floatingLogBtn.style.display = 'none';
+    selectedEditDate = getDateKey();
+    datePicker.value = selectedEditDate;
     renderEditList();
 };
 
@@ -297,8 +299,27 @@ datePicker.addEventListener('change', (e) => {
     renderEditList(); 
 });
 
+// Update Date Label
+function updateDateLabel(dateKey) {
+    const label = document.getElementById('display-date-label');
+    const todayKey = getDateKey();
+    
+    if (dateKey === todayKey) {
+        label.innerText = "Today";
+    } else {
+        // Formats "2026-01-30" into something nicer like "Jan 30, 2026"
+        const dateObj = new Date(dateKey + 'T00:00:00'); // T00:00:00 prevents timezone shifts
+        label.innerText = dateObj.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+    }
+}
 // 4. Your updated Render Function
 function renderEditList() {
+    updateDateLabel(selectedEditDate);
+    
     const data = loadData();
     // Instead of todayKey, we use the date from the picker
     const sets = data[selectedEditDate]?.[currentExercise] || [];

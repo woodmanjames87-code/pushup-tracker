@@ -119,21 +119,27 @@
 
     <main>
       <section class="settings-section">
-        <h3>Edit Entries</h3>
-        
-        <div class="date-picker-container">
-          <label for="edit-date-picker" class="label-tiny">Select Date to Edit:</label>
-          <input type="date" id="edit-date-picker">
-        </div>
-
-        <hr class="divider">
-
-        <div id="edit-sets-list">
+          <hr class="divider">
+          <h3 class="label-tiny" style="margin-bottom: 10px; opacity: 0.7;">EDIT ENTRIES</h3>
+          
+          <div class="settings-header">
+              <h2 id="display-date-label">Today</h2> 
+              <div class="date-picker-trigger">
+                  <span class="trigger-text">&#128197; Change Date</span> 
+                  <input type="date" id="edit-date-picker">
+              </div>
           </div>
 
-        <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
-          + Add Set to Selected Date
-        </button>
+
+
+          <div id="edit-sets-list"></div>
+
+          <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
+              + Add Set to Selected Date
+          </button>
+          
+          <hr class="divider">
+
       </section>
     </main>
   </section>
