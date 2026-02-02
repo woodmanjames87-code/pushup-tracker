@@ -427,6 +427,7 @@ h3 {
     cursor: pointer;
     z-index: 2;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 /* Force the calendar icon to be huge so the whole box is clickable */
