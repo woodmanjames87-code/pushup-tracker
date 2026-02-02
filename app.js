@@ -76,16 +76,19 @@ backToTrackerBtn.onclick = () => {
 /*************************************************
  * LOGGING FLOW
  *************************************************/
-floatingLogBtn.onclick = () => {
-    selectedEditDate = getDateKey(); // Reset the date to TODAY
-    modalInput.value = '';
-    logModal.style.display = 'flex';
+floatingLogBtn.onclick = (e) => {
+    // 1. Focus immediately to "claim" the keyboard trigger
+    modalInput.focus();
 
-    modalInput.inputMode = "decimal";
-        modalInput.focus();
-        // This 'click' simulates a second interaction to force the keyboard
-        modalInput.click(); 
- 
+    // 2. Set the data logic
+    selectedEditDate = getDateKey(); 
+    modalInput.value = '';
+    
+    // 3. Show the UI
+    logModal.style.display = 'flex';
+    
+    // Note: We removed .click() because it's redundant if .focus() 
+    // is called inside the primary click event.
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -437,16 +440,16 @@ window.deleteSet = (i) => {
     }
 };
 // Listener for the "Add Past Set" button
-document.getElementById('btn-add-past').addEventListener('click', () => {
-    // 1. Prepare the modal
+document.getElementById('btn-add-past').addEventListener('click', (e) => {
+    // 1. Focus FIRST - grab the browser's attention immediately
+    modalInput.focus();
+    
+    // 2. Then do the visual work
     modalInput.value = '';
     logModal.style.display = 'flex';
     
-    // 2. Set input mode to force the number pad
-    modalInput.inputMode = "decimal"; 
-
-        modalInput.focus();
-        modalInput.click(); 
+    // Ensure the date selection logic stays intact
+    // (selectedEditDate should already be set by your date picker logic)
 });
 
 function addSetToDate(dateKey, reps) {
