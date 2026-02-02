@@ -75,14 +75,16 @@ backToTrackerBtn.onclick = () => {
  * LOGGING FLOW
  *************************************************/
 floatingLogBtn.onclick = () => {
+    selectedEditDate = getDateKey(); // Reset the date to TODAY
     modalInput.value = '';
     logModal.style.display = 'flex';
-    modalInput.focus();
+
+    modalInput.inputMode = "decimal";
     setTimeout(() => {
         modalInput.focus();
         // This 'click' simulates a second interaction to force the keyboard
         modalInput.click(); 
-    }, 10); 
+    }, 50); 
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -90,22 +92,16 @@ cancelBtn.onclick = () => logModal.style.display = 'none';
 const logForm = document.getElementById('log-form');
 
 logForm.onsubmit = (e) => {
-    e.preventDefault(); // Prevents the page from refreshing
+    e.preventDefault();
     
     const reps = parseInt(modalInput.value);
     if (isNaN(reps) || reps <= 0) return;
 
-    const data = loadData();
-    const todayKey = getDateKey();
-    
-    if (!data[todayKey]) data[todayKey] = {};
-    if (!data[todayKey][currentExercise]) data[todayKey][currentExercise] = [];
-    
-    data[todayKey][currentExercise].push(reps);
-    saveData(data);
+    // Use our universal helper function instead of manual logic
+    addSetToDate(selectedEditDate, reps);
     
     logModal.style.display = 'none';
-    updateDisplay();
+    modalInput.value = ''; // Clean up for next time
 };
 
 /*************************************************
@@ -337,12 +333,18 @@ window.deleteSet = (i) => {
 };
 // Listener for the "Add Past Set" button
 document.getElementById('btn-add-past').addEventListener('click', () => {
-    const reps = prompt("Enter reps for this set:");
+    // 1. Prepare the modal
+    modalInput.value = '';
+    logModal.style.display = 'flex';
     
-    // Validate that it's a number and not empty
-    if (reps !== null && reps.trim() !== "" && !isNaN(reps)) {
-        addSetToDate(selectedEditDate, parseInt(reps));
-    }
+    // 2. Set input mode to force the number pad
+    modalInput.inputMode = "decimal"; 
+    
+    // 3. Focus it so the keyboard slides up automatically
+    setTimeout(() => {
+        modalInput.focus();
+        modalInput.click(); 
+    }, 50); 
 });
 
 function addSetToDate(dateKey, reps) {
