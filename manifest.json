@@ -7,7 +7,7 @@
   "description": "Offline push-up logger.",
   "icons": [
     {
-      "src": "pushup-icon.png",
+      "src": "pushup-icon.PNG",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

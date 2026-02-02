@@ -1,10 +1,11 @@
-const CACHE_NAME = 'workout-v1.1';
+const CACHE_NAME = 'workout-v1.2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
-  './manifest.json'
+  './manifest.json',
+  './pushup-icon.PNG'
 ];
 
 // 1. Install: Save files to the phone's storage
