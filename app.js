@@ -81,12 +81,8 @@ floatingLogBtn.onclick = () => {
     modalInput.value = '';
     logModal.style.display = 'flex';
 
-    modalInput.inputMode = "decimal";
-    setTimeout(() => {
-        modalInput.focus();
-        // This 'click' simulates a second interaction to force the keyboard
-        modalInput.click(); 
-    }, 50); 
+    modalInput.inputMode = "numeric";
+        modalInput.focus();  
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -195,9 +191,10 @@ function computeStats() {
         }
     }
 
-    // Rest Days (Last 14)
+    // Rest Days (Last 14 days)
     const rest14 = Array.from({ length: 14 }, (_, i) => {
-        const d = new Date(); d.setDate(today.getDate() - i);
+        const d = new Date(today); 
+        d.setDate(today.getDate() - i);
         return getDayTotal(data, d) === 0 ? 1 : 0;
     }).reduce((a, b) => a + b, 0);
 
@@ -289,6 +286,7 @@ function updateDisplay() {
     } else {
         restStreakTag.style.display = 'none';
     }
+    document.getElementById('rest-val').innerText = s.rest14;
 
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     document.getElementById('total-30-val').innerText = s.total30;
@@ -436,20 +434,11 @@ window.deleteSet = (i) => {
     }
 };
 // Listener for the "Add Past Set" button
-document.getElementById('btn-add-past').addEventListener('click', () => {
-    // 1. Prepare the modal
+document.getElementById('btn-add-past').onclick = () => {
     modalInput.value = '';
     logModal.style.display = 'flex';
-    
-    // 2. Set input mode to force the number pad
-    modalInput.inputMode = "decimal"; 
-    
-    // 3. Focus it so the keyboard slides up automatically
-    setTimeout(() => {
-        modalInput.focus();
-        modalInput.click(); 
-    }, 50); 
-});
+    modalInput.focus();
+};
 
 function addSetToDate(dateKey, reps) {
     const data = loadData();
