@@ -227,31 +227,30 @@ h3 {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 1px solid #dadce0; 
-    background-color: #ffffff;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: 22px; 
-    box-shadow: inset 0 0 1px rgba(0,0,0,0.1);
-    cursor: pointer;
+    border: 1px solid #dadce0;
+    background-color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTI0IDkuNWMzLjU0IDAgNi43MiAxLjIyIDkuMjEgMy42bDYuODUtNi44NUMzNS45IDIuMzggMzAuNDcgMCAyNCAwIDE0LjYyIDAgNi41MSA1LjM4IDIuNTYgMTMuMjJsNy45OCA2LjE5QzEyLjQzIDEzLjcyIDE3LjczIDkuNSAyNCA5LjV6Ii8+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTQ2LjYgMjRjMC0xLjYzLS4xNS0zLjIyLS40Mi00Ljc2SDI0djkuMDdoMTIuNzVjLS41NCAyLjg3LTIuMTYgNS4zMS00LjU5IDYuOTRsNy43NSA2LjAxQzQ0LjI0IDMzLjkzIDQ2LjYgMjkuNDUgNDYuNiAyNHoiLz48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMTIuNDMgMjguNzljLS40NC0xLjMzLS42OS0yLjc1LS42OS00LjIzIDAtMS40OC4yNS0yLjkuNjktNC4yM2wtNy45OC02LjE5QzEuOTIgMTQuNzYgMCAxOS4xNiAwIDI0czEuOTIgOS4yNCA1Ljc2IDExLjc3bDcuOTctNi4xOXoiLz48cGF0aCBmaWxsPSIjMzRBODUzIiBkPSJNMjQgNDhjNi40OCAwIDExLjkyLTIuMTMgMTUuODktNS44MWwtNy43NS02LjAxYy0yLjIxIDEuNDktNS4wNyAyLjM4LTguMTQgMi4zOC02LjI3IDAtMTEuNTctNC4yMi0xMy40Ny05LjkxbC03Ljk4IDYuMTlDNi41MSA0Mi42MiAxNC42MiA0OCAyNCA0OHoiLz48L3N2Zz4=');
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+    
+    /* Using an external official Google icon link for reliability */
+    background-image: url('https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px;
 }
 
-.btn-login-circle:hover {
-    background-color: #f7f8f8;
-    border-color: #d2d4d7;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-}
-
-/* For when the profile pic is active */
 .btn-login-circle.logged-in {
     background-size: cover;
     border: 1px solid #4285F4;
-    box-shadow: none;
+}
+
+/* Add this to ensure nothing hides the background */
+.btn-login-circle::before {
+    content: none !important;
 }
 /* =================================================
    5. WIDGET CARDS (BENTO BOXES)
