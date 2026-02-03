@@ -6,7 +6,7 @@
     <title>Push-Up Tracker</title>
     
     <link rel="manifest" href="manifest.json">
-
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
   <!-- iOS -->
 
   <link rel="stylesheet" href="style.css">
@@ -172,7 +172,8 @@
                 ←
             </button>
             <h1>Settings</h1>
-            <div class="header-spacer"></div>
+            <button onclick="handleAuthAction()" id="auth-button" class="btn-login-circle" aria-label="Account">
+            </button>
         </div>
         <hr class="divider">
     </header>
@@ -247,6 +248,49 @@
     </div>
   
     <button id="floating-log-btn" class="btn-primary floating-btn"> + LOG SET</button>
-<script src="app.js"></script>
+
+   <script type="module">
+  // 1. Import the specific tools we need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+  import { 
+    getFirestore, 
+    doc, 
+    setDoc, 
+    getDoc 
+  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+  // 2. Your specific config
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPXMYnQufpyWx6zXznDpJtMukbtLA-Vfo",
+    authDomain: "my-pushup-tracker-2367b.firebaseapp.com",
+    projectId: "my-pushup-tracker-2367b",
+    storageBucket: "my-pushup-tracker-2367b.firebasestorage.app",
+    messagingSenderId: "76145599652",
+    appId: "1:76145599652:web:c011f6b47120d4a986b231",
+    measurementId: "G-R8L7NNJ79M"
+  };
+
+  // 3. Initialize Firebase services
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // 4. CRITICAL: Make these functions global so app.js can use them
+  window.auth = auth;
+  window.db = db;
+  window.googleProvider = provider;
+  window.firebaseMethods = { signInWithPopup, onAuthStateChanged, doc, setDoc, getDoc };
+
+  console.log("Firebase is ready!");
+</script>
+
+    <script src="app.js"></script>
 </body>
 </html>

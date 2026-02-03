@@ -30,7 +30,73 @@ const GOALS = {
     IMPROVE_DAYS: 5, 
     WINDOW_DAYS: 30
 };
+/*************************************************
+ * LOGIN TO GOOGLE
+ *************************************************/
+async function startCloudSync() {
+    const { signInWithPopup } = window.firebaseMethods;
+    
+    try {
+        const result = await signInWithPopup(window.auth, window.googleProvider);
+        const user = result.user;
+        
+        console.log("Logged in as:", user.displayName);
 
+        // Check if they already have an alias in the cloud
+        const { getDoc, doc } = window.firebaseMethods;
+        const userRef = doc(window.db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            // First time logging in! Ask for an Alias
+            const alias = prompt("Welcome! Pick a username for the leaderboard:", user.displayName);
+            
+            if (alias) {
+                const { setDoc } = window.firebaseMethods;
+                await setDoc(userRef, {
+                    username: alias,
+                    totalReps: 0, // We will sync your local reps here next
+                    uid: user.uid
+                });
+                alert(`All set, ${alias}! Your data will now sync to the cloud.`);
+            }
+        } else {
+            alert(`Welcome back, ${userSnap.data().username}!`);
+        }
+
+        // Logic to push your existing localStorage to the cloud goes here...
+        
+    } catch (error) {
+        console.error("Login failed:", error);
+        alert("Could not connect to Google. Check your internet!");
+    }
+}
+function initAuthListener() {
+    if (window.firebaseMethods && window.firebaseMethods.onAuthStateChanged) {
+        window.firebaseMethods.onAuthStateChanged(window.auth, (user) => {
+            const btn = document.getElementById('auth-button');
+            if (!btn) return;
+
+            if (user) {
+                btn.classList.add('logged-in');
+                btn.style.backgroundImage = `url('${user.photoURL}')`;
+                btn.onclick = () => {
+                     if(confirm("Sign out of cloud sync?")) window.auth.signOut();
+                };
+            } else {
+                btn.classList.remove('logged-in');
+                btn.style.backgroundImage = 'none';
+                btn.onclick = startCloudSync;
+            }
+        });
+    } else {
+        // Firebase isn't quite ready, check again in 100ms
+        setTimeout(initAuthListener, 100);
+    }
+}
+
+// Fire it off!
+initAuthListener();
 /*************************************************
  * STORAGE HELPERS
  *************************************************/
@@ -38,8 +104,33 @@ function loadData() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 }
 
-function saveData(data) {
+async function saveData(data) {
+    // 1. Keep your existing local save (Instant!)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // 2. Check if a user is logged in
+    const user = window.auth?.currentUser;
+    if (user && window.firebaseMethods) {
+        const { doc, setDoc } = window.firebaseMethods;
+        
+        try {
+            // We save to a document named after their unique User ID
+            const userRef = doc(window.db, "users", user.uid);
+            
+            // We use { merge: true } so we don't accidentally delete their Alias/Username
+            await setDoc(userRef, {
+                workouts: data,
+                lastUpdated: new Date().toISOString(),
+                // Calculate total reps here so the leaderboard can find it easily later
+                totalReps: Object.values(data).reduce((sum, day) => sum + (day.count || 0), 0)
+            }, { merge: true });
+
+            console.log("Cloud sync complete.");
+        } catch (error) {
+            console.error("Cloud sync failed:", error);
+            // Don't alert the user; they still have their local data!
+        }
+    }
 }
 
 function getDateKey(date = new Date()) {
@@ -427,7 +518,7 @@ window.deleteSet = (i) => {
     // Use selectedEditDate so we delete from the day we are looking at!
     if (data[selectedEditDate] && data[selectedEditDate][currentExercise]) {
         data[selectedEditDate][currentExercise].splice(i, 1);
-        saveData(data);
+        await saveData(data);
         renderEditList(); // Refresh the settings list
         updateDisplay();  // Refresh the main dashboard charts/streaks
     }
@@ -457,7 +548,7 @@ function addSetToDate(dateKey, reps) {
     data[dateKey][currentExercise].push(reps);
 
     // 4. Save and Refresh everything
-    saveData(data);
+    await saveData(data);
     renderEditList(); // Refresh the list you are looking at
     updateDisplay();  // Force the charts and streaks to recalculate
 }
