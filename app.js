@@ -465,7 +465,7 @@ function addSetToDate(dateKey, reps) {
  * Import/Export/Clear Data Functions
  *************************************************/
 async function exportData() {
-    const data = localStorage.getItem('pushupData') || '{}';
+    const data = localStorage.getItem('workout-data') || '{}';
     const blob = new Blob([data], { type: 'application/json' });
     const fileName = `pushups-backup-${new Date().toISOString().slice(0,10)}.json`;
     const file = new File([blob], fileName, { type: 'application/json' });
@@ -498,7 +498,7 @@ async function exportData() {
 function smartImport(jsonString) {
     try {
         const imported = JSON.parse(jsonString);
-        const current = JSON.parse(localStorage.getItem('pushupData') || '{}');
+        const current = JSON.parse(localStorage.getItem('workout-data') || '{}');
         let newEntries = 0;
         let mergedEntries = 0;
 
@@ -530,7 +530,7 @@ function smartImport(jsonString) {
         });
 
         // Save and Reload
-        localStorage.setItem('pushupData', JSON.stringify(current));
+        localStorage.setItem('workout-data', JSON.stringify(current));
         alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
         location.reload(); 
 
@@ -547,7 +547,7 @@ function clearAllData() {
         const finalCheck = confirm("Final check: Delete everything?");
         
         if (finalCheck) {
-            localStorage.removeItem('pushupData');
+            localStorage.removeItem('workout-data');
             alert("Database cleared. Starting fresh!");
             location.reload(); // Refresh to reset all charts and totals
         }
