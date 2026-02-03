@@ -180,23 +180,38 @@
     <main>
       <section class="settings-section">
 
-          <h3 style="margin-bottom: 10px; opacity: 0.7;">EDIT ENTRIES</h3>
-          <div class="widget-card">
-          <div class="settings-header">
+        <h3 class="label-tiny">EDIT ENTRIES</h3>
+        <div class="widget-card">
+            <div class="settings-header">
               <h2 id="display-date-label">Today</h2> 
-              <div class="date-picker-trigger">
+                <div class="date-picker-trigger">
                   <span class="trigger-text">&#128197; Change Date</span> 
                   <input type="date" id="edit-date-picker">
-              </div>
-          </div>
+                </div>
+            </div>
 
-          <div id="edit-sets-list"></div>
+            <div id="edit-sets-list"></div>
+                <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
+                    + Add Set to Selected Date
+                </button>
+        </div>
+        <hr class="divider">
 
-          <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
-              + Add Set to Selected Date
-          </button>
-          </div>
-          <hr class="divider">
+        <h3 class="label-tiny">DATA MANAGEMENT</h3>
+        <div class="widget-card">
+            <div style="display: grid; gap: 10px; margin-top: 10px;">
+                <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
+                
+                <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
+                    Import Data
+                </button>
+                <input type="file" id="import-input" hidden accept=".json">
+            </div>
+            <div class="danger-zone">
+                <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
+            </div>
+        </div>
+        <hr class="divider">
 
       </section>
     </main>

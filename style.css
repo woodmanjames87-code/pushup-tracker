@@ -197,6 +197,29 @@ h3 {
     width: 100%;
     margin-top: 15px;
 }
+.danger-zone {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--danger);
+    text-align: center;
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-danger:active {
+    background: var(--danger);
+    color: white;
+}
 
 /* =================================================
    5. WIDGET CARDS (BENTO BOXES)
