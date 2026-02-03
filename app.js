@@ -89,21 +89,30 @@ async function startCloudSync() {
     }
 }
 function initAuthListener() {
-    // Add 'async' to the arrow function here
     if (window.firebaseMethods && window.firebaseMethods.onAuthStateChanged) {
         window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
-            const btn = document.getElementById('auth-button');
-            if (!btn) return;
+            
+            // 1. Update ALL Auth Buttons (Tracker and Settings)
+            const buttonIds = ['auth-button-tracker', 'auth-button-settings'];
+            buttonIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
 
+                if (user) {
+                    btn.classList.add('logged-in');
+                    btn.style.backgroundImage = `url('${user.photoURL}')`;
+                    btn.onclick = () => {
+                        if(confirm("Sign out of cloud sync?")) window.auth.signOut();
+                    };
+                } else {
+                    btn.classList.remove('logged-in');
+                    btn.style.backgroundImage = 'none'; 
+                    btn.onclick = startCloudSync;
+                }
+            });
+
+            // 2. Pull Cloud Data (ONLY if user is logged in)
             if (user) {
-                // --- LOGGED IN STATE ---
-                btn.classList.add('logged-in');
-                btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => {
-                     if(confirm("Sign out of cloud sync?")) window.auth.signOut();
-                };
-
-                // 2. Pull Cloud Data (ONLY if user exists)
                 try {
                     const { doc, getDoc } = window.firebaseMethods;
                     const userRef = doc(window.db, "users", user.uid);
@@ -112,25 +121,16 @@ function initAuthListener() {
                     if (docSnap.exists()) {
                         const cloudWorkouts = docSnap.data().workouts;
                         if (cloudWorkouts) {
-                            // Use localStorage directly to avoid triggering another cloud push
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudWorkouts)); 
-                            
-                            // Refresh UI
-                            updateDisplay(); // Use your existing master function
+                            updateDisplay(); 
                             if (settingsPage.style.display === 'flex') renderEditList();
                         }
                     }                    
                 } catch (err) {
                     console.error("Error pulling cloud data:", err);
                 }
-
-            } else {
-                // --- LOGGED OUT STATE ---
-                btn.classList.remove('logged-in');
-                btn.style.backgroundImage = 'none';
-                btn.onclick = startCloudSync;
             }
-        });
+        }); // End of onAuthStateChanged
     } else {
         setTimeout(initAuthListener, 100);
     }
