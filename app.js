@@ -42,41 +42,46 @@ async function startCloudSync() {
         
         console.log("Logged in as:", user.displayName);
 
-        // Check if they already have an alias in the cloud
         const { getDoc, doc } = window.firebaseMethods;
         const userRef = doc(window.db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
             const alias = prompt("Welcome! Pick a username for the leaderboard:", user.displayName);
-            
-            // If they hit cancel, we should still create a basic profile so they don't get stuck
             const finalAlias = alias || user.displayName || "Anonymous";
 
             const { setDoc } = window.firebaseMethods;
+            const initialStats = computeStats(); 
+
             await setDoc(userRef, {
                 username: finalAlias,
-                totalReps: 0, 
                 uid: user.uid,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                stats: {
+                    allTime: initialStats.allTimeTotal,
+                    year: initialStats.ytdTotal,
+                    month: initialStats.total30,
+                    week: initialStats.weeklyTotal,
+                    bestStreak: initialStats.bestStreak
+                }
             });
             alert(`All set, ${finalAlias}!`);
         } else {
+            // This else now correctly matches the 'if (!userSnap.exists())'
             alert(`Welcome back, ${userSnap.data().username}!`);
         }
 
-        // Now that login is confirmed, trigger an initial data sync!
+        // Now trigger the sync
         const currentLocalData = loadData();
+        // Note: saveData handles the cloud push internally in your code
         await saveData(currentLocalData);
-        
+        alert("Sync complete! Your workouts are now backed up.");
+
     } catch (error) {
         console.error("Login failed full error:", error);
-        
-        // This tells you if it was a permissions issue or a network issue
         if (error.code === 'permission-denied') {
             alert("Database Error: Check your Firestore Rules!");
         } else if (error.code === 'auth/popup-closed-by-user') {
-            // No alert needed, the user just closed the window
             console.log("User closed the login popup.");
         } else {
             alert("Connection error: " + error.message);
@@ -84,25 +89,49 @@ async function startCloudSync() {
     }
 }
 function initAuthListener() {
+    // Add 'async' to the arrow function here
     if (window.firebaseMethods && window.firebaseMethods.onAuthStateChanged) {
-        window.firebaseMethods.onAuthStateChanged(window.auth, (user) => {
+        window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
             const btn = document.getElementById('auth-button');
             if (!btn) return;
 
             if (user) {
+                // --- LOGGED IN STATE ---
                 btn.classList.add('logged-in');
                 btn.style.backgroundImage = `url('${user.photoURL}')`;
                 btn.onclick = () => {
                      if(confirm("Sign out of cloud sync?")) window.auth.signOut();
                 };
+
+                // 2. Pull Cloud Data (ONLY if user exists)
+                try {
+                    const { doc, getDoc } = window.firebaseMethods;
+                    const userRef = doc(window.db, "users", user.uid);
+                    const docSnap = await getDoc(userRef);
+
+                    if (docSnap.exists()) {
+                        const cloudWorkouts = docSnap.data().workouts;
+                        if (cloudWorkouts) {
+                            // Use localStorage directly to avoid triggering another cloud push
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudWorkouts)); 
+                            
+                            // Refresh UI
+                            updateDisplay(); // Use your existing master function
+                            if (settingsPage.style.display === 'flex') renderEditList();
+                        }
+                    }                    
+                } catch (err) {
+                    console.error("Error pulling cloud data:", err);
+                }
+
             } else {
+                // --- LOGGED OUT STATE ---
                 btn.classList.remove('logged-in');
                 btn.style.backgroundImage = 'none';
                 btn.onclick = startCloudSync;
             }
         });
     } else {
-        // Firebase isn't quite ready, check again in 100ms
         setTimeout(initAuthListener, 100);
     }
 }
@@ -131,10 +160,21 @@ async function saveData(data) {
             
             // We use { merge: true } so we don't accidentally delete their Alias/Username
             await setDoc(userRef, {
-                workouts: data,
+                username: userSnap.data()?.username || user.displayName || "Anonymous",
+                uid: user.uid,
                 lastUpdated: new Date().toISOString(),
-                // Calculate total reps here so the leaderboard can find it easily later
-                totalReps: Object.values(data).reduce((sum, day) => sum + (day.count || 0), 0)
+                
+                // These are the "Leaderboard Pillars"
+                stats: {
+                    allTime: stats.allTimeTotal,
+                    year: stats.ytdTotal,
+                    month: stats.total30,   // Using your 30-day window
+                    week: stats.weeklyTotal,
+                    bestStreak: stats.bestStreak
+                },
+    
+                // Keep the full raw data for backup/restore
+                workouts: data 
             }, { merge: true });
 
             console.log("Cloud sync complete.");
@@ -144,7 +184,39 @@ async function saveData(data) {
         }
     }
 }
+async function syncLocalToCloud(userId) {
+    const localData = loadData(); // Gets your { '2024-05-10': { count: 20 }, ... }
+    
+    // Only sync if there is actually data to save
+    if (Object.keys(localData).length > 0) {
+        const { doc, setDoc } = window.firebaseMethods;
+        const userRef = doc(window.db, "users", userId);
 
+        try {
+            await setDoc(userRef, {
+                username: userSnap.data()?.username || user.displayName || "Anonymous",
+                uid: user.uid,
+                lastUpdated: new Date().toISOString(),
+                
+                // These are the "Leaderboard Pillars"
+                stats: {
+                    allTime: stats.allTimeTotal,
+                    year: stats.ytdTotal,
+                    month: stats.total30,   // Using your 30-day window
+                    week: stats.weeklyTotal,
+                    bestStreak: stats.bestStreak
+                },
+                
+                // Keep the full raw data for backup/restore
+                workouts: data 
+            }, { merge: true });
+
+            console.log("Cloud sync successful!");
+        } catch (e) {
+            console.error("Cloud sync failed:", e);
+        }
+    }
+}
 function getDateKey(date = new Date()) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
@@ -160,21 +232,40 @@ function getDayTotal(data, date) {
 /*************************************************
  * NAVIGATION
  *************************************************/
-goToSettingsBtn.onclick = () => {
-    trackerPage.style.display = 'none';
-    settingsPage.style.display = 'flex';
-    floatingLogBtn.style.display = 'none';
-    selectedEditDate = getDateKey();
-    datePicker.value = selectedEditDate;
-    renderEditList();
-};
+function showPage(pageId) {
+    // 1. Hide all pages
+    document.getElementById('tracker-page').style.display = 'none';
+    document.getElementById('settings-page').style.display = 'none';
+    document.getElementById('leaderboard-page').style.display = 'none';
+    
+    // 2. Show the requested page
+    const activePage = document.getElementById(`${pageId}-page`);
+    if (activePage) {
+        activePage.style.display = 'flex';
+    }
 
-backToTrackerBtn.onclick = () => {
-    settingsPage.style.display = 'none';
-    trackerPage.style.display = 'flex';
-    floatingLogBtn.style.display = 'block';
-    updateDisplay();
-};
+    // 3. Update Nav Bar Button Colors
+    const navButtons = document.querySelectorAll('.nav-item');
+    navButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Logic to highlight the correct icon
+    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
+    navButtons[indexMap[pageId]].classList.add('active');
+
+    // 4. Special logic: Refresh leaderboard when entering social page
+    if (pageId === 'leaderboard') {
+        fetchLeaderboard();
+    }
+    
+    // 5. Special logic: Show/Hide the floating log button
+    const floatingBtn = document.getElementById('floating-log-btn');
+    if (pageId === 'tracker') {
+        floatingBtn.style.display = 'block';
+        updateDisplay(); // Refresh home stats
+    } else {
+        floatingBtn.style.display = 'none';
+    }
+}
 
 /*************************************************
  * LOGGING FLOW
@@ -465,7 +556,48 @@ function updateDisplay() {
         });
     }
 }
+/*************************************************
+ * LEADERBOARD LOGIC
+ *************************************************/
+async function fetchLeaderboard() {
+    const lbList = document.getElementById('lb-list');
+    const filter = document.getElementById('lb-filter').value;
+    
+    // 1. Setup Firebase query tools
+    const { collection, query, orderBy, limit, getDocs } = window.firebaseMethods;
+    
+    try {
+        // 2. Build the query: "Look in 'users', order by the chosen filter, top 20"
+        const q = query(
+            collection(window.db, "users"), 
+            orderBy(filter, "desc"), 
+            limit(20)
+        );
 
+        const querySnapshot = await getDocs(q);
+        lbList.innerHTML = ''; // Clear the "Loading" message
+
+        let rank = 1;
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const score = data.stats ? (data.stats[filter.split('.')[1]] || 0) : 0;
+            
+            const row = `
+                <div class="lb-row ${doc.id === window.auth.currentUser?.uid ? 'is-me' : ''}">
+                    <span class="lb-rank">${rank}</span>
+                    <span class="lb-name">${data.username || 'Anonymous'}</span>
+                    <span class="lb-score">${score.toLocaleString()}</span>
+                </div>
+            `;
+            lbList.insertAdjacentHTML('beforeend', row);
+            rank++;
+        });
+
+    } catch (err) {
+        console.error("Leaderboard fetch failed:", err);
+        lbList.innerHTML = `<p class="h3">Error loading leaderboard. Make sure you're logged in!</p>`;
+    }
+}
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/

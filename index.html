@@ -17,8 +17,8 @@
     <header class="page-header">
         <div class="header-content">
             <h1>Push-Ups</h1>
-            <button id="go-to-settings" class="btn-icon" type="button" aria-label="Settings">
-                &#9881;
+            <button onclick="handleAuthAction()" id="auth-button" class="btn-login-circle" aria-label="Account">
+            </button>
             </button>
         </div>
         <hr class="divider">
@@ -218,6 +218,27 @@
     </main>
   </section>
 
+    <!--LEADERBOARD PAGE-->
+    <div id="leaderboard-page" class="page-container" style="display: none;">
+        <div class="header-row">
+            <button id="back-to-tracker-from-lb" class="btn-icon">←</button>
+            <h1 class="h2">Leaderboard</h1>
+        </div>
+
+        <div class="filter-row">
+            <select id="lb-filter" class="custom-select">
+                <option value="stats.week">This Week</option>
+                <option value="stats.month">This Month</option>
+                <option value="stats.year">This Year</option>
+                <option value="stats.allTime">All-Time</option>
+            </select>
+        </div>
+
+        <div id="lb-list" class="leaderboard-list">
+            <p class="h3" style="text-align:center; opacity:0.5;">Loading ranks...</p>
+        </div>
+    </div>
+
   <!-- LOG MODAL -->
     <div id="log-modal" class="modal-overlay">
         <div class="modal-content" role="dialog" aria-modal="true">
@@ -248,7 +269,22 @@
     </div>
   
     <button id="floating-log-btn" class="btn-primary floating-btn"> + LOG SET</button>
-
+    
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="showPage('tracker')">
+            <span>🏠</span>
+            <small>Tracker</small>
+        </button>
+        <button class="nav-item" onclick="showPage('leaderboard')">
+            <span>🏆</span>
+            <small>Social</small>
+        </button>
+        <button class="nav-item" onclick="showPage('settings')">
+            <span>⚙️</span>
+            <small>Settings</small>
+        </button>
+    </nav>
+   
    <script type="module">
   // 1. Import the specific tools we need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";

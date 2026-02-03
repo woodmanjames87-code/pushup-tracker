@@ -24,10 +24,14 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica;
     background-color: var(--bg-color);
     color: var(--text);
-    display: flex;
-    justify-content: center;
+    /* Remove display: flex and justify-content */
+    display: block; 
     min-height: 100vh;
     line-height: 1.4;
+    margin: 0;
+    padding: 0;
+    /* Ensure the body doesn't bounce horizontally */
+    overflow-x: hidden;
 }
 
 /* =================================================
@@ -142,13 +146,13 @@ h3 {
 
 .floating-btn {
     position: fixed;
-    bottom: 30px;
+    bottom: 85px;
     left: 50%;
     transform: translateX(-50%);
     width: 85%;
     max-width: 360px;
-    z-index: 999;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .btn-icon {
@@ -219,6 +223,51 @@ h3 {
 .btn-danger:active {
     background: var(--danger);
     color: white;
+}
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid #333;
+    z-index: 1000;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.nav-item.active {
+    color: #4285F4;
+}
+
+.nav-item small {
+    font-size: 0.7rem;
+    margin-top: 4px;
+}
+
+.page-container {
+    display: none; /* Controlled by JS */
+    flex-direction: column;
+    width: 100%;
+    /* Remove any fixed height: 100vh lines if they exist! */
+    min-height: 100vh; 
+    padding: 20px;
+    padding-bottom: 120px; /* This should be enough to clear the nav */
+    box-sizing: border-box;
 }
 /* =================================================
    4.5. GOOGLE LOGIN BUTTON
@@ -468,6 +517,26 @@ h3 {
 .dot.green  { background: var(--fitness-green); }
 .dot.orange { background: var(--orange); }
 .dot.red    { background: var(--danger); }
+
+/* =================================================
+   LEADERBOARD
+   ================================================= */
+.lb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 8px;
+    border-radius: 12px;
+}
+.lb-row.is-me {
+    border: 2px solid #4285F4;
+    background: rgba(66, 133, 244, 0.1);
+}
+.lb-rank { font-weight: bold; width: 30px; }
+.lb-name { flex: 1; margin-left: 10px; }
+.lb-score { font-weight: bold; color: #34c759; }
+
 /* =================================================
    9. SETTINGS & EDITING
    ================================================= */
