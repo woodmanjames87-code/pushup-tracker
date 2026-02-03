@@ -27,7 +27,7 @@ const currentExercise = 'pushups';
 const GOALS = {
     DAYS_PER_WEEK: 7,
     ON_TRACK_DAYS: 4,
-    IMPROVE_DAYS: 5, 
+    IMPROVE_DAYS: (ON_TRACK_DAYS+1), 
     WINDOW_DAYS: 30
 };
 

@@ -2,9 +2,9 @@
    1. CORE VARIABLES & RESET
    ================================================= */
 :root {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --widget-bg: #2a2a2d;
+    --bg-color: #000000;
+    --card-bg: #181818;
+    --widget-bg: #1b1b1d;
     --primary: #007aff;
     --fitness-green: #39e639;
     --text: #ffffff;
@@ -37,7 +37,7 @@ body {
     width: 100%;
     max-width: 400px;
     margin: 0 auto;
-    padding: 20px 20px 120px 20px;
+    padding: 0 20px 120px 20px;
     display: flex;
     flex-direction: column;
 }
@@ -47,6 +47,7 @@ main {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    margin-top: 20px;
 }
 
 header {
@@ -55,6 +56,32 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0px;
+}
+
+.page-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    margin: 0 -20px 0 -20px;
+    padding: 20px 20px 0 20px;
+    width: calc(100% + 40px);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.page-header .divider {
+    border: 0;
+    border-top: 1px solid #3a3a3c;
+    margin: 15px 0 0 0;
+    width: 100%;
 }
 
 .divider {
@@ -132,6 +159,8 @@ h3 {
     color: var(--text-muted);
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 1001;
 }
 
 .btn-delete {
