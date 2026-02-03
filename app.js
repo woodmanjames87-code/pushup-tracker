@@ -518,7 +518,7 @@ window.deleteSet = (i) => {
     // Use selectedEditDate so we delete from the day we are looking at!
     if (data[selectedEditDate] && data[selectedEditDate][currentExercise]) {
         data[selectedEditDate][currentExercise].splice(i, 1);
-        await saveData(data);
+        saveData(data);
         renderEditList(); // Refresh the settings list
         updateDisplay();  // Refresh the main dashboard charts/streaks
     }
@@ -548,7 +548,7 @@ function addSetToDate(dateKey, reps) {
     data[dateKey][currentExercise].push(reps);
 
     // 4. Save and Refresh everything
-    await saveData(data);
+    saveData(data);
     renderEditList(); // Refresh the list you are looking at
     updateDisplay();  // Force the charts and streaks to recalculate
 }
