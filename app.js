@@ -77,18 +77,11 @@ backToTrackerBtn.onclick = () => {
  * LOGGING FLOW
  *************************************************/
 floatingLogBtn.onclick = (e) => {
-    // 1. Focus immediately to "claim" the keyboard trigger
-    modalInput.focus();
-
-    // 2. Set the data logic
+     
+    logModal.style.display = 'flex';
     selectedEditDate = getDateKey(); 
     modalInput.value = '';
-    
-    // 3. Show the UI
-    logModal.style.display = 'flex';
-    
-    // Note: We removed .click() because it's redundant if .focus() 
-    // is called inside the primary click event.
+    modalInput.focus();
 };
 
 cancelBtn.onclick = () => logModal.style.display = 'none';
@@ -440,16 +433,11 @@ window.deleteSet = (i) => {
     }
 };
 // Listener for the "Add Past Set" button
-document.getElementById('btn-add-past').addEventListener('click', (e) => {
-    // 1. Focus FIRST - grab the browser's attention immediately
-    modalInput.focus();
+document.getElementById('btn-add-past').addEventListener('click', () => {
     
-    // 2. Then do the visual work
     modalInput.value = '';
     logModal.style.display = 'flex';
-    
-    // Ensure the date selection logic stays intact
-    // (selectedEditDate should already be set by your date picker logic)
+    modalInput.focus();
 });
 
 function addSetToDate(dateKey, reps) {
