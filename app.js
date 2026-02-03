@@ -48,27 +48,39 @@ async function startCloudSync() {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            // First time logging in! Ask for an Alias
             const alias = prompt("Welcome! Pick a username for the leaderboard:", user.displayName);
             
-            if (alias) {
-                const { setDoc } = window.firebaseMethods;
-                await setDoc(userRef, {
-                    username: alias,
-                    totalReps: 0, // We will sync your local reps here next
-                    uid: user.uid
-                });
-                alert(`All set, ${alias}! Your data will now sync to the cloud.`);
-            }
+            // If they hit cancel, we should still create a basic profile so they don't get stuck
+            const finalAlias = alias || user.displayName || "Anonymous";
+
+            const { setDoc } = window.firebaseMethods;
+            await setDoc(userRef, {
+                username: finalAlias,
+                totalReps: 0, 
+                uid: user.uid,
+                createdAt: new Date().toISOString()
+            });
+            alert(`All set, ${finalAlias}!`);
         } else {
             alert(`Welcome back, ${userSnap.data().username}!`);
         }
 
-        // Logic to push your existing localStorage to the cloud goes here...
+        // Now that login is confirmed, trigger an initial data sync!
+        const currentLocalData = loadData();
+        await saveData(currentLocalData);
         
     } catch (error) {
-        console.error("Login failed:", error);
-        alert("Could not connect to Google. Check your internet!");
+        console.error("Login failed full error:", error);
+        
+        // This tells you if it was a permissions issue or a network issue
+        if (error.code === 'permission-denied') {
+            alert("Database Error: Check your Firestore Rules!");
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            // No alert needed, the user just closed the window
+            console.log("User closed the login popup.");
+        } else {
+            alert("Connection error: " + error.message);
+        }
     }
 }
 function initAuthListener() {
