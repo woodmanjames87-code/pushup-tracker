@@ -146,7 +146,7 @@ function loadData() {
 }
 
 async function saveData(data) {
-    // 1. Keep your existing local save (Instant!)
+    // 1. Keep local save (Instant!)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     // 2. Check if a user is logged in
@@ -155,60 +155,57 @@ async function saveData(data) {
         const { doc, setDoc } = window.firebaseMethods;
         
         try {
-            // We save to a document named after their unique User ID
             const userRef = doc(window.db, "users", user.uid);
             
-            // We use { merge: true } so we don't accidentally delete their Alias/Username
+            // Generate the stats from the data we're about to save
+            const currentStats = computeStats(); 
+
             await setDoc(userRef, {
-                username: userSnap.data()?.username || user.displayName || "Anonymous",
+                // Remove the userSnap reference; we use merge: true 
+                // to protect the username already in the cloud.
                 uid: user.uid,
                 lastUpdated: new Date().toISOString(),
                 
-                // These are the "Leaderboard Pillars"
                 stats: {
-                    allTime: stats.allTimeTotal,
-                    year: stats.ytdTotal,
-                    month: stats.total30,   // Using your 30-day window
-                    week: stats.weeklyTotal,
-                    bestStreak: stats.bestStreak
+                    allTime: currentStats.allTimeTotal,
+                    year: currentStats.ytdTotal,
+                    month: currentStats.total30,
+                    week: currentStats.weeklyTotal,
+                    bestStreak: currentStats.bestStreak
                 },
-    
-                // Keep the full raw data for backup/restore
+                
                 workouts: data 
             }, { merge: true });
 
             console.log("Cloud sync complete.");
         } catch (error) {
             console.error("Cloud sync failed:", error);
-            // Don't alert the user; they still have their local data!
         }
     }
 }
 async function syncLocalToCloud(userId) {
-    const localData = loadData(); // Gets your { '2024-05-10': { count: 20 }, ... }
+    const localData = loadData(); 
+    const user = window.auth?.currentUser;
     
-    // Only sync if there is actually data to save
-    if (Object.keys(localData).length > 0) {
+    if (Object.keys(localData).length > 0 && user) {
         const { doc, setDoc } = window.firebaseMethods;
         const userRef = doc(window.db, "users", userId);
+        
+        // 1. Generate the stats from the local data
+        const stats = computeStats(); 
 
         try {
             await setDoc(userRef, {
-                username: userSnap.data()?.username || user.displayName || "Anonymous",
-                uid: user.uid,
+                uid: userId,
                 lastUpdated: new Date().toISOString(),
-                
-                // These are the "Leaderboard Pillars"
                 stats: {
                     allTime: stats.allTimeTotal,
                     year: stats.ytdTotal,
-                    month: stats.total30,   // Using your 30-day window
+                    month: stats.total30,
                     week: stats.weeklyTotal,
                     bestStreak: stats.bestStreak
                 },
-                
-                // Keep the full raw data for backup/restore
-                workouts: data 
+                workouts: localData // Use the variable we loaded at the top
             }, { merge: true });
 
             console.log("Cloud sync successful!");
@@ -267,6 +264,46 @@ function showPage(pageId) {
     }
 }
 
+// Pull to refresh
+// Add this to your app.js
+let startY = 0;
+let isPulling = false;
+const ptr = document.getElementById('pull-to-refresh');
+
+window.addEventListener('touchstart', (e) => {
+    // Only trigger if we are at the top and on the tracker page
+    if (window.scrollY === 0 && document.getElementById('tracker-page').offsetParent !== null) {
+        startY = e.touches[0].pageY;
+        isPulling = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].pageY;
+    const diff = currentY - startY;
+
+    if (diff > 0) {
+        // Tension: makes it feel like pulling a rubber band
+        const y = Math.pow(diff, 0.85); 
+        ptr.style.transform = `translateY(${y}px)`;
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+    if (!isPulling) return;
+    const diff = e.changedTouches[0].pageY - startY;
+    
+    if (diff > 70) {
+        // Success! Reload or call your refresh function
+        ptr.style.transform = 'translateY(60px)';
+        location.reload(); 
+    } else {
+        // Cancelled
+        ptr.style.transform = 'translateY(0)';
+    }
+    isPulling = false;
+});
 /*************************************************
  * LOGGING FLOW
  *************************************************/

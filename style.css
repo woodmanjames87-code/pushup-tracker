@@ -250,8 +250,15 @@ h3 {
     transition: 0.2s;
 }
 
-.nav-item.active {
-    color: #4285F4;
+.nav-icon {
+    width: 24px;
+    height: 24px;
+    fill: #ffffff; /* white for inactive */
+    transition: 0.2s;
+}
+
+.nav-item.active .nav-icon {
+    fill: var(--fitness-green); 
 }
 
 .nav-item small {
@@ -631,4 +638,36 @@ h3 {
 .modal-buttons {
     display: flex;
     gap: 12px;
+}
+
+/* =================================================
+   Symbols
+   ================================================= */
+/* Pull to Refresh Container */
+#pull-to-refresh {
+    position: fixed;
+    top: -60px; /* Hide off-screen */
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: transform 0.15s ease-out;
+    pointer-events: none; /* Don't block clicks to the header */
+}
+
+/* The actual spinner */
+#pull-to-refresh .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--fitness-green);
+    border-radius: 50%;
+    animation: ptr-spin 0.8s linear infinite;
+}
+
+@keyframes ptr-spin {
+    to { transform: rotate(360deg); }
 }
