@@ -14,6 +14,11 @@
 <body> <div id="pull-to-refresh">
     <div class="spinner"></div>
   </div>
+<!-- LOGIN BUTTON -->
+    <button id="auth-button" class="btn-login-pill">
+        <span class="login-text">Login to &nbsp;</span>
+        <img src="Google_G_logo.png" alt="G" class="google-icon">
+    </button>
 
   <!-- TRACKER PAGE -->
   <section id="tracker-page" class="app-container" data-page="tracker">
@@ -51,18 +56,18 @@
             <span class="streak-tag">
                 Streak:&nbsp; <span id="streak-val">0</span>
             </span>
-            <span id="rest-streak-tag" class="rest-tag" style="display:none;">
-                Rest Streak:&nbsp; <span id="rest-streak-val">0</span>
-            </span>
             <span class="rest-tag">
                 Rest Days:&nbsp; <span id="rest-val">0</span>/14
+            </span>
+            <span id="rest-streak-tag" class="rest-tag" style="display:none;">
+                Rest Streak:&nbsp; <span id="rest-streak-val">0</span>
             </span>
         </div>
     </div>
 
     <h3> Last 7 Days</h3>
     <div class="widget-card">
-        <p class="label-tiny"><span id="weekly-title"></span></p>
+        <p class="label-tiny"><span id="weekly-title" style="color: white; font-weight: bold;"></span></p>
         <div class="chart-section">
         <div class="chart-with-axis">
             <div class="axis left">
@@ -83,7 +88,7 @@
     
     <h3>30-Day Performance Trend</h3>
     <div class="widget-card trend-section">
-        <p class="label-tiny">Total: <span id="total-30-val">0</span> — Achieve goal 4/7 days to stay on track</p>
+        <p class="label-tiny">Total: <span id="total-30-val" style="color: white; font-weight: bold;">0</span> — Achieve goal 4/7 days to stay on track</p>
 
         <div class="segmented-track">
         <div class="segment red"></div>
@@ -105,6 +110,12 @@
         </div>
     </div>
 
+    <h3>6 Month Trend</h3>
+    <div id="6-month-trend" class="widget-card">
+            <div id="monthly-chart" class="chart-with-axis" style="height: 60px;">
+            </div>
+    </div>
+
     <h3>Legacy Insights</h3>
     <div id="legacy-insights" class="widget-card">
         <div class="header-row">     
@@ -117,9 +128,7 @@
         </div>
         <div class="divider"></div>
 
-        <div id="monthly-chart" class="chart-with-axis" style="height: 60px;">
-            </div>
-        <div class="divider"></div>
+
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0;">
             <div>
@@ -138,27 +147,30 @@
                 <div class="label-tiny">100+ CLUB</div>
                 <div id="stat-century" style="font-size: 1.4rem; font-weight: 800; color: var(--orange);">0</div>
             </div>
-        </div>
-
-        <div style="margin-top: 10px;">
-            <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px;">NEXT MILESTONE: 0</div>
-            <div class="progress-container" style="background: #1c1c1e;">
-                <div id="milestone-fill" class="bar-fill green" style="width: 0%;"></div>
+            <div>
+                <div class="label-tiny">LIFETIME AVG</div>
+                <div id="stat-avg" style="font-size: 1.4rem; font-weight: 800;">0/day</div>
+            </div>
+            <div>
+                <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px;">NEXT MILESTONE: 0</div>
+                <div class="progress-container" style="height: 9px;">
+                    <div id="milestone-fill" class="bar-fill green" style="width: 0%;"></div>
+                </div>
             </div>
         </div>
 
         <div class="divider"></div>
 
         <div class="label-tiny" style="text-align: center; margin-bottom: 4px;">VOLUME BY INTENSITY</div>
-        <div class="segmented-track">
+        <div class="segmented-track" style="height: 9px;">
             <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%;"></div>
             <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%;"></div>
             <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%;"></div>
         </div>
         <div class="intensity-legend">
-            <div class="legend-item"><span class="dot green"></span>Elite (100+)</div>
-            <div class="legend-item"><span class="dot orange"></span>Solid (50-99)</div>
-            <div class="legend-item"><span class="dot red"></span>Light (<50)</div>
+            <div class="legend-item"><span class="dot green"></span>(100+)</div>
+            <div class="legend-item"><span class="dot orange"></span>(50-99)</div>
+            <div class="legend-item"><span class="dot red"></span>(<50)</div>
         </div>
 
     </div>
@@ -214,7 +226,15 @@
             </div>
         </div>
         <hr class="divider">
-
+        
+        <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px;">
+                Check for Updates
+            </button>
+            <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5;">
+                Version --
+            </div>
+        </div>
       </section>
     </main>
   </section>
@@ -225,17 +245,17 @@
             <h1 class="h2">Leaderboard</h1>
         </div>
 
-        <div class="filter-row">
-            <select id="lb-filter" class="custom-select">
-                <option value="stats.week">This Week</option>
-                <option value="stats.month">This Month</option>
-                <option value="stats.year">This Year</option>
-                <option value="stats.allTime">All-Time</option>
-            </select>
+        <div class="leaderboard-nav">
+            <div class="segmented-control">
+                <button class="seg-btn active" data-filter="stats.week">Week</button>
+                <button class="seg-btn" data-filter="stats.month">Month</button>
+                <button class="seg-btn" data-filter="stats.year">Year</button>
+                <button class="seg-btn" data-filter="stats.allTime">All-Time</button>
+            </div>
         </div>
 
         <div id="lb-list" class="leaderboard-list">
-            <p class="h3" style="text-align:center; opacity:0.5;">Loading ranks...</p>
+            <p class="h3" style="text-align:center; opacity:0.5; margin-top: 40px;">Loading ranks...</p>
         </div>
     </div>
 

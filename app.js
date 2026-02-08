@@ -89,48 +89,28 @@ async function startCloudSync() {
     }
 }
 function initAuthListener() {
-    if (window.firebaseMethods && window.firebaseMethods.onAuthStateChanged) {
+    if (window.firebaseMethods?.onAuthStateChanged) {
         window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
-            
-            // 1. Update ALL Auth Buttons (Tracker and Settings)
-            const buttonIds = ['auth-button-tracker', 'auth-button-settings'];
-            buttonIds.forEach(id => {
-                const btn = document.getElementById(id);
-                if (!btn) return;
+            const btn = document.getElementById('auth-button');
+            if (!btn) return;
 
-                if (user) {
-                    btn.classList.add('logged-in');
-                    btn.style.backgroundImage = `url('${user.photoURL}')`;
-                    btn.onclick = () => {
-                        if(confirm("Sign out of cloud sync?")) window.auth.signOut();
-                    };
-                } else {
-                    btn.classList.remove('logged-in');
-                    btn.style.backgroundImage = 'none'; 
-                    btn.onclick = startCloudSync;
-                }
-            });
-
-            // 2. Pull Cloud Data (ONLY if user is logged in)
             if (user) {
-                try {
-                    const { doc, getDoc } = window.firebaseMethods;
-                    const userRef = doc(window.db, "users", user.uid);
-                    const docSnap = await getDoc(userRef);
-
-                    if (docSnap.exists()) {
-                        const cloudWorkouts = docSnap.data().workouts;
-                        if (cloudWorkouts) {
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudWorkouts)); 
-                            updateDisplay(); 
-                            if (settingsPage.style.display === 'flex') renderEditList();
-                        }
-                    }                    
-                } catch (err) {
-                    console.error("Error pulling cloud data:", err);
-                }
+                // LOGGED IN
+                btn.classList.add('logged-in');
+                btn.style.backgroundImage = `url('${user.photoURL}')`;
+                btn.onclick = () => {
+                    if(confirm("Sign out?")) window.auth.signOut();
+                };
+                
+                // Trigger cloud pull (your existing logic)
+                syncCloudData(user.uid); 
+            } else {
+                // LOGGED OUT
+                btn.classList.remove('logged-in');
+                btn.style.backgroundImage = 'none';
+                btn.onclick = startCloudSync;
             }
-        }); // End of onAuthStateChanged
+        });
     } else {
         setTimeout(initAuthListener, 100);
     }
@@ -325,11 +305,21 @@ logForm.onsubmit = (e) => {
     const reps = parseInt(modalInput.value);
     if (isNaN(reps) || reps <= 0) return;
 
-    // Use our universal helper function instead of manual logic
+    // 1. Save the data
     addSetToDate(selectedEditDate, reps);
     
+    // 2. Close the modal
     logModal.style.display = 'none';
-    modalInput.value = ''; // Clean up for next time
+    modalInput.value = ''; 
+
+    // 3. Scroll to the top of the page
+    // Using a tiny timeout ensures the UI has updated before it scrolls
+    setTimeout(() => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }, 100);
 };
 
 /*************************************************
@@ -563,6 +553,7 @@ function updateDisplay() {
         document.getElementById('stat-pb').innerText = s.pb.toLocaleString();
         document.getElementById('stat-ytd').innerText = s.ytdTotal.toLocaleString();
         document.getElementById('stat-century').innerText = s.centuryDays;
+        document.getElementById('stat-avg').innerText = s.lifetimeAvg;
 
         // Milestone Progress
         document.getElementById('label-next-milestone').innerText = `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`;
@@ -598,7 +589,10 @@ function updateDisplay() {
  *************************************************/
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
-    const filter = document.getElementById('lb-filter').value;
+    
+    // Find the button with the 'active' class and get its data-filter attribute
+    const activeBtn = document.querySelector('.seg-btn.active');
+    const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.week'; 
     
     // 1. Setup Firebase query tools
     const { collection, query, orderBy, limit, getDocs } = window.firebaseMethods;
@@ -838,5 +832,46 @@ document.getElementById('import-input').addEventListener('change', function(e) {
     reader.readAsText(file);
 });
 
+// --- PWA VERSION & UPDATE LOGIC ---
+async function initPWAUtils() {
+    const versionEl = document.getElementById('app-version');
+    const updateBtn = document.getElementById('btn-update-app');
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        // 1. Get Version from SW
+        const msgChan = new MessageChannel();
+        msgChan.port1.onmessage = (event) => {
+            if (event.data.version) versionEl.innerText = `Version ${event.data.version}`;
+        };
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [msgChan.port2]);
+
+        // 2. Force Update Logic
+        updateBtn.onclick = async () => {
+            updateBtn.innerText = "Checking...";
+            
+            const registration = await navigator.serviceWorker.getRegistration();
+            
+            if (registration) {
+                // Check the server for a new sw.js file
+                await registration.update();
+                
+                if (registration.waiting) {
+                    // New version found and waiting
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                    alert("Updated to newest version!");
+                } else {
+                    // No new version found
+                    updateBtn.innerText = "App is up to date";
+                    setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
+                }
+            }
+        };
+    }
+}
+
+
 // Start
 updateDisplay();
+// Call this for PWA VERSION & UPDATE LOGIC
+initPWAUtils();

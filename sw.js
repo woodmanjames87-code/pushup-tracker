@@ -1,42 +1,65 @@
-const CACHE_NAME = 'workout-v4.6.1';
+const VERSION = 'v4.6.2'; // Increment this to update the app
+const CACHE_NAME = `workout-${VERSION}`; 
+
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './pushup-icon.PNG'
+  './pushup-icon.PNG',
+  './Google_G_logo.png'
 ];
 
-// 1. Install: Save files to the phone's storage
+// 1. Install
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// 2. Fetch: Show cached content immediately, update in background
-self.addEventListener('fetch', (event) => {
-  // 1. CHECK: Is this a Firebase/Google request?
-  if (event.request.url.includes('googleapis.com') || 
-      event.request.url.includes('firebase')) {
-    return; // Do nothing, let the browser handle it normally
-  }
+// 2. Activate: CLEAN UP OLD CACHES
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log("Service Worker: Clearing Old Cache");
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+});
 
-  // 2. REGULAR CACHE LOGIC (for your CSS, JS, HTML)
+// 3. Fetch (Your existing logic)
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('googleapis.com') || event.request.url.includes('firebase')) {
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Only cache successful, standard responses
         if (networkResponse && networkResponse.status === 200) {
            caches.open(CACHE_NAME).then((cache) => {
              cache.put(event.request, networkResponse.clone());
            });
         }
         return networkResponse;
-      }).catch(() => cachedResponse); // Fallback to cache if network fails
-
+      }).catch(() => cachedResponse);
       return cachedResponse || fetchPromise;
     })
   );
+});
+
+// 4. Message Listener: To talk to the Settings Page
+self.addEventListener('message', (event) => {
+  if (event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: VERSION });
+  }
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
