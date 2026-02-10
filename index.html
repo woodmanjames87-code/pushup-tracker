@@ -26,9 +26,6 @@
     <header class="page-header">
         <div class="header-content">
             <h1>Push-Ups</h1>
-            <button onclick="handleAuthAction()" id="auth-button-tracker" class="btn-login-circle" aria-label="Account">
-            </button>
-            </button>
         </div>
         <hr class="divider">
     </header>
@@ -185,8 +182,6 @@
     <header class="page-header">
         <div class="header-content">
             <h1>Settings</h1>
-            <button onclick="handleAuthAction()" id="auth-button-settings" class="btn-login-circle" aria-label="Account">
-            </button>
         </div>
         <hr class="divider">
     </header>
@@ -241,9 +236,13 @@
 
     <!--LEADERBOARD PAGE-->
     <div id="leaderboard-page" class="page-container" style="display: none;">
-        <div class="header-row">
-            <h1 class="h2">Leaderboard</h1>
-        </div>
+        
+        <header class="page-header">
+            <div class="header-content">
+                <h1>Leaderboard</h1>
+            </div>
+            <hr class="divider">
+        </header>
 
         <div class="leaderboard-nav">
             <div class="segmented-control">
@@ -320,7 +319,12 @@
     getFirestore, 
     doc, 
     setDoc, 
-    getDoc 
+    getDoc,
+    collection,
+    query,
+    orderBy,
+    limit,
+    getDocs
   } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
   // 2. Your specific config
@@ -344,9 +348,20 @@
   window.auth = auth;
   window.db = db;
   window.googleProvider = provider;
-  window.firebaseMethods = { signInWithPopup, onAuthStateChanged, doc, setDoc, getDoc };
+  window.firebaseMethods = { 
+    signInWithPopup, 
+    onAuthStateChanged, 
+    doc, 
+    setDoc, 
+    getDoc,
+    collection,
+    query,
+    orderBy,
+    limit,
+    getDocs
+  };
 
-  console.log("Firebase is ready!");
+  console.log("Firebase is ready and leaderboard methods are attached!");
 </script>
 
     <script src="app.js"></script>

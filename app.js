@@ -103,7 +103,7 @@ function initAuthListener() {
                 };
                 
                 // Trigger cloud pull (your existing logic)
-                syncCloudData(user.uid); 
+                syncLocalToCloud(user.uid); 
             } else {
                 // LOGGED OUT
                 btn.classList.remove('logged-in');
@@ -116,8 +116,6 @@ function initAuthListener() {
     }
 }
 
-// Fire it off!
-initAuthListener();
 /*************************************************
  * STORAGE HELPERS
  *************************************************/
@@ -553,7 +551,7 @@ function updateDisplay() {
         document.getElementById('stat-pb').innerText = s.pb.toLocaleString();
         document.getElementById('stat-ytd').innerText = s.ytdTotal.toLocaleString();
         document.getElementById('stat-century').innerText = s.centuryDays;
-        document.getElementById('stat-avg').innerText = s.lifetimeAvg;
+        document.getElementById('stat-avg').innerText = `${s.lifetimeAvg}/day`;
 
         // Milestone Progress
         document.getElementById('label-next-milestone').innerText = `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`;
@@ -875,3 +873,5 @@ async function initPWAUtils() {
 updateDisplay();
 // Call this for PWA VERSION & UPDATE LOGIC
 initPWAUtils();
+//Leaderboard sync
+initAuthListener();
