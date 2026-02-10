@@ -243,7 +243,6 @@ function showPage(pageId) {
 }
 
 // Pull to refresh
-// Add this to your app.js
 let startY = 0;
 let isPulling = false;
 const ptr = document.getElementById('pull-to-refresh');
@@ -386,15 +385,25 @@ function computeStats() {
 
     // Rest Streak (Days since last workout)
     let restStreak = 0;
-    for (let i = 0; i < 365; i++) {
-        const d = new Date(); d.setDate(today.getDate() - i);
+    // We start checking from "Yesterday" (i = 1) 
+    // because we don't want to penalize them for not working out "yet" today.
+    for (let i = 1; i < 365; i++) {
+        const d = new Date(); 
+        d.setDate(today.getDate() - i);
+        
         if (getDayTotal(data, d) === 0) {
             restStreak++;
         } else {
-            // If they worked out today, we don't count today as a rest day
-            if (i === 0) restStreak = 0; 
-            break;
+            break; // Stop counting as soon as we find a workout day
         }
+    }
+    // Special case: If they haven't worked out today AND they missed yesterday,
+    // we add today to the streak.
+    if (restStreak > 0 && todayTotal === 0) {
+        restStreak += 1;
+    } else if (todayTotal > 0) {
+        // If they worked out today, rest streak is always 0
+        restStreak = 0;
     }
 
     // Best Streak (All time)
@@ -587,7 +596,7 @@ function updateDisplay() {
  *************************************************/
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
-    
+
     // Find the button with the 'active' class and get its data-filter attribute
     const activeBtn = document.querySelector('.seg-btn.active');
     const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.week'; 
@@ -627,6 +636,23 @@ async function fetchLeaderboard() {
         lbList.innerHTML = `<p class="h3">Error loading leaderboard. Make sure you're logged in!</p>`;
     }
 }
+
+
+document.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // 1. UI Feedback: Highlight the button
+        document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+
+        // 2. UI Feedback: Clear old list and show loading state
+        // This ensures the user knows a new request is happening
+        document.getElementById('lb-list').innerHTML = 
+            '<p class="h3" style="text-align:center; opacity:0.5; margin-top: 40px;">Loading ranks...</p>';
+        
+        // 3. Trigger the actual data fetch
+        fetchLeaderboard();
+    });
+});
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/
@@ -829,7 +855,9 @@ document.getElementById('import-input').addEventListener('change', function(e) {
     };
     reader.readAsText(file);
 });
-
+/*************************************************
+ * OTHERS
+ *************************************************/
 // --- PWA VERSION & UPDATE LOGIC ---
 async function initPWAUtils() {
     const versionEl = document.getElementById('app-version');

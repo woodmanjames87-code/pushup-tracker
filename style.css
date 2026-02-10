@@ -277,12 +277,13 @@ h3 {
     box-sizing: border-box;
 }
 .leaderboard-nav {
+    margin-top: 20px;
     margin-bottom: 20px;
 }
 
 .segmented-control {
     display: flex;
-    background: #f1f3f4; /* Light grey track */
+    background: #afb1b2; /* Light grey track */
     border-radius: 12px;
     padding: 3px;
     gap: 4px;
