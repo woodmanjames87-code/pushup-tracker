@@ -3,6 +3,7 @@ if ('serviceWorker' in navigator) {
     .then(() => console.log("Offline Mode Active"))
     .catch(err => console.log("Offline Mode Failed", err));
 }
+
 /*************************************************
  * DOM REFERENCES
  *************************************************/
@@ -34,58 +35,48 @@ const GOALS = {
  * LOGIN TO GOOGLE
  *************************************************/
 async function startCloudSync() {
-    const { signInWithPopup } = window.firebaseMethods;
+    const { signInWithPopup, getDoc, doc, setDoc } = window.firebaseMethods;
     
     try {
         const result = await signInWithPopup(window.auth, window.googleProvider);
         const user = result.user;
-        
-        console.log("Logged in as:", user.displayName);
-
-        const { getDoc, doc } = window.firebaseMethods;
         const userRef = doc(window.db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            const alias = prompt("Welcome! Pick a username for the leaderboard:", user.displayName);
+            // NEW USER: Create their cloud profile
+            const alias = prompt("Pick a username for the leaderboard:", user.displayName);
             const finalAlias = alias || user.displayName || "Anonymous";
-
-            const { setDoc } = window.firebaseMethods;
-            const initialStats = computeStats(); 
+            const s = computeStats(); 
 
             await setDoc(userRef, {
                 username: finalAlias,
                 uid: user.uid,
                 createdAt: new Date().toISOString(),
                 stats: {
-                    allTime: initialStats.allTimeTotal,
-                    year: initialStats.ytdTotal,
-                    month: initialStats.total30,
-                    week: initialStats.weeklyTotal,
-                    bestStreak: initialStats.bestStreak
+                    week: s.calendarWeeklyTotal, // Fixed to calendar week
+                    weekId: s.weekId,
+                    month: s.monthlyTotal,
+                    monthId: s.monthId,
+                    year: s.ytdTotal,
+                    yearId: s.yearId
                 }
             });
-            alert(`All set, ${finalAlias}!`);
+            alert(`Welcome, ${finalAlias}!`);
         } else {
-            // This else now correctly matches the 'if (!userSnap.exists())'
-            alert(`Welcome back, ${userSnap.data().username}!`);
+            // RETURNING USER: Pull their data from cloud if local is empty
+            const cloudData = userSnap.data().workouts;
+            if (cloudData && Object.keys(loadData()).length === 0) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
+                alert(`Welcome back! Restored your workouts from the cloud.`);
+            }
         }
 
-        // Now trigger the sync
-        const currentLocalData = loadData();
-        // Note: saveData handles the cloud push internally in your code
-        await saveData(currentLocalData);
-        alert("Sync complete! Your workouts are now backed up.");
+        // Now that we are logged in, initialize the app
+        initApp(); 
 
     } catch (error) {
-        console.error("Login failed full error:", error);
-        if (error.code === 'permission-denied') {
-            alert("Database Error: Check your Firestore Rules!");
-        } else if (error.code === 'auth/popup-closed-by-user') {
-            console.log("User closed the login popup.");
-        } else {
-            alert("Connection error: " + error.message);
-        }
+        console.error("Login failed:", error);
     }
 }
 function initAuthListener() {
@@ -95,20 +86,19 @@ function initAuthListener() {
             if (!btn) return;
 
             if (user) {
-                // LOGGED IN
                 btn.classList.add('logged-in');
                 btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => {
-                    if(confirm("Sign out?")) window.auth.signOut();
-                };
+                btn.onclick = () => { if(confirm("Sign out?")) window.auth.signOut(); };
                 
-                // Trigger cloud pull (your existing logic)
-                syncLocalToCloud(user.uid); 
+                // Refresh the UI and Leaderboard
+                initApp(); 
             } else {
-                // LOGGED OUT
                 btn.classList.remove('logged-in');
                 btn.style.backgroundImage = 'none';
                 btn.onclick = startCloudSync;
+                
+                // Clear leaderboard or stats if you want privacy when logged out
+                updateDisplay();
             }
         });
     } else {
@@ -162,38 +152,33 @@ async function saveData(data) {
         }
     }
 }
+
 async function syncLocalToCloud(userId) {
-    const localData = loadData(); 
-    const user = window.auth?.currentUser;
-    
-    if (Object.keys(localData).length > 0 && user) {
-        const { doc, setDoc } = window.firebaseMethods;
-        const userRef = doc(window.db, "users", userId);
-        
-        // 1. Generate the stats from the local data
-        const stats = computeStats(); 
+    if (!userId) return;
+    const { doc, setDoc } = window.firebaseMethods;
+    const s = computeStats();
+    const userRef = doc(window.db, "users", userId);
 
-        try {
-            await setDoc(userRef, {
-                uid: userId,
-                lastUpdated: new Date().toISOString(),
-                stats: {
-                    year: stats.ytdTotal,
-                    yearId: stats.yearId,
-                    month: stats.monthlyTotal,
-                    monthId: stats.monthId,
-                    week: stats.calendarWeeklyTotal,
-                    weekId: stats.weekId
-                },
-                workouts: localData // Use the variable we loaded at the top
-            }, { merge: true });
-
-            console.log("Cloud sync successful!");
-        } catch (e) {
-            console.error("Cloud sync failed:", e);
-        }
+    try {
+        await setDoc(userRef, {
+            stats: {
+                week: s.calendarWeeklyTotal,
+                weekId: s.weekId,
+                month: s.monthlyTotal,
+                monthId: s.monthId,
+                year: s.ytdTotal,
+                yearId: s.yearId,
+                bestStreak: s.bestStreak
+            },
+            workouts: loadData(), // Backup raw data
+            lastUpdated: new Date().toISOString()
+        }, { merge: true });
+        console.log("Cloud sync successful.");
+    } catch (err) {
+        console.error("Sync failed:", err);
     }
 }
+
 function getDateKey(date = new Date()) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
@@ -1000,3 +985,20 @@ updateDisplay();
 initPWAUtils();
 //Leaderboard sync
 initAuthListener();
+
+async function initApp() {
+    console.log("Initializing/Refreshing App Data...");
+    // Update all UI elements
+    updateDisplay();
+    console.log("App state is now current.");
+}
+// A. Run when the page first loads
+window.addEventListener('DOMContentLoaded', initApp);
+// B. Run whenever the user "switches back" to the app (PWA resume)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        initApp();
+    }
+});
+// C. Run when the window gets focus (extra safety for desktop/laptops)
+window.addEventListener('focus', initApp);
