@@ -349,7 +349,7 @@ h3 {
 .widget-card {
     background: var(--widget-bg);
     width: 100%;
-    padding: 18px;
+    padding: 12px;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -440,7 +440,7 @@ h3 {
     align-items: flex-end;
     gap: 8px;
     height: 75px;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 
 .bar-chart {
@@ -456,6 +456,7 @@ h3 {
     width: 20px;
     background: linear-gradient(to bottom, var(--fitness-green), #2db32d);
     border-radius: 4px 4px 1px 1px;
+    min-height: 2px;
 }
 
 .bar-unit.legacy { width: 20px; }
@@ -492,6 +493,11 @@ h3 {
     align-items: center;
     justify-content: flex-end;
     height: 100%;
+}
+
+#monthly-chart {
+    padding-top: 5px; /* Gives the numbers room to breathe when the bar is at max height */
+    overflow: visible; /* Prevents numbers from being clipped */
 }
 
 .chart-value {

@@ -640,11 +640,22 @@ function updateDisplay() {
 
         monthEntries.forEach(([label, val]) => {
             const hPct = (val / maxMonth) * 100;
+
             monthlyChart.insertAdjacentHTML('beforeend', `
                 <div class="monthly-bar-container">
-                    <span class="label-tiny chart-value">${val > 0 ? val : ''}</span>
-                    <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2}"></div>
-                    <span class="month-label">${label.toUpperCase()}</span>
+                    
+                    <div style="height: 60px; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                        
+                        <span class="label-tiny chart-value" style="font-size: 0.6rem; margin-bottom: 2px; line-height: 1;">
+                            ${val > 0 ? val : ''}
+                        </span>
+
+                        <div class="bar-unit legacy" style="height:${hPct}%; width: 20px; opacity:${val > 0 ? 1 : 0.2}; background-color: var(--accent-color); border-radius: 2px 2px 0 0;"></div>
+                    </div>
+                    
+                    <span class="month-label" style="font-size: 0.6rem; margin-top: 4px;">
+                        ${label.toUpperCase()}
+                    </span>
                 </div>
             `);
         });
