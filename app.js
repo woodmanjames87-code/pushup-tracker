@@ -145,11 +145,12 @@ async function saveData(data) {
                 lastUpdated: new Date().toISOString(),
                 
                 stats: {
-                    allTime: currentStats.allTimeTotal,
                     year: currentStats.ytdTotal,
+                    yearId: currentStats.yearId,
                     month: currentStats.total30,
+                    monthId: currentStats.monthId,
                     week: currentStats.weeklyTotal,
-                    bestStreak: currentStats.bestStreak
+                    weekId: currentStats.weekId,
                 },
                 
                 workouts: data 
@@ -177,11 +178,12 @@ async function syncLocalToCloud(userId) {
                 uid: userId,
                 lastUpdated: new Date().toISOString(),
                 stats: {
-                    allTime: stats.allTimeTotal,
                     year: stats.ytdTotal,
-                    month: stats.total30,
-                    week: stats.weeklyTotal,
-                    bestStreak: stats.bestStreak
+                    yearId: stats.yearId,
+                    month: stats.monthlyTotal,
+                    monthId: stats.monthId,
+                    week: stats.calendarWeeklyTotal,
+                    weekId: stats.weekId
                 },
                 workouts: localData // Use the variable we loaded at the top
             }, { merge: true });
@@ -204,6 +206,24 @@ function getDayTotal(data, date) {
     return (data[key] && data[key][currentExercise]) ? data[key][currentExercise].reduce((a, b) => a + b, 0) : 0;
 }
 
+function getWeekId(date) {
+    const d = new Date(date);
+        // Find the Sunday of this week
+        d.setDate(d.getDate() - d.getDay());
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    // Returns a string like "2026-W-Feb-8" 
+    return `${year}-W-${month}-${day}`;
+}
+function getMonthId(date) {
+    const d = new Date(date);
+    // Returns "2026-02" 
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function getYearId(date) {
+    return String(new Date(date).getFullYear());
+}
 /*************************************************
  * NAVIGATION
  *************************************************/
@@ -326,7 +346,7 @@ function computeStats() {
     const data = loadData();
     const today = new Date();
     const currentYearStr = today.getFullYear().toString();
-
+    
     // Basic Totals
     const todayTotal = getDayTotal(data, today);
     const yest = new Date(); yest.setDate(yest.getDate() - 1);
@@ -341,6 +361,23 @@ function computeStats() {
         weeklyData.push(v);
         weeklyTotal += v;
     }
+
+    // Calendar Week Total
+    const diffToSunday = today.getDay(); 
+    
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - diffToSunday);
+    sunday.setHours(0, 0, 0, 0); // Start of Sunday morning
+
+    let calendarWeeklyTotal = 0;
+    
+    // Loop from Sunday until Today
+    for (let i = 0; i <= diffToSunday; i++) {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + i);
+        calendarWeeklyTotal += getDayTotal(data, d);
+    }
+    
 
     // Daily Goal (Avg/Median of last 14 active days)
     let activeValues = [];
@@ -469,14 +506,19 @@ function computeStats() {
 
     // Monthly Chart (Last 6 Months)
     const monthlyData = {};
+    let currentMonthLabel = ""
     for (let i = 5; i >= 0; i--) {
         let d = new Date(); d.setDate(1); d.setMonth(today.getMonth() - i);
         const label = d.toLocaleString('default', { month: 'short' });
+
+        if (i === 0) currentMonthLabel = label;
+
         const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         monthlyData[label] = allKeys
             .filter(date => date.startsWith(monthPrefix))
             .reduce((s, date) => s + getDayTotal(data, new Date(date + 'T00:00:00')), 0);
     }
+    const monthlyTotal = monthlyData[currentMonthLabel];
 
     const nextMilestone = Math.ceil((allTimeTotal + 1) / 5000) * 5000;
     const startOfYear = new Date(today.getFullYear(), 0, 1);
@@ -484,10 +526,27 @@ function computeStats() {
     const projectedYearly = Math.round((ytdTotal / daysInYearSoFar) * 365);
 
 
-    return { todayTotal, yesterdayTotal, weeklyTotal, dailyGoal, thirtyGoal, active30,
-        restStreak, streak, bestStreak, rest14, total30, avg30, trend, thirtyImprov, weeklyData,
-        allTimeTotal, ytdTotal, pb, centuryDays, lifetimeAvg, monthlyData, nextMilestone, projectedYearly,
-        currentYearStr, eliteVol, solidVol, lightVol, firstDateStr, totalDaysElapsed, activeDays };
+    return { 
+        // New Leaderboard Helpers
+        weekId: getWeekId(today), 
+        monthId: getMonthId(today),
+        yearId: getYearId(today),
+        
+        // Core Stats
+        todayTotal, yesterdayTotal, weeklyTotal, calendarWeeklyTotal, 
+        monthlyTotal, total30, allTimeTotal, ytdTotal,
+        
+        // Streaks & Goals
+        dailyGoal, thirtyGoal, active30, restStreak, streak, bestStreak, 
+        
+        // Insights & Trends
+        rest14, avg30, trend, thirtyImprov, weeklyData, monthlyData,
+        pb, centuryDays, lifetimeAvg, nextMilestone, projectedYearly,
+        
+        // Metadata
+        currentYearStr, eliteVol, solidVol, lightVol, firstDateStr, 
+        totalDaysElapsed, activeDays 
+    };
 }
 
 /*************************************************
@@ -596,32 +655,60 @@ function updateDisplay() {
  *************************************************/
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
-
-    // Find the button with the 'active' class and get its data-filter attribute
+    
+    // Determine which filter is active
     const activeBtn = document.querySelector('.seg-btn.active');
     const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.week'; 
     
-    // 1. Setup Firebase query tools
-    const { collection, query, orderBy, limit, getDocs } = window.firebaseMethods;
+    // Destructure tools from our global toolbox (added 'where')
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
     
     try {
-        // 2. Build the query: "Look in 'users', order by the chosen filter, top 20"
-        const q = query(
-            collection(window.db, "users"), 
-            orderBy(filter, "desc"), 
-            limit(20)
-        );
+        const usersRef = collection(window.db, "users");
+        const now = new Date();
+        let q;
+
+        // --- Logic: Only fetch users whose ID matches the current time period ---
+        if (filter === 'stats.week') {
+            q = query(usersRef, 
+                where("stats.weekId", "==", getWeekId(now)),
+                orderBy("stats.week", "desc"), 
+                limit(20)
+            );
+        } else if (filter === 'stats.month') {
+            q = query(usersRef, 
+                where("stats.monthId", "==", getMonthId(now)),
+                orderBy("stats.month", "desc"), 
+                limit(20)
+            );
+        } else if (filter === 'stats.year') {
+            q = query(usersRef, 
+                where("stats.yearId", "==", getYearId(now)),
+                orderBy("stats.year", "desc"), 
+                limit(20)
+            );
+        }
 
         const querySnapshot = await getDocs(q);
-        lbList.innerHTML = ''; // Clear the "Loading" message
+        lbList.innerHTML = ''; // Clear the loader
+
+        // Handle empty results (e.g., first day of the week)
+        if (querySnapshot.empty) {
+            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet this period. Be the first!</p>`;
+            return;
+        }
 
         let rank = 1;
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const score = data.stats ? (data.stats[filter.split('.')[1]] || 0) : 0;
+            // Get the field name (week, month, or year) from the filter string 'stats.week'
+            const fieldName = filter.split('.')[1];
+            const score = data.stats ? (data.stats[fieldName] || 0) : 0;
             
+            const isMe = doc.id === window.auth.currentUser?.uid;
+
             const row = `
-                <div class="lb-row ${doc.id === window.auth.currentUser?.uid ? 'is-me' : ''}">
+                <div class="lb-row ${isMe ? 'is-me' : ''}">
                     <span class="lb-rank">${rank}</span>
                     <span class="lb-name">${data.username || 'Anonymous'}</span>
                     <span class="lb-score">${score.toLocaleString()}</span>
@@ -633,23 +720,22 @@ async function fetchLeaderboard() {
 
     } catch (err) {
         console.error("Leaderboard fetch failed:", err);
-        lbList.innerHTML = `<p class="h3">Error loading leaderboard. Make sure you're logged in!</p>`;
+        // If index is missing, this message helps debug
+        lbList.innerHTML = `<p class="h3">Error loading ranks. If this is new, please wait for index building or check console.</p>`;
     }
 }
 
-
+// Button Click Handling
 document.querySelectorAll('.seg-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // 1. UI Feedback: Highlight the button
+        // UI: Toggle active class
         document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
 
-        // 2. UI Feedback: Clear old list and show loading state
-        // This ensures the user knows a new request is happening
+        // UI: Show loading state
         document.getElementById('lb-list').innerHTML = 
             '<p class="h3" style="text-align:center; opacity:0.5; margin-top: 40px;">Loading ranks...</p>';
         
-        // 3. Trigger the actual data fetch
         fetchLeaderboard();
     });
 });
