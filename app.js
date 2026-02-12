@@ -712,11 +712,33 @@ function updateDisplay() {
  *************************************************/
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
-    
+    const rangeText = document.getElementById('lb-date-range-text');
+
     // Determine which filter is active
     const activeBtn = document.querySelector('.seg-btn.active');
     const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.week'; 
     
+    const now = new Date();
+    let displayLabel = "";
+
+    // --- Logic for the dynamic label ---
+        if (filter === 'stats.week') {
+            // Find Sunday of this week
+            const sun = new Date(now);
+            sun.setDate(now.getDate() - now.getDay());
+            const options = { month: 'short', day: 'numeric' };
+            displayLabel = `Week of ${sun.toLocaleDateString(undefined, options)}`;
+            
+        } else if (filter === 'stats.month') {
+            displayLabel = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+            
+        } else if (filter === 'stats.year') {
+            displayLabel = now.getFullYear();
+        }
+
+        // Update the UI text
+        if (rangeText) rangeText.innerText = displayLabel;
+
     // Destructure tools from our global toolbox (added 'where')
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
     
@@ -981,6 +1003,7 @@ async function initApp() {
     console.log("Initializing/Refreshing App Data...");
     // Update all UI elements
     updateDisplay();
+    renderEditList();
     console.log("App state is now current.");
 }
 // A. Run when the page first loads
