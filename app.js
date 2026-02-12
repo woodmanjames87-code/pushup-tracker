@@ -1,9 +1,3 @@
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log("Offline Mode Active"))
-    .catch(err => console.log("Offline Mode Failed", err));
-}
-
 /*************************************************
  * DOM REFERENCES
  *************************************************/
@@ -31,154 +25,19 @@ const GOALS = {
     IMPROVE_DAYS: 5, 
     WINDOW_DAYS: 30
 };
+
 /*************************************************
- * LOGIN TO GOOGLE
+ * SERVICE WORKER REGISTRATION
  *************************************************/
-async function startCloudSync() {
-    const { signInWithPopup, getDoc, doc, setDoc } = window.firebaseMethods;
-    
-    try {
-        const result = await signInWithPopup(window.auth, window.googleProvider);
-        const user = result.user;
-        const userRef = doc(window.db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) {
-            // NEW USER: Create their cloud profile
-            const alias = prompt("Pick a username for the leaderboard:", user.displayName);
-            const finalAlias = alias || user.displayName || "Anonymous";
-            const s = computeStats(); 
-
-            await setDoc(userRef, {
-                username: finalAlias,
-                uid: user.uid,
-                createdAt: new Date().toISOString(),
-                stats: {
-                    week: s.calendarWeeklyTotal, // Fixed to calendar week
-                    weekId: s.weekId,
-                    month: s.monthlyTotal,
-                    monthId: s.monthId,
-                    year: s.ytdTotal,
-                    yearId: s.yearId
-                }
-            });
-            alert(`Welcome, ${finalAlias}!`);
-        } else {
-            // RETURNING USER: Pull their data from cloud if local is empty
-            const cloudData = userSnap.data().workouts;
-            if (cloudData && Object.keys(loadData()).length === 0) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData));
-                alert(`Welcome back! Restored your workouts from the cloud.`);
-            }
-        }
-
-        // Now that we are logged in, initialize the app
-        initApp(); 
-
-    } catch (error) {
-        console.error("Login failed:", error);
-    }
-}
-function initAuthListener() {
-    if (window.firebaseMethods?.onAuthStateChanged) {
-        window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
-            const btn = document.getElementById('auth-button');
-            if (!btn) return;
-
-            if (user) {
-                btn.classList.add('logged-in');
-                btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => { if(confirm("Sign out?")) window.auth.signOut(); };
-                
-                // Refresh the UI and Leaderboard
-                initApp(); 
-            } else {
-                btn.classList.remove('logged-in');
-                btn.style.backgroundImage = 'none';
-                btn.onclick = startCloudSync;
-                
-                // Clear leaderboard or stats if you want privacy when logged out
-                updateDisplay();
-            }
-        });
-    } else {
-        setTimeout(initAuthListener, 100);
-    }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log("Offline Mode Active"))
+    .catch(err => console.log("Offline Mode Failed", err));
 }
 
 /*************************************************
- * STORAGE HELPERS
+ * STATS ENGINE 
  *************************************************/
-function loadData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-}
-
-async function saveData(data) {
-    // 1. Keep local save (Instant!)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-    // 2. Check if a user is logged in
-    const user = window.auth?.currentUser;
-    if (user && window.firebaseMethods) {
-        const { doc, setDoc } = window.firebaseMethods;
-        
-        try {
-            const userRef = doc(window.db, "users", user.uid);
-            
-            // Generate the stats from the data we're about to save
-            const currentStats = computeStats(); 
-
-            await setDoc(userRef, {
-                // Remove the userSnap reference; we use merge: true 
-                // to protect the username already in the cloud.
-                uid: user.uid,
-                lastUpdated: new Date().toISOString(),
-                
-                stats: {
-                    year: currentStats.ytdTotal,
-                    yearId: currentStats.yearId,
-                    month: currentStats.total30,
-                    monthId: currentStats.monthId,
-                    week: currentStats.weeklyTotal,
-                    weekId: currentStats.weekId,
-                },
-                
-                workouts: data 
-            }, { merge: true });
-
-            console.log("Cloud sync complete.");
-        } catch (error) {
-            console.error("Cloud sync failed:", error);
-        }
-    }
-}
-
-async function syncLocalToCloud(userId) {
-    if (!userId) return;
-    const { doc, setDoc } = window.firebaseMethods;
-    const s = computeStats();
-    const userRef = doc(window.db, "users", userId);
-
-    try {
-        await setDoc(userRef, {
-            stats: {
-                week: s.calendarWeeklyTotal,
-                weekId: s.weekId,
-                month: s.monthlyTotal,
-                monthId: s.monthId,
-                year: s.ytdTotal,
-                yearId: s.yearId,
-                bestStreak: s.bestStreak
-            },
-            workouts: loadData(), // Backup raw data
-            lastUpdated: new Date().toISOString()
-        }, { merge: true });
-        console.log("Cloud sync successful.");
-    } catch (err) {
-        console.error("Sync failed:", err);
-    }
-}
-
 function getDateKey(date = new Date()) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
@@ -209,124 +68,7 @@ function getMonthId(date) {
 function getYearId(date) {
     return String(new Date(date).getFullYear());
 }
-/*************************************************
- * NAVIGATION
- *************************************************/
-function showPage(pageId) {
-    // 1. Hide all pages
-    document.getElementById('tracker-page').style.display = 'none';
-    document.getElementById('settings-page').style.display = 'none';
-    document.getElementById('leaderboard-page').style.display = 'none';
-    
-    // 2. Show the requested page
-    const activePage = document.getElementById(`${pageId}-page`);
-    if (activePage) {
-        activePage.style.display = 'flex';
-    }
 
-    // 3. Update Nav Bar Button Colors
-    const navButtons = document.querySelectorAll('.nav-item');
-    navButtons.forEach(btn => btn.classList.remove('active'));
-    
-    // Logic to highlight the correct icon
-    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
-    navButtons[indexMap[pageId]].classList.add('active');
-
-    // 4. Special logic: Refresh leaderboard when entering social page
-    if (pageId === 'leaderboard') {
-        fetchLeaderboard();
-    }
-    
-    // 5. Special logic: Show/Hide the floating log button
-    const floatingBtn = document.getElementById('floating-log-btn');
-    if (pageId === 'tracker') {
-        floatingBtn.style.display = 'block';
-        updateDisplay(); // Refresh home stats
-    } else {
-        floatingBtn.style.display = 'none';
-    }
-}
-
-// Pull to refresh
-let startY = 0;
-let isPulling = false;
-const ptr = document.getElementById('pull-to-refresh');
-
-window.addEventListener('touchstart', (e) => {
-    // Only trigger if we are at the top and on the tracker page
-    if (window.scrollY === 0 && document.getElementById('tracker-page').offsetParent !== null) {
-        startY = e.touches[0].pageY;
-        isPulling = true;
-    }
-}, { passive: true });
-
-window.addEventListener('touchmove', (e) => {
-    if (!isPulling) return;
-    const currentY = e.touches[0].pageY;
-    const diff = currentY - startY;
-
-    if (diff > 0) {
-        // Tension: makes it feel like pulling a rubber band
-        const y = Math.pow(diff, 0.85); 
-        ptr.style.transform = `translateY(${y}px)`;
-    }
-}, { passive: true });
-
-window.addEventListener('touchend', (e) => {
-    if (!isPulling) return;
-    const diff = e.changedTouches[0].pageY - startY;
-    
-    if (diff > 70) {
-        // Success! Reload or call your refresh function
-        ptr.style.transform = 'translateY(60px)';
-        location.reload(); 
-    } else {
-        // Cancelled
-        ptr.style.transform = 'translateY(0)';
-    }
-    isPulling = false;
-});
-/*************************************************
- * LOGGING FLOW
- *************************************************/
-floatingLogBtn.onclick = (e) => {
-     
-    logModal.style.display = 'flex';
-    selectedEditDate = getDateKey(); 
-    modalInput.value = '';
-    modalInput.focus();
-};
-
-cancelBtn.onclick = () => logModal.style.display = 'none';
-
-const logForm = document.getElementById('log-form');
-
-logForm.onsubmit = (e) => {
-    e.preventDefault();
-    
-    const reps = parseInt(modalInput.value);
-    if (isNaN(reps) || reps <= 0) return;
-
-    // 1. Save the data
-    addSetToDate(selectedEditDate, reps);
-    
-    // 2. Close the modal
-    logModal.style.display = 'none';
-    modalInput.value = ''; 
-
-    // 3. Scroll to the top of the page
-    // Using a tiny timeout ensures the UI has updated before it scrolls
-    setTimeout(() => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    }, 100);
-};
-
-/*************************************************
- * STATS ENGINE 
- *************************************************/
 function computeStats() {
     const data = loadData();
     const today = new Date();
@@ -512,7 +254,7 @@ function computeStats() {
 
 
     return { 
-        // New Leaderboard Helpers
+        // Leaderboard Helpers
         weekId: getWeekId(today), 
         monthId: getMonthId(today),
         yearId: getYearId(today),
@@ -533,6 +275,325 @@ function computeStats() {
         totalDaysElapsed, activeDays 
     };
 }
+
+/*************************************************
+ * DATA & CLOUD SYNC
+ *************************************************/
+function loadData() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+}
+
+// This handles the CLOUD PUSH
+async function syncLocalToCloud(userId) {
+    if (!userId || !window.firebaseMethods) return;
+
+    const localData = loadData();
+    
+    if (Object.keys(localData).length === 0) {
+        console.log("Local storage empty. Skipping cloud push.");
+        return;
+    }
+
+    const s = computeStats();
+    const { doc, setDoc } = window.firebaseMethods;
+    const userRef = doc(window.db, "users", userId);
+
+    try {
+        await setDoc(userRef, {
+            uid: userId, // Good to keep for indexing
+            stats: {
+                week: s.calendarWeeklyTotal,
+                weekId: s.weekId,
+                month: s.monthlyTotal,
+                monthId: s.monthId,
+                year: s.ytdTotal,
+                yearId: s.yearId,
+                bestStreak: s.bestStreak
+            },
+            workouts: localData,
+            lastUpdated: new Date().toISOString()
+        }, { merge: true });
+        console.log("Cloud sync successful.");
+    } catch (err) {
+        console.error("Cloud sync failed:", err);
+    }
+}
+
+// This handles the LOCAL SAVE + triggers the Cloud Push
+async function saveData(data) {
+    // Save locally (Immediate)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // Trigger Cloud Sync (Background)
+    const user = window.auth?.currentUser;
+    if (user) {
+        await syncLocalToCloud(user.uid);
+    }
+}
+
+async function startCloudSync() {
+    const { signInWithPopup } = window.firebaseMethods;
+    
+    try {
+        const result = await signInWithPopup(window.auth, window.googleProvider);
+        const user = result.user;
+        
+        // Check if this is a brand new user to the database
+        const { getDoc, doc, setDoc } = window.firebaseMethods;
+        const userRef = doc(window.db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            // NEW USER SETUP:
+            const alias = prompt("Pick a username for the leaderboard:", user.displayName);
+            const finalAlias = alias || user.displayName || "Anonymous";
+            const s = computeStats(); 
+
+            await setDoc(userRef, {
+                username: finalAlias,
+                uid: user.uid,
+                createdAt: new Date().toISOString(),
+                stats: {
+                    week: s.calendarWeeklyTotal,
+                    weekId: s.weekId,
+                    month: s.monthlyTotal,
+                    monthId: s.monthId,
+                    year: s.ytdTotal,
+                    yearId: s.yearId
+                }
+            });
+            alert(`Welcome, ${finalAlias}!`);
+        }
+    } catch (error) {
+        console.error("Login failed:", error);
+    }
+}
+
+function initAuthListener() {
+    if (window.firebaseMethods?.onAuthStateChanged) {
+        window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
+            const btn = document.getElementById('auth-button');
+            if (!btn) return;
+
+            if (user) {
+                // UI Setup
+                btn.classList.add('logged-in');
+                btn.style.backgroundImage = `url('${user.photoURL}')`;
+                btn.onclick = () => { if(confirm("Sign out?")) window.auth.signOut(); };
+
+                // 🛡️ SILENT PULL: Restore data if local is empty
+                const localData = loadData();
+                if (Object.keys(localData).length === 0) {
+                    console.log("Local storage empty, checking cloud for backup...");
+                    const { getDoc, doc } = window.firebaseMethods;
+                    const userRef = doc(window.db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists() && userSnap.data().workouts) {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(userSnap.data().workouts));
+                        console.log("Backup restored successfully.");
+                    }
+                }
+                
+                initApp(); 
+            } else {
+                // Logged out state...
+                btn.classList.remove('logged-in');
+                btn.style.backgroundImage = 'none';
+                btn.onclick = startCloudSync;
+                updateDisplay();
+            }
+        });
+    } else {
+        setTimeout(initAuthListener, 100);
+    }
+}
+
+function smartImport(jsonString) {
+    try {
+        const imported = JSON.parse(jsonString);
+        const current = JSON.parse(localStorage.getItem('workout-data') || '{}');
+        let newEntries = 0;
+        let mergedEntries = 0;
+
+        Object.keys(imported).forEach(date => {
+            let incomingSets = [];
+
+            // Detect Old vs New Format
+            if (typeof imported[date] === 'number') {
+                incomingSets = [imported[date]]; // Normalize old format
+            } else if (imported[date].pushups) {
+                incomingSets = imported[date].pushups;
+            }
+
+            if (!current[date]) {
+                // Brand new date
+                current[date] = { pushups: incomingSets };
+                newEntries++;
+            } else {
+                // Date exists - check if data is unique before merging
+                const currentTotal = current[date].pushups.reduce((a, b) => a + b, 0);
+                const importTotal = incomingSets.reduce((a, b) => a + b, 0);
+
+                if (currentTotal !== importTotal) {
+                    // Totals differ, add incoming as new sets
+                    current[date].pushups.push(...incomingSets);
+                    mergedEntries++;
+                }
+            }
+        });
+
+        // Save and Reload
+        localStorage.setItem('workout-data', JSON.stringify(current));
+        alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
+        location.reload(); 
+
+    } catch (e) {
+        alert("Invalid file format.");
+        console.error(e);
+    }
+}
+function clearAllData() {
+    const warning = "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
+    
+    if (confirm(warning)) {
+        // Second layer of protection for a "Nuclear" action
+        const finalCheck = confirm("Final check: Delete everything?");
+        
+        if (finalCheck) {
+            localStorage.removeItem('workout-data');
+            alert("Database cleared. Starting fresh!");
+            location.reload(); // Refresh to reset all charts and totals
+        }
+    }
+}
+// Listen for file selection
+document.getElementById('import-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        smartImport(content);
+    };
+    reader.readAsText(file);
+});
+
+// --- PWA VERSION & UPDATE LOGIC ---
+async function initPWAUtils() {
+    const versionEl = document.getElementById('app-version');
+    const updateBtn = document.getElementById('btn-update-app');
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        // 1. Get Version from SW
+        const msgChan = new MessageChannel();
+        msgChan.port1.onmessage = (event) => {
+            if (event.data.version) versionEl.innerText = `Version ${event.data.version}`;
+        };
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [msgChan.port2]);
+
+        // 2. Force Update Logic
+        updateBtn.onclick = async () => {
+            updateBtn.innerText = "Checking...";
+            
+            const registration = await navigator.serviceWorker.getRegistration();
+            
+            if (registration) {
+                // Check the server for a new sw.js file
+                await registration.update();
+                
+                if (registration.waiting) {
+                    // New version found and waiting
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                    alert("Updated to newest version!");
+                } else {
+                    // No new version found
+                    updateBtn.innerText = "App is up to date";
+                    setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
+                }
+            }
+        };
+    }
+}
+/*************************************************
+ * NAVIGATION
+ *************************************************/
+function showPage(pageId) {
+    // 1. Hide all pages
+    document.getElementById('tracker-page').style.display = 'none';
+    document.getElementById('settings-page').style.display = 'none';
+    document.getElementById('leaderboard-page').style.display = 'none';
+    
+    // 2. Show the requested page
+    const activePage = document.getElementById(`${pageId}-page`);
+    if (activePage) {
+        activePage.style.display = 'flex';
+    }
+
+    // 3. Update Nav Bar Button Colors
+    const navButtons = document.querySelectorAll('.nav-item');
+    navButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Logic to highlight the correct icon
+    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
+    navButtons[indexMap[pageId]].classList.add('active');
+
+    // 4. Special logic: Refresh leaderboard when entering social page
+    if (pageId === 'leaderboard') {
+        fetchLeaderboard();
+    }
+    
+    // 5. Special logic: Show/Hide the floating log button
+    const floatingBtn = document.getElementById('floating-log-btn');
+    if (pageId === 'tracker') {
+        floatingBtn.style.display = 'block';
+        updateDisplay(); // Refresh home stats
+    } else {
+        floatingBtn.style.display = 'none';
+    }
+}
+
+// Pull to refresh
+let startY = 0;
+let isPulling = false;
+const ptr = document.getElementById('pull-to-refresh');
+
+window.addEventListener('touchstart', (e) => {
+    // Only trigger if we are at the top and on the tracker page
+    if (window.scrollY === 0 && document.getElementById('tracker-page').offsetParent !== null) {
+        startY = e.touches[0].pageY;
+        isPulling = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].pageY;
+    const diff = currentY - startY;
+
+    if (diff > 0) {
+        // Tension: makes it feel like pulling a rubber band
+        const y = Math.pow(diff, 0.85); 
+        ptr.style.transform = `translateY(${y}px)`;
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+    if (!isPulling) return;
+    const diff = e.changedTouches[0].pageY - startY;
+    
+    if (diff > 70) {
+        // Success! Reload or call your refresh function
+        ptr.style.transform = 'translateY(60px)';
+        location.reload(); 
+    } else {
+        // Cancelled
+        ptr.style.transform = 'translateY(0)';
+    }
+    isPulling = false;
+});
 
 /*************************************************
  * UI RENDERING
@@ -735,6 +796,45 @@ document.querySelectorAll('.seg-btn').forEach(btn => {
         fetchLeaderboard();
     });
 });
+
+/*************************************************
+ * LOGGING FLOW
+ *************************************************/
+floatingLogBtn.onclick = (e) => {
+     
+    logModal.style.display = 'flex';
+    selectedEditDate = getDateKey(); 
+    modalInput.value = '';
+    modalInput.focus();
+};
+
+cancelBtn.onclick = () => logModal.style.display = 'none';
+
+const logForm = document.getElementById('log-form');
+
+logForm.onsubmit = (e) => {
+    e.preventDefault();
+    
+    const reps = parseInt(modalInput.value);
+    if (isNaN(reps) || reps <= 0) return;
+
+    // 1. Save the data
+    addSetToDate(selectedEditDate, reps);
+    
+    // 2. Close the modal
+    logModal.style.display = 'none';
+    modalInput.value = ''; 
+
+    // 3. Scroll to the top of the page
+    // Using a tiny timeout ensures the UI has updated before it scrolls
+    setTimeout(() => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }, 100);
+};
+
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/
@@ -867,116 +967,7 @@ async function exportData() {
     URL.revokeObjectURL(url);
 }
 
-function smartImport(jsonString) {
-    try {
-        const imported = JSON.parse(jsonString);
-        const current = JSON.parse(localStorage.getItem('workout-data') || '{}');
-        let newEntries = 0;
-        let mergedEntries = 0;
 
-        Object.keys(imported).forEach(date => {
-            let incomingSets = [];
-
-            // Detect Old vs New Format
-            if (typeof imported[date] === 'number') {
-                incomingSets = [imported[date]]; // Normalize old format
-            } else if (imported[date].pushups) {
-                incomingSets = imported[date].pushups;
-            }
-
-            if (!current[date]) {
-                // Brand new date
-                current[date] = { pushups: incomingSets };
-                newEntries++;
-            } else {
-                // Date exists - check if data is unique before merging
-                const currentTotal = current[date].pushups.reduce((a, b) => a + b, 0);
-                const importTotal = incomingSets.reduce((a, b) => a + b, 0);
-
-                if (currentTotal !== importTotal) {
-                    // Totals differ, add incoming as new sets
-                    current[date].pushups.push(...incomingSets);
-                    mergedEntries++;
-                }
-            }
-        });
-
-        // Save and Reload
-        localStorage.setItem('workout-data', JSON.stringify(current));
-        alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
-        location.reload(); 
-
-    } catch (e) {
-        alert("Invalid file format.");
-        console.error(e);
-    }
-}
-function clearAllData() {
-    const warning = "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
-    
-    if (confirm(warning)) {
-        // Second layer of protection for a "Nuclear" action
-        const finalCheck = confirm("Final check: Delete everything?");
-        
-        if (finalCheck) {
-            localStorage.removeItem('workout-data');
-            alert("Database cleared. Starting fresh!");
-            location.reload(); // Refresh to reset all charts and totals
-        }
-    }
-}
-// Listen for file selection
-document.getElementById('import-input').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const content = e.target.result;
-        smartImport(content);
-    };
-    reader.readAsText(file);
-});
-/*************************************************
- * OTHERS
- *************************************************/
-// --- PWA VERSION & UPDATE LOGIC ---
-async function initPWAUtils() {
-    const versionEl = document.getElementById('app-version');
-    const updateBtn = document.getElementById('btn-update-app');
-
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        // 1. Get Version from SW
-        const msgChan = new MessageChannel();
-        msgChan.port1.onmessage = (event) => {
-            if (event.data.version) versionEl.innerText = `Version ${event.data.version}`;
-        };
-        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [msgChan.port2]);
-
-        // 2. Force Update Logic
-        updateBtn.onclick = async () => {
-            updateBtn.innerText = "Checking...";
-            
-            const registration = await navigator.serviceWorker.getRegistration();
-            
-            if (registration) {
-                // Check the server for a new sw.js file
-                await registration.update();
-                
-                if (registration.waiting) {
-                    // New version found and waiting
-                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    window.location.reload();
-                    alert("Updated to newest version!");
-                } else {
-                    // No new version found
-                    updateBtn.innerText = "App is up to date";
-                    setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
-                }
-            }
-        };
-    }
-}
 
 
 // Start

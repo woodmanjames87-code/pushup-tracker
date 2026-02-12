@@ -388,7 +388,7 @@ h3 {
     border-radius: 8px;
     position: relative;
     overflow: hidden;
-    margin: 8px 0;
+    margin: 4px 0;
 }
 
 .bar-fill {
@@ -521,7 +521,7 @@ h3 {
     flex-wrap: wrap;
 }
 
-.streak-tag, .rest-tag {
+.streak-tag, .rest-tag, .rest-streak-tag {
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.75rem;
@@ -540,6 +540,13 @@ h3 {
     color: var(--primary);
     border-color: rgba(10, 132, 255, 0.2);
 }
+
+.rest-streak-tag {
+    background: rgba(255, 10, 10, 0.1);
+    color: var(--danger);
+    border-color: rgba(255, 10, 10, 0.2);
+}
+
 .intensity-legend {
     display: flex;
     justify-content: space-around;

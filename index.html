@@ -38,13 +38,17 @@
         </div>
         
         <div class="progress-container">
-        <div id="progress-bar-green" class="bar-fill green"></div>
-        <div id="progress-bar-blue" class="bar-fill blue"></div>
+            <div id="progress-bar-green" class="bar-fill green"></div>
+            <div id="progress-bar-blue" class="bar-fill blue"></div>
+        </div>
+        
+        <div class="goal-info">
+            <div class="label-mini" style="font-weight: normal; padding-bottom: 8px;" >Goal: Max(Avg,Median) of 14 active days (Min 60)</div>
         </div>
 
         <div class="daily-numbers-row">
-            <div class="label-tiny" style="color: white;">Today: <span id="today-val" style="color: white; font-weight: bold;">0</span></div>
-            <div class="label-tiny">Yesterday: <span id="yest-val" style="color: white; font-weight: bold;">0</span></div>
+            <div class="label-tiny" style="color: white; font-weight: bold;">Today: <span id="today-val">0</span></div>
+            <div class="label-tiny">Yesterday: <span id="yest-val">0</span></div>
         </div>
     </div>
    
@@ -56,9 +60,9 @@
             <span class="rest-tag">
                 Rest Days:&nbsp; <span id="rest-val">0</span>/14
             </span>
-            <span id="rest-streak-tag" class="rest-tag" style="display:none;">
+            <div id="rest-streak-tag" class="rest-streak-tag" style="display:none;">
                 Consecutive Rest Days:&nbsp; <span id="rest-streak-val">0</span>
-            </span>
+            </div>
         </div>
     </div>
 
