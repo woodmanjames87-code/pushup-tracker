@@ -208,15 +208,15 @@
 
             <div class="setting-row">
                 <label for="goal-mode-toggle">Goal Mode:</label>
-                <select id="goal-mode-select" class="select-input">
-                    <option value="auto">Calculated (Auto)</option>
-                    <option value="manual">Manual Override</option>
-                </select>
+                <label class="switch"> 
+                    <input type="checkbox" id="goal-mode-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
             </div>
 
             <div id="manual-goal-container" class="setting-row" style="margin-top: 15px; display: none;">
                 <label for="manual-goal-input">Daily Target</label>
-                <div class="input-inline-group">
+                <div class="input-inline-group" style="width: 120px;">
                     <input type="number" id="manual-goal-input" min="1" max="999" placeholder="e.g. 100">
                     <span class="unit-label">Reps</span>
                 </div>

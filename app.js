@@ -727,46 +727,55 @@ function updateDisplay() {
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
     const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    const modeSelect = document.getElementById('goal-mode-select');
+    const toggle = document.getElementById('goal-mode-toggle');
     const manualContainer = document.getElementById('manual-goal-container');
     const manualInput = document.getElementById('manual-goal-input');
+    const description = document.getElementById('goal-description');
 
-    // 1. Sync UI with current saved data
-    if (data.settings) {
-        modeSelect.value = data.settings.goalMode || 'auto';
-        manualInput.value = data.settings.manualGoal || 60;
-    }
+    // 1. Sync the Toggle and Input with stored data
+    // (We treat "checked" as AUTO)
+    const isAuto = data.settings?.goalMode !== 'manual'; 
+    toggle.checked = isAuto;
+    manualInput.value = data.settings?.manualGoal || 60;
 
-    // 2. Toggle visibility
-    if (modeSelect.value === 'manual') {
-        manualContainer.style.display = 'flex';
-    } else {
+    // 2. Toggle Visibility
+    if (isAuto) {
         manualContainer.style.display = 'none';
+        description.style.opacity = '0.6';
+        description.innerHTML = `Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).`;
+    } else {
+        manualContainer.style.display = 'flex';
+        description.style.opacity = '1';
+        description.innerHTML = `<b>Manual Override Active.</b>`;
     }
 }
 
-// Event Listeners for changes
-document.getElementById('goal-mode-select').addEventListener('change', (e) => {
+// Listener for the Switch
+document.getElementById('goal-mode-toggle').addEventListener('change', (e) => {
     const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
     if (!data.settings) data.settings = {};
+
+    // If checked, it's auto. If unchecked, it's manual.
+    data.settings.goalMode = e.target.checked ? 'auto' : 'manual';
     
-    data.settings.goalMode = e.target.value;
-    
-    // Save and Update
-    saveData(data); // Using your existing global save function
+    saveData(data);
     updateGoalUI();
-    updateDisplay(); // Refresh home page rings/stats immediately
+    updateDisplay(); // Refresh the home page rings/stats
 });
 
+// Listener for the Manual Number Input
 document.getElementById('manual-goal-input').addEventListener('input', (e) => {
     const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
     if (!data.settings) data.settings = {};
     
-    data.settings.manualGoal = parseInt(e.target.value) || 60;
+    const val = parseInt(e.target.value);
+    data.settings.manualGoal = val > 0 ? val : 60; // Don't allow 0
     
     saveData(data);
     updateDisplay();
 });
+
+
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
@@ -922,15 +931,16 @@ logForm.onsubmit = (e) => {
  *************************************************/
 // 1. Logic to populate the input when entering settings
 function loadCurrentUsername() {
+    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
     const user = window.auth?.currentUser;
     const nameInput = document.getElementById('username-input');
     
-    if (user && nameInput) {
-        // We can grab the current alias from the Firebase display name 
-        // or fetch it from the doc. For speed, let's use the local state if available.
-        // If you prefer, you can leave it blank or fetch from the cloud.
-        nameInput.value = user.displayName || "";
-    }
+    if (!nameInput) return;
+
+    // Check localStorage first (this has your custom alias), 
+    // fall back to Google name if no custom name exists yet.
+    const customName = data.settings?.username; 
+    nameInput.value = customName || user?.displayName || "";
 }
 
 // 2. Logic to save the new name
@@ -958,7 +968,21 @@ document.getElementById('btn-update-username').onclick = async () => {
 
         // Update Firestore (The source of truth for the Leaderboard)
         await setDoc(userRef, { username: newName }, { merge: true });
-
+        
+        // 1. Get current local data
+        const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+        if (!data.settings) data.settings = {};
+        
+        // 2. Update the local username
+        data.settings.username = newName; 
+        
+        // 3. Save it! 
+        if (typeof saveData === "function") {
+            saveData(data); 
+        } else {
+            localStorage.setItem('workout-data', JSON.stringify(data));
+        }
+        
         // Optional: Update the Firebase Auth Profile too
         if (updateProfile) {
             await updateProfile(user, { displayName: newName });
