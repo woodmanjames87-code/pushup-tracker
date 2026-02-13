@@ -106,22 +106,32 @@ function computeStats() {
     }
     
 
-    // Daily Goal (Avg/Median of last 14 active days)
-    let activeValues = [];
-    for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
-        const d = new Date(); d.setDate(today.getDate() - i);
-        const v = getDayTotal(data, d);
-        if (v > 0) activeValues.push(v);
-    }
+    // Daily Goal Manual or Auto (Avg/Median of last 14 active days)
+    let dailyGoal = 60; // Default fallback
 
-    let dailyGoal = 60; 
-    if (activeValues.length > 0) {
-        const sum = activeValues.reduce((a, b) => a + b, 0);
-        const avg = sum / activeValues.length;
-        const sorted = [...activeValues].sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        dailyGoal = Math.max(60, Math.ceil(Math.max(avg, median) / 5) * 5);
+    if (data.settings?.goalMode === 'manual') {
+        // Use the user's manual preference
+        dailyGoal = data.settings.manualGoal || 60;
+    } else {
+        // Use your original smart calculation
+        let activeValues = [];
+        for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
+            const d = new Date(); 
+            d.setDate(today.getDate() - i);
+            const v = getDayTotal(data, d);
+            if (v > 0) activeValues.push(v);
+        }
+
+        if (activeValues.length > 0) {
+            const sum = activeValues.reduce((a, b) => a + b, 0);
+            const avg = sum / activeValues.length;
+            const sorted = [...activeValues].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            
+            // Your original rounding logic
+            dailyGoal = Math.max(60, Math.ceil(Math.max(avg, median) / 5) * 5);
+        }
     }
 
     // 30-Day Windows
@@ -402,6 +412,7 @@ function initAuthListener() {
                 btn.style.backgroundImage = 'none';
                 btn.onclick = startCloudSync;
                 updateDisplay();
+                updateGoalUI();
             }
         });
     } else {
@@ -552,6 +563,11 @@ function showPage(pageId) {
         updateDisplay(); // Refresh home stats
     } else {
         floatingBtn.style.display = 'none';
+    }
+    if (pageId === 'settings') {
+        loadCurrentUsername();
+        renderEditList();
+        updateGoalUI();
     }
 }
 
@@ -707,6 +723,50 @@ function updateDisplay() {
         });
     }
 }
+
+// Function to handle showing/hiding the manual input
+function updateGoalUI() {
+    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    const modeSelect = document.getElementById('goal-mode-select');
+    const manualContainer = document.getElementById('manual-goal-container');
+    const manualInput = document.getElementById('manual-goal-input');
+
+    // 1. Sync UI with current saved data
+    if (data.settings) {
+        modeSelect.value = data.settings.goalMode || 'auto';
+        manualInput.value = data.settings.manualGoal || 60;
+    }
+
+    // 2. Toggle visibility
+    if (modeSelect.value === 'manual') {
+        manualContainer.style.display = 'flex';
+    } else {
+        manualContainer.style.display = 'none';
+    }
+}
+
+// Event Listeners for changes
+document.getElementById('goal-mode-select').addEventListener('change', (e) => {
+    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    if (!data.settings) data.settings = {};
+    
+    data.settings.goalMode = e.target.value;
+    
+    // Save and Update
+    saveData(data); // Using your existing global save function
+    updateGoalUI();
+    updateDisplay(); // Refresh home page rings/stats immediately
+});
+
+document.getElementById('manual-goal-input').addEventListener('input', (e) => {
+    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+    if (!data.settings) data.settings = {};
+    
+    data.settings.manualGoal = parseInt(e.target.value) || 60;
+    
+    saveData(data);
+    updateDisplay();
+});
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
@@ -860,6 +920,60 @@ logForm.onsubmit = (e) => {
 /*************************************************
  * SETTINGS LOGIC
  *************************************************/
+// 1. Logic to populate the input when entering settings
+function loadCurrentUsername() {
+    const user = window.auth?.currentUser;
+    const nameInput = document.getElementById('username-input');
+    
+    if (user && nameInput) {
+        // We can grab the current alias from the Firebase display name 
+        // or fetch it from the doc. For speed, let's use the local state if available.
+        // If you prefer, you can leave it blank or fetch from the cloud.
+        nameInput.value = user.displayName || "";
+    }
+}
+
+// 2. Logic to save the new name
+document.getElementById('btn-update-username').onclick = async () => {
+    const newName = document.getElementById('username-input').value.trim();
+    const user = window.auth?.currentUser;
+    const btn = document.getElementById('btn-update-username');
+
+    if (!user) {
+        alert("Please log in to change your name.");
+        return;
+    }
+
+    if (newName.length < 2) {
+        alert("Name is too short!");
+        return;
+    }
+
+    btn.innerText = "Saving...";
+    btn.disabled = true;
+
+    try {
+        const { doc, setDoc, updateProfile } = window.firebaseMethods;
+        const userRef = doc(window.db, "users", user.uid);
+
+        // Update Firestore (The source of truth for the Leaderboard)
+        await setDoc(userRef, { username: newName }, { merge: true });
+
+        // Optional: Update the Firebase Auth Profile too
+        if (updateProfile) {
+            await updateProfile(user, { displayName: newName });
+        }
+
+        alert("Username updated!");
+    } catch (err) {
+        console.error("Update failed:", err);
+        alert("Failed to update name.");
+    } finally {
+        btn.innerText = "Update";
+        btn.disabled = false;
+    }
+};
+
 // 1. Store the "currently selected date" globally
 let selectedEditDate = getDateKey(); // Defaults to today
 

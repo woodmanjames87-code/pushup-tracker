@@ -102,6 +102,13 @@ header {
     display: none; /* Default to hidden */
 }
 
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
 /* =================================================
    3. TYPOGRAPHY
    ================================================= */
@@ -202,13 +209,15 @@ h3 {
     background: #3a3a3c; 
     color: white; 
 }
+.btn-secondary:disabled {
+    opacity: 0.5;
+}
 
 .btn-primary-small { 
     background: var(--primary); 
     color: white; 
 }
 
-/* Fix for the wide "Add Set" button in Settings */
 #btn-add-past {
     width: 100%;
     margin-top: 15px;
@@ -318,6 +327,43 @@ h3 {
     background: white; /* The "floating" active pill */
     color: var(--fitness-green);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.input-inline-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.input-inline-group input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--text);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.select-input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--text-muted);
+    background: var(--bg-card);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+.select-input option {
+    background-color: var(--bg-card); /* Or var(--bg-color) */
+    color: var(--text-color);
+}
+
+.unit-label {
+    align-self: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-muted);
 }
 /* =================================================
    4.5. GOOGLE LOGIN BUTTON
