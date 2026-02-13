@@ -745,8 +745,8 @@ function updateGoalUI() {
         description.innerHTML = `Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).`;
     } else {
         manualContainer.style.display = 'flex';
-        description.style.opacity = '1';
-        description.innerHTML = `<b>Manual Override Active.</b>`;
+        description.style.opacity = '0.6';
+        description.innerHTML = `<h3>Manual Goal Setpoint Active.</h3>`;
     }
 }
 
