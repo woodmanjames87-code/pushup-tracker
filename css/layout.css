@@ -15,31 +15,69 @@ main {
     margin-top: 20px;
 }
 
+header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0px;
+}
+
 .page-header {
     position: sticky;
     top: 0;
     z-index: 1000;
     background-color: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    margin: 0 -20px 0 -20px;
     padding: 20px 20px 0 20px;
-    margin: 0 -20px;
+    width: calc(100% + 40px);
 }
 
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
+}
+
+.page-header .divider {
+    border: 0;
+    border-top: 1px solid #3a3a3c;
+    margin: 15px 0 0 0;
+    width: 100%;
 }
 
 .divider {
     border: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid #3a3a3c;
     margin: 20px 0;
 }
 
-/* Typography Helpers */
+#settings-page {
+    display: none;
+}
+
+.page-container {
+    display: none; 
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh; 
+    padding: 20px;
+    padding-bottom: 120px; 
+    box-sizing: border-box;
+}
+
+/* Typography */
 h1 { font-size: 1.5rem; font-weight: 800; }
 h2 { font-size: 1.2rem; }
-h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+h3 { 
+    color: var(--text); 
+    font-size: 0.8rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+}
 
 .label-tiny { font-size: 0.75rem; color: var(--text-muted); }
 .label-mini { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; }
