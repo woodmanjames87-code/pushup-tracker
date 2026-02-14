@@ -1,6 +1,6 @@
-/* ===============================
-   LAYOUT & STRUCTURE
-   =============================== */
+/* =================================================
+   APP LAYOUT & STRUCTURE
+   ================================================= */
 .app-container {
   width: 100%;
   max-width: 400px;
@@ -18,7 +18,6 @@ main {
   margin-top: 20px;
 }
 
-/* Header */
 header {
   width: 100%;
   display: flex;
@@ -42,17 +41,17 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
-.page-header .divider,
-.divider {
+.divider,
+.page-header .divider {
   border: 0;
   border-top: 1px solid #3a3a3c;
-  width: 100%;
   margin: 15px 0 0 0;
+  width: 100%;
 }
 
-/* Sections & Pages */
 .page-container {
   display: none;
   flex-direction: column;
@@ -63,13 +62,17 @@ header {
   box-sizing: border-box;
 }
 
-#settings-page { display: none; }
-
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 15px;
+}
+
+.daily-numbers-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
 }
 
 .bottom-nav {
@@ -86,7 +89,6 @@ header {
   z-index: 1000;
 }
 
-/* Navigation items */
 .nav-item {
   background: none;
   border: none;
@@ -105,14 +107,8 @@ header {
   fill: #ffffff;
   transition: 0.2s;
 }
-
 .nav-item.active .nav-icon {
   fill: var(--fitness-green);
-}
-
-.nav-item small {
-  font-size: 0.7rem;
-  margin-top: 4px;
 }
 
 .leaderboard-nav {

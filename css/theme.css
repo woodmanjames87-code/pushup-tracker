@@ -1,6 +1,6 @@
-/* ===============================
-   TYPOGRAPHY & THEME
-   =============================== */
+/* =================================================
+   THEME & TYPOGRAPHY
+   ================================================= */
 h1 { font-size: 1.5rem; font-weight: 800; }
 h2 { font-size: 1.2rem; }
 h3 {
@@ -10,41 +10,29 @@ h3 {
   letter-spacing: 0.5px;
 }
 
-.label-tiny,
-.label-mini {
-  color: var(--text-muted);
-  font-weight: bold;
-}
-
-.label-tiny { font-size: 0.75rem; }
-.label-mini { font-size: 0.65rem; }
+.label-tiny { font-size: 0.75rem; color: var(--text-muted); }
+.label-mini { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; }
 
 .lb-context-label {
   text-align: center;
-  margin: 15px 0;
+  margin-top: 15px;
+  margin-bottom: 15px;
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.65rem;
-  color: var(--text-muted);
+.unit-label {
+  align-self: center;
+  font-size: 0.9rem;
   font-weight: bold;
-  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.danger-zone {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed var(--danger);
+  text-align: center;
 }
-
-.dot.green  { background: var(--fitness-green); }
-.dot.orange { background: var(--orange); }
-.dot.red    { background: var(--danger); }
