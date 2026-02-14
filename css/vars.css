@@ -1,34 +1,35 @@
+/* ===============================
+   VARIABLES & GLOBAL RESET
+   =============================== */
 :root {
-    --bg-color: #000000;
-    --card-bg: #181818;
-    --widget-bg: #1b1b1d;
-    --primary: #007aff;
-    --fitness-green: #39e639;
-    --text: #ffffff;
-    --text-muted: #888888;
-    --danger: #ff3b30;
-    --orange: #ff9f0a;
-    --track-bg: #1c1c1e;
+  --bg-color: #000000;
+  --card-bg: #181818;
+  --widget-bg: #1b1b1d;
+  --primary: #007aff;
+  --fitness-green: #39e639;
+  --text: #ffffff;
+  --text-muted: #888888;
+  --danger: #ff3b30;
+  --orange: #ff9f0a;
+  --track-bg: #1c1c1e;
 }
 
 *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica;
-    background-color: var(--bg-color);
-    color: var(--text);
-    display: block; 
-    min-height: 100vh;
-    line-height: 1.4;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica;
+  background-color: var(--bg-color);
+  color: var(--text);
+  display: block;
+  min-height: 100vh;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-.hidden { 
-    display: none !important; 
-}
+.hidden { display: none !important; }
