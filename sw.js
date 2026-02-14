@@ -1,13 +1,10 @@
-const VERSION = 'v4.7.1.7'; // Increment this to update the app
+const VERSION = 'v4.7.1.8'; // Increment this to update the app
 const CACHE_NAME = `workout-${VERSION}`; 
 
 const ASSETS = [
   './',
   'index.html',
-  'css/vars.css',
-  'css/layout.css',
-  'css/components.css',
-  'css/theme.css',
+  'style.css',
   'js/app.js',
   'manifest.json',
   'pushup-icon.PNG',
