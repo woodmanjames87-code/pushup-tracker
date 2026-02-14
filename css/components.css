@@ -86,3 +86,24 @@ input:checked + .slider:before { transform: translateX(22px); }
     border-radius: 50%;
     background-size: cover;
 }
+/* Edit Entries Item Styling */
+.edit-item {
+    background: var(--card-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+/* Fix for Login Pill: Hides text/icon when .logged-in class is added */
+.btn-login-pill.logged-in .login-text,
+.btn-login-pill.logged-in .google-icon {
+    display: none;
+}
+
+/* Ensure the Login Pill is clickable but stays on top */
+.btn-login-pill {
+    z-index: 2000;
+}

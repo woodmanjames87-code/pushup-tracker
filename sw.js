@@ -1,4 +1,4 @@
-const VERSION = 'v4.7.1.2'; // Increment this to update the app
+const VERSION = 'v4.7.1.3'; // Increment this to update the app
 const CACHE_NAME = `workout-${VERSION}`; 
 
 const ASSETS = [
