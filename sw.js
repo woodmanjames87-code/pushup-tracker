@@ -1,14 +1,17 @@
-const VERSION = 'v4.7.0.2'; // Increment this to update the app
+const VERSION = 'v4.7.1.0'; // Increment this to update the app
 const CACHE_NAME = `workout-${VERSION}`; 
 
 const ASSETS = [
   './',
-  './index.html',
-  './style.css',
-  './app.js',
-  './manifest.json',
-  './pushup-icon.PNG',
-  './Google_G_logo.png'
+  'index.html',
+  'css/vars.css',
+  'css/layout.css',
+  'css/components.css',
+  'css/theme.css',
+  'js/app.js',
+  'manifest.json',
+  'pushup-icon.PNG',
+  'Google_G_logo.png'
 ];
 
 // 1. Install

@@ -444,6 +444,7 @@ input:checked + .slider:before {
    ================================================= */
 .widget-card {
     background: var(--widget-bg);
+    box-sizing: border-box;
     width: 100%;
     padding: 12px;
     border-radius: 16px;
@@ -474,6 +475,56 @@ input:checked + .slider:before {
 .trend-col-right {
     flex: 1;
     text-align: right; /* Aligns text to the right edge */
+}
+
+/* The clickable row */
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.accordion-header h3 {
+    margin: 0;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    color: var(--text-color);
+}
+
+/* The arrow icon */
+.chevron {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+    opacity: 0.5;
+}
+
+/* Hide card by default */
+.widget-card.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    opacity: 0;
+    transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), opacity 0.2s ease;
+}
+
+/* Expanded state */
+.widget-card.expanded {
+    max-height: 1000px; /* Large enough to hold content */
+    opacity: 1;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: max-height 0.3s cubic-bezier(1, 0, 1, 0), opacity 0.4s ease;
+}
+
+/* Rotate arrow when open */
+.accordion-item.active .chevron {
+    transform: rotate(90deg);
+    opacity: 1;
 }
 /* =================================================
    6. PROGRESS BARS & TRACKS

@@ -611,6 +611,26 @@ window.addEventListener('touchend', (e) => {
     isPulling = false;
 });
 
+//Expand rows (Accordian style)
+document.querySelectorAll('.accordion-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const item = header.parentElement;
+        const card = item.querySelector('.widget-card');
+        
+        // Toggle Active Class on Item (for the arrow)
+        item.classList.toggle('active');
+        
+        // Toggle Expanded/Collapsed on Card
+        if (card.classList.contains('collapsed')) {
+            card.classList.remove('collapsed');
+            card.classList.add('expanded');
+        } else {
+            card.classList.remove('expanded');
+            card.classList.add('collapsed');
+        }
+    });
+});
+
 /*************************************************
  * UI RENDERING
  *************************************************/

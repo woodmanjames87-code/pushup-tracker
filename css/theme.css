@@ -1,0 +1,27 @@
+/* Navigation */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+    background: #1a1a1a; display: flex; justify-content: space-around;
+    align-items: center; border-top: 1px solid #333; z-index: 1000;
+}
+
+.nav-item { background: none; border: none; color: #888; display: flex; flex-direction: column; align-items: center; }
+.nav-item.active { color: var(--fitness-green); }
+
+/* Leaderboard */
+.lb-row {
+    display: flex; justify-content: space-between; padding: 15px;
+    background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 8px;
+}
+.lb-row.is-me { border: 2px solid var(--primary); background: rgba(66, 133, 244, 0.1); }
+
+/* Progress & Charts */
+.progress-container { height: 16px; background: rgba(57, 230, 57, 0.1); border-radius: 8px; position: relative; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+.bar-fill.green { background: linear-gradient(to bottom, #39e639 0%, #2db32d 100%); }
+
+.chart-with-axis { display: flex; align-items: flex-end; gap: 8px; height: 75px; }
+.bar-unit { width: 20px; background: var(--fitness-green); border-radius: 4px 4px 0 0; }
+
+/* Tags */
+.streak-tag { background: rgba(255, 159, 10, 0.1); color: var(--orange); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; }

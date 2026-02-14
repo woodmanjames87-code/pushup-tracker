@@ -1,0 +1,89 @@
+/* Cards & Containers */
+.widget-card {
+    background: var(--widget-bg);
+    padding: 12px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* Buttons */
+.btn-primary, .btn-secondary, .btn-primary-small {
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    text-align: center;
+}
+
+.btn-primary { background: var(--primary); color: white; font-size: 1.1rem; }
+.btn-secondary { background: #3a3a3c; color: white; }
+.btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Combined Inputs */
+.input-inline-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.input-inline-group input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-color);
+    color: var(--text);
+}
+
+/* Accordion Component */
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    cursor: pointer;
+}
+
+.widget-card.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.widget-card.expanded {
+    max-height: 1000px;
+    opacity: 1;
+    padding: 15px;
+}
+
+/* The Switch */
+.switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background-color: var(--track-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 34px;
+    transition: .3s;
+}
+.slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px;
+    left: 2px; bottom: 2px; background: white; border-radius: 50%;
+    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+input:checked + .slider { background-color: var(--fitness-green); }
+input:checked + .slider:before { transform: translateX(24px); }

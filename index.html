@@ -7,9 +7,12 @@
     
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-  <!-- iOS -->
 
-  <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/vars.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/theme.css">
+
 </head>
 <body> <div id="pull-to-refresh">
     <div class="spinner"></div>
@@ -181,92 +184,105 @@
   </section>
 
   <!-- SETTINGS PAGE -->
-  <section id="settings-page" class="app-container" data-page="settings" hidden>
-    
-    <header class="page-header">
-        <div class="header-content">
-            <h1>Settings</h1>
-        </div>
-        <hr class="divider">
-    </header>
-
-    <main>
-      <section class="settings-section">
-
-        <h3>USER SETTINGS</h3>
-        <div class="widget-card">
-            <h3>Leaderboard Display Name</h3>
-            <div class="input-inline-group">
-                <input type="text" id="username-input" maxlength="20" placeholder="Enter name...">
-                <button id="btn-update-username" class="btn-secondary">Update</button>
+    <section id="settings-page" class="app-container" data-page="settings" hidden>
+        <header class="page-header">
+            <div class="header-content">
+                <h1>Settings</h1>
             </div>
-            
             <hr class="divider">
+        </header>
 
-            <div class="setting-row">
-                <label for="goal-mode-toggle">Auto Calculate Goal:</label>
-                <label class="switch"> 
-                    <input type="checkbox" id="goal-mode-toggle" checked>
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <p class="label-tiny" id="goal-description" style="margin-top: 12px; opacity: 0.6;">
-                    Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
-            </p>
-            <div id="manual-goal-container" class="setting-row" style="margin-top: 15px; display: none;">
-                <label for="manual-goal-input">Daily Target:</label>
-                <div class="input-inline-group" style="width: 120px;">
-                    <input type="number" id="manual-goal-input" min="1" max="999" placeholder="###">
-                    <span class="unit-label">Reps</span>
+        <main>
+            <section class="settings-section">
+
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <h3>USER SETTINGS</h3>
+                        <span class="chevron">&#10095;</span>
+                    </div>
+                    <div class="widget-card collapsed">
+                        <h3>Leaderboard Display Name</h3>
+                        <div class="input-inline-group">
+                            <input type="text" id="username-input" maxlength="20" placeholder="Enter name...">
+                            <button id="btn-update-username" class="btn-secondary">Update</button>
+                        </div>
+                        
+                        <hr class="divider">
+
+                        <div class="setting-row">
+                            <label for="goal-mode-toggle">Auto Calculate Goal:</label>
+                            <label class="switch"> 
+                                <input type="checkbox" id="goal-mode-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <p class="label-tiny" id="goal-description" style="margin-top: 12px; opacity: 0.6;">
+                            Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
+                        </p>
+                        <div id="manual-goal-container" class="setting-row" style="margin-top: 15px; display: none;">
+                            <label for="manual-goal-input">Daily Target:</label>
+                            <div class="input-inline-group" style="width: 120px;">
+                                <input type="number" id="manual-goal-input" min="1" max="999" placeholder="###">
+                                <span class="unit-label">Reps</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <hr class="divider">
+                <hr class="divider">
 
-        <h3>EDIT ENTRIES</h3>
-        <div class="widget-card">
-            <div class="settings-header">
-              <h2 id="display-date-label">Today</h2> 
-                <div class="date-picker-trigger">
-                  <span class="trigger-text">&#128197; Change Date</span> 
-                  <input type="date" id="edit-date-picker">
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <h3>EDIT ENTRIES</h3>
+                        <span class="chevron">&#10095;</span>
+                    </div>
+                    <div class="widget-card collapsed">
+                        <div class="settings-header">
+                            <h2 id="display-date-label">Today</h2> 
+                            <div class="date-picker-trigger">
+                                <span class="trigger-text">&#128197; Change Date</span> 
+                                <input type="date" id="edit-date-picker">
+                            </div>
+                        </div>
+                        <div id="edit-sets-list"></div>
+                        <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
+                            + Add Set to Selected Date
+                        </button>
+                    </div>
                 </div>
-            </div>
+                <hr class="divider">
 
-            <div id="edit-sets-list"></div>
-                <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
-                    + Add Set to Selected Date
-                </button>
-        </div>
-        <hr class="divider">
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <h3>DATA MANAGEMENT</h3>
+                        <span class="chevron">&#10095;</span>
+                    </div>
+                    <div class="widget-card collapsed">
+                        <div style="display: grid; gap: 10px; margin-top: 10px;">
+                            <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
+                            <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
+                                Import Data
+                            </button>
+                            <input type="file" id="import-input" hidden accept=".json">
+                        </div>
+                        <div class="danger-zone" style="margin-top: 20px;">
+                            <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
+                        </div>
+                    </div>
+                </div>
+                <hr class="divider">
 
-        <h3>DATA MANAGEMENT</h3>
-        <div class="widget-card">
-            <div style="display: grid; gap: 10px; margin-top: 10px;">
-                <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
-                
-                <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
-                    Import Data
-                </button>
-                <input type="file" id="import-input" hidden accept=".json">
-            </div>
-            <div class="danger-zone">
-                <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
-            </div>
-        </div>
-        <hr class="divider">
-        
-        <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-            <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px;">
-                Check for Updates
-            </button>
-            <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5;">
-                Version --
-            </div>
-        </div>
-      </section>
-    </main>
-  </section>
+                <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                    <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px;">
+                        Check for Updates
+                    </button>
+                    <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5;">
+                        Version --
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </section>
 
     <!--LEADERBOARD PAGE-->
     <div id="leaderboard-page" class="page-container" style="display: none;">
@@ -404,6 +420,6 @@
   console.log("Firebase is ready and leaderboard methods are attached!");
 </script>
 
-    <script src="app.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
