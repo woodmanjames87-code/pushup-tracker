@@ -107,3 +107,22 @@ input:checked + .slider:before { transform: translateX(22px); }
 .btn-login-pill {
     z-index: 2000;
 }
+
+/* Specific button width for the past-entry button */
+#btn-add-past {
+    width: 100%;
+    margin-top: 15px;
+}
+
+/* The small "pts" or "lbs" label next to inputs */
+.unit-label {
+    align-self: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+/* Secondary button active/touch state */
+.btn-secondary:active {
+    opacity: 0.7;
+}

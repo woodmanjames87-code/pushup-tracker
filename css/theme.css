@@ -174,3 +174,22 @@
     padding: 0;
     cursor: pointer;
 }
+
+/* Prevents monthly chart numbers from being cut off at the top */
+#monthly-chart {
+    padding-top: 5px;
+    overflow: visible;
+}
+
+/* Ensures even a '0' value shows a tiny sliver of a bar */
+.bar-unit.legacy { 
+    width: 20px; 
+}
+.monthly-bar-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
