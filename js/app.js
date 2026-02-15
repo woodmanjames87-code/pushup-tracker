@@ -511,19 +511,38 @@ async function initPWAUtils() {
             const registration = await navigator.serviceWorker.getRegistration();
             
             if (registration) {
-                // Check the server for a new sw.js file
+                // 1. Set up a listener for the NEW worker arriving
+                registration.onupdatefound = () => {
+                    const newWorker = registration.installing;
+                    newWorker.onstatechange = () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New version found and fully downloaded!
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    };
+                };
+
+                // 2. Trigger the check
                 await registration.update();
-                
+
+                // 3. Handle the case where the update was already downloaded but not active
                 if (registration.waiting) {
-                    // New version found and waiting
                     registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+
+                // 4. Listen for the controller change to reload the page
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
                     window.location.reload();
                     alert("Updated to newest version!");
-                } else {
-                    // No new version found
-                    updateBtn.innerText = "App is up to date";
-                    setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
-                }
+                });
+
+                // 5. Provide feedback if nothing was found after a short delay
+                setTimeout(() => {
+                    if (!registration.waiting && !registration.installing) {
+                        updateBtn.innerText = "App is up to date";
+                        setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
+                    }
+                }, 1000);
             }
         };
     }
@@ -758,7 +777,7 @@ function updateGoalUI() {
 
     // 1. Determine the content based on the state
     const statusText = isAuto 
-        ? `Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).` 
+        ? `Goal: Max(Avg,Median) of 14 active days (Min 60).` 
         : `Manual Goal Setpoint Active.`;
 
     // 2. Toggle Visibility & Update all descriptions

@@ -1,4 +1,4 @@
-const VERSION = 'v4.7.1.9'; // Increment this to update the app
+const VERSION = 'v4.7.2.0'; // Increment this to update the app
 const CACHE_NAME = `workout-${VERSION}`; 
 
 const ASSETS = [
@@ -13,6 +13,9 @@ const ASSETS = [
 
 // 1. Install
 self.addEventListener('install', (event) => {
+  // NEW: Force the waiting service worker to become the active service worker.
+  self.skipWaiting(); 
+  
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
@@ -21,20 +24,25 @@ self.addEventListener('install', (event) => {
 // 2. Activate: CLEAN UP OLD CACHES
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log("Service Worker: Clearing Old Cache");
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
+    Promise.all([
+      // NEW: Claim all open tabs (clients) immediately so they use the new SW
+      self.clients.claim(),
+      
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cache) => {
+            if (cache !== CACHE_NAME) {
+              console.log("Service Worker: Clearing Old Cache");
+              return caches.delete(cache);
+            }
+          })
+        );
+      })
+    ])
   );
 });
 
-// 3. Fetch (Your existing logic)
+// 3. Fetch
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('googleapis.com') || event.request.url.includes('firebase')) {
     return;
@@ -54,7 +62,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 4. Message Listener: To talk to the Settings Page
+// 4. Message Listener
 self.addEventListener('message', (event) => {
   if (event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: VERSION });
