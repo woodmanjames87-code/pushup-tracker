@@ -1,10 +1,10 @@
 {
-  "name": "Push-Up Tracker",
-  "short_name": "PushUps",
+  "name": "DailyGrind: Bodyweight Workout Tracker",
+  "short_name": "DailyGrind",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#121212",
-  "description": "Offline push-up logger.",
+  "description": "Log your daily reps, compete on the leaderboard, and build your fitness legacy.",
   "icons": [
     {
       "src": "pushup-icon.PNG",
