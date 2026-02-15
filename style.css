@@ -109,6 +109,37 @@ header {
     gap: 15px;
 }
 
+/* =========================
+     Install Banner 
+   ========================= */
+#install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #333;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 9999;
+    animation: slideUp 0.4s ease-out;
+}
+
+#install-banner.hidden { display: none; }
+
+.install-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#install-text { font-weight: 600; font-size: 0.9rem; }
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
 /* =================================================
    3. TYPOGRAPHY
    ================================================= */

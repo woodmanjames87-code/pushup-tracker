@@ -1198,3 +1198,53 @@ document.addEventListener('visibilitychange', () => {
 });
 // C. Run when the window gets focus (extra safety for desktop/laptops)
 window.addEventListener('focus', initApp);
+
+/*****Install prompt*********/
+let deferredPrompt;
+
+// 1. Listen for the Android/Chrome Install Prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showUnifiedInstallBanner('android');
+});
+
+// 2. Check for iOS (Safari)
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+if (isIOS && !isStandalone) {
+    showUnifiedInstallBanner('ios');
+}
+
+function showUnifiedInstallBanner(platform) {
+    const banner = document.getElementById('install-banner');
+    const text = document.getElementById('install-text');
+    const btn = document.getElementById('btn-install-now');
+
+    banner.classList.remove('hidden');
+
+    if (platform === 'ios') {
+        text.innerText = "Install for the full experience!";
+        btn.innerText = "How to Install"; // iOS needs instructions
+    } else {
+        text.innerText = "Install the app for easy access!";
+        btn.innerText = "Install Now"; // Android can trigger a prompt
+    }
+}
+
+// 3. Handle the click for both platforms
+document.getElementById('btn-install-now').onclick = async () => {
+    if (deferredPrompt) {
+        // Android Path
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            document.getElementById('install-banner').classList.add('hidden');
+        }
+        deferredPrompt = null;
+    } else if (isIOS) {
+        // iOS Path: Show instructions instead of a prompt
+        alert("To install on iPhone:\n1. Tap the 'Share' button (square with arrow)\n2. Scroll down and tap 'Add to Home Screen' (+ icon)");
+    }
+};
