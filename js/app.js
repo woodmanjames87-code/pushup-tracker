@@ -750,24 +750,29 @@ function updateGoalUI() {
     const toggle = document.getElementById('goal-mode-toggle');
     const manualContainer = document.getElementById('manual-goal-container');
     const manualInput = document.getElementById('manual-goal-input');
-    const description = document.getElementById('goal-description');
+    const descriptions = document.querySelectorAll('.goal-description');
 
-    // 1. Sync the Toggle and Input with stored data
-    // (We treat "checked" as AUTO)
     const isAuto = data.settings?.goalMode !== 'manual'; 
     toggle.checked = isAuto;
     manualInput.value = data.settings?.manualGoal || 60;
 
-    // 2. Toggle Visibility
+    // 1. Determine the content based on the state
+    const statusText = isAuto 
+        ? `Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).` 
+        : `Manual Goal Setpoint Active.`;
+
+    // 2. Toggle Visibility & Update all descriptions
     if (isAuto) {
         manualContainer.style.display = 'none';
-        description.style.opacity = '0.6';
-        description.innerHTML = `Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).`;
     } else {
         manualContainer.style.display = 'flex';
-        description.style.opacity = '0.6';
-        description.innerHTML = `<h3>Manual Goal Setpoint Active.</h3>`;
     }
+
+    // Loop through every instance found and update them together
+    descriptions.forEach(el => {
+        el.style.opacity = '0.6';
+        el.innerHTML = statusText;
+    });
 }
 
 // Listener for the Switch
