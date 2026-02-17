@@ -50,6 +50,16 @@ function getDayTotal(data, date) {
     return (data[key] && data[key][currentExercise]) ? data[key][currentExercise].reduce((a, b) => a + b, 0) : 0;
 }
 
+function getTodayId() {
+    return new Date().toISOString().split('T')[0]; // "2026-02-17"
+}
+
+function getYesterdayId() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0]; // "2026-02-16"
+}
+
 function getWeekId(date) {
     const d = new Date(date);
         // Find the Sunday of this week
@@ -268,7 +278,7 @@ function computeStats() {
         weekId: getWeekId(today), 
         monthId: getMonthId(today),
         yearId: getYearId(today),
-        
+
         // Core Stats
         todayTotal, yesterdayTotal, weeklyTotal, calendarWeeklyTotal, 
         monthlyTotal, total30, allTimeTotal, ytdTotal,
@@ -293,42 +303,6 @@ function loadData() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 }
 
-// This handles the CLOUD PUSH
-async function syncLocalToCloud(userId) {
-    if (!userId || !window.firebaseMethods) return;
-
-    const localData = loadData();
-    
-    if (Object.keys(localData).length === 0) {
-        console.log("Local storage empty. Skipping cloud push.");
-        return;
-    }
-
-    const s = computeStats();
-    const { doc, setDoc } = window.firebaseMethods;
-    const userRef = doc(window.db, "users", userId);
-
-    try {
-        await setDoc(userRef, {
-            uid: userId, // Good to keep for indexing
-            stats: {
-                week: s.calendarWeeklyTotal,
-                weekId: s.weekId,
-                month: s.monthlyTotal,
-                monthId: s.monthId,
-                year: s.ytdTotal,
-                yearId: s.yearId,
-                bestStreak: s.bestStreak
-            },
-            workouts: localData,
-            lastUpdated: new Date().toISOString()
-        }, { merge: true });
-        console.log("Cloud sync successful.");
-    } catch (err) {
-        console.error("Cloud sync failed:", err);
-    }
-}
-
 // This handles the LOCAL SAVE + triggers the Cloud Push
 async function saveData(data) {
     // Save locally (Immediate)
@@ -341,38 +315,71 @@ async function saveData(data) {
     }
 }
 
+/** * Helper to transform the raw computeStats() result into the 
+ * schema used by Firestore. 
+ */
+function mapStatsToSchema(s) {
+    return {
+        today: s.todayTotal,
+        todayId: getTodayId(),
+        yest: s.yesterdayTotal,
+        yestId: getYesterdayId(),
+        week: s.calendarWeeklyTotal,
+        weekId: s.weekId,
+        month: s.monthlyTotal,
+        monthId: s.monthId,
+        year: s.ytdTotal,
+        yearId: s.yearId,
+    };
+}
+
+async function syncLocalToCloud(userId, extraData = {}) {
+    if (!userId || !window.firebaseMethods) return;
+
+    const localData = loadData();
+    const s = computeStats();
+    const { doc, setDoc } = window.firebaseMethods;
+    const userRef = doc(window.db, "users", userId);
+
+    const payload = {
+        uid: userId,
+        stats: mapStatsToSchema(s),
+        workouts: localData,
+        lastUpdated: new Date().toISOString(),
+        ...extraData // Merges in things like 'username' or 'createdAt'
+    };
+
+    try {
+        await setDoc(userRef, payload, { merge: true });
+        console.log("Cloud sync successful.");
+    } catch (err) {
+        console.error("Cloud sync failed:", err);
+    }
+}
+
 async function startCloudSync() {
-    const { signInWithPopup } = window.firebaseMethods;
+    const { signInWithPopup, getDoc, doc } = window.firebaseMethods;
     
     try {
         const result = await signInWithPopup(window.auth, window.googleProvider);
         const user = result.user;
-        
-        // Check if this is a brand new user to the database
-        const { getDoc, doc, setDoc } = window.firebaseMethods;
         const userRef = doc(window.db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            // NEW USER SETUP:
-            const alias = prompt("Pick a username for the leaderboard:", user.displayName);
+            const alias = prompt("Pick a username:", user.displayName);
             const finalAlias = alias || user.displayName || "Anonymous";
-            const s = computeStats(); 
 
-            await setDoc(userRef, {
+            // Run initial sync with the new profile data
+            await syncLocalToCloud(user.uid, {
                 username: finalAlias,
-                uid: user.uid,
-                createdAt: new Date().toISOString(),
-                stats: {
-                    week: s.calendarWeeklyTotal,
-                    weekId: s.weekId,
-                    month: s.monthlyTotal,
-                    monthId: s.monthId,
-                    year: s.ytdTotal,
-                    yearId: s.yearId
-                }
+                createdAt: new Date().toISOString()
             });
+
             alert(`Welcome, ${finalAlias}!`);
+        } else {
+            // Existing user? Just trigger a standard sync
+            await syncLocalToCloud(user.uid);
         }
     } catch (error) {
         console.error("Login failed:", error);
@@ -826,94 +833,129 @@ document.getElementById('manual-goal-input').addEventListener('input', (e) => {
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
     const rangeText = document.getElementById('lb-date-range-text');
-
-    // Determine which filter is active
     const activeBtn = document.querySelector('.seg-btn.active');
-    const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.week'; 
     
+    // Default to daily if no button is active
+    const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.daily'; 
+    
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
+    const usersRef = collection(window.db, "users");
     const now = new Date();
     let displayLabel = "";
 
-    // --- Logic for the dynamic label ---
-        if (filter === 'stats.week') {
-            // Find Sunday of this week
-            const sun = new Date(now);
-            sun.setDate(now.getDate() - now.getDay());
-            const options = { month: 'short', day: 'numeric' };
-            displayLabel = `Week of ${sun.toLocaleDateString(undefined, options)}`;
-            
-        } else if (filter === 'stats.month') {
-            displayLabel = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-            
-        } else if (filter === 'stats.year') {
-            displayLabel = now.getFullYear();
-        }
+    // 1. SET THE DISPLAY LABEL (The text at the top)
+    if (filter === 'stats.daily') {
+        displayLabel = "Today & Yesterday";
+    } else if (filter === 'stats.week') {
+        const sun = new Date(now);
+        sun.setDate(now.getDate() - now.getDay());
+        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    } else if (filter === 'stats.month') {
+        displayLabel = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    } else if (filter === 'stats.year') {
+        displayLabel = now.getFullYear();
+    }
 
-        // Update the UI text
-        if (rangeText) rangeText.innerText = displayLabel;
+    if (rangeText) rangeText.innerText = displayLabel;
 
-    // Destructure tools from our global toolbox (added 'where')
-    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
-    
     try {
-        const usersRef = collection(window.db, "users");
-        const now = new Date();
-        let q;
+        lbList.innerHTML = '<div class="loader"></div>';
+        let leaderboardData = [];
 
-        // --- Logic: Only fetch users whose ID matches the current time period ---
-        if (filter === 'stats.week') {
-            q = query(usersRef, 
-                where("stats.weekId", "==", getWeekId(now)),
-                orderBy("stats.week", "desc"), 
-                limit(20)
-            );
-        } else if (filter === 'stats.month') {
-            q = query(usersRef, 
-                where("stats.monthId", "==", getMonthId(now)),
-                orderBy("stats.month", "desc"), 
-                limit(20)
-            );
-        } else if (filter === 'stats.year') {
-            q = query(usersRef, 
-                where("stats.yearId", "==", getYearId(now)),
-                orderBy("stats.year", "desc"), 
-                limit(20)
-            );
+        // 2. FETCH THE DATA
+        if (filter === 'stats.daily') {
+            // --- DAILY LOGIC: Fetch Today & Yesterday ---
+            const qToday = query(usersRef, where("stats.todayId", "==", getTodayId()), limit(30));
+            const qYest = query(usersRef, where("stats.todayId", "==", getYesterdayId()), limit(30));
+
+            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
+            const userMap = new Map();
+
+            // Load Yesterday's scores
+            snapYest.forEach(doc => {
+                const s = doc.data().stats;
+                userMap.set(doc.id, {
+                    uid: doc.id,
+                    username: doc.data().username || 'Anonymous',
+                    todayScore: 0, 
+                    yesterdayScore: s.today || 0 
+                });
+            });
+
+            // Merge Today's scores
+            snapToday.forEach(doc => {
+                const s = doc.data().stats;
+                if (userMap.has(doc.id)) {
+                    userMap.get(doc.id).todayScore = s.today;
+                } else {
+                    userMap.set(doc.id, {
+                        uid: doc.id,
+                        username: doc.data().username || 'Anonymous',
+                        todayScore: s.today,
+                        yesterdayScore: s.yest || 0 
+                    });
+                }
+            });
+
+            leaderboardData = Array.from(userMap.values());
+            leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
+
+        } else {
+            // --- STANDARD LOGIC: Week, Month, Year ---
+            const fieldName = filter.split('.')[1]; // e.g. 'week'
+            const idField = `stats.${fieldName}Id`;
+            
+            // Generate the ID based on your existing helper functions
+            let idValue;
+            if (fieldName === 'week') idValue = getWeekId(now);
+            else if (fieldName === 'month') idValue = getMonthId(now);
+            else idValue = getYearId(now);
+
+            const q = query(usersRef, where(idField, "==", idValue), orderBy(filter, "desc"), limit(20));
+            const querySnapshot = await getDocs(q);
+            
+            querySnapshot.forEach(doc => {
+                leaderboardData.push({
+                    uid: doc.id,
+                    username: doc.data().username || 'Anonymous',
+                    score: doc.data().stats[fieldName] || 0
+                });
+            });
         }
 
-        const querySnapshot = await getDocs(q);
-        lbList.innerHTML = ''; // Clear the loader
+        // 3. RENDER THE ROWS
+        lbList.innerHTML = '';
 
-        // Handle empty results (e.g., first day of the week)
-        if (querySnapshot.empty) {
-            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet this period. Be the first!</p>`;
+        if (leaderboardData.length === 0) {
+            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet. Get moving!</p>`;
             return;
         }
 
-        let rank = 1;
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // Get the field name (week, month, or year) from the filter string 'stats.week'
-            const fieldName = filter.split('.')[1];
-            const score = data.stats ? (data.stats[fieldName] || 0) : 0;
+        leaderboardData.forEach((user, index) => {
+            const isMe = user.uid === window.auth.currentUser?.uid;
+            const displayScore = filter === 'stats.daily' ? user.todayScore : user.score;
             
-            const isMe = doc.id === window.auth.currentUser?.uid;
+            let subScoreHTML = "";
+            if (filter === 'stats.daily') {
+                subScoreHTML = `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>`;
+            }
 
             const row = `
                 <div class="lb-row ${isMe ? 'is-me' : ''}">
-                    <span class="lb-rank">${rank}</span>
-                    <span class="lb-name">${data.username || 'Anonymous'}</span>
-                    <span class="lb-score">${score.toLocaleString()}</span>
+                    <span class="lb-rank">${index + 1}</span>
+                    <span class="lb-name">${user.username}</span>
+                    <div style="text-align:right">
+                        <span class="lb-score">${displayScore.toLocaleString()}</span>
+                        ${subScoreHTML}
+                    </div>
                 </div>
             `;
             lbList.insertAdjacentHTML('beforeend', row);
-            rank++;
         });
 
     } catch (err) {
-        console.error("Leaderboard fetch failed:", err);
-        // If index is missing, this message helps debug
-        lbList.innerHTML = `<p class="h3">Error loading ranks. If this is new, please wait for index building or check console.</p>`;
+        console.error("Leaderboard failed:", err);
+        lbList.innerHTML = "<p class='h3'>Error loading leaderboard.</p>";
     }
 }
 

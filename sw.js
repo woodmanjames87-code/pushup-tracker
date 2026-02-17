@@ -1,5 +1,5 @@
-const VERSION = 'v4.7.2.2'; // Increment this to update the app
-const CACHE_NAME = `workout-${VERSION}`; 
+const VERSION = 'v4.7.2.3'; // Increment this to update the app
+const CACHE_NAME = `DailyGrind-${VERSION}`; 
 
 const ASSETS = [
   './',
