@@ -4,7 +4,9 @@
   "start_url": ".",
   "display": "standalone",
   "background_color": "#121212",
+  "theme_color": "#121212",
   "description": "Log your daily reps, compete on the leaderboard, and build your fitness legacy.",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "pushup-icon.PNG",

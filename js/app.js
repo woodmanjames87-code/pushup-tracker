@@ -51,13 +51,20 @@ function getDayTotal(data, date) {
 }
 
 function getTodayId() {
-    return new Date().toISOString().split('T')[0]; // "2026-02-17"
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function getYesterdayId() {
     const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0]; // "2026-02-16"
+    d.setDate(d.getDate() - 1); // Subtract one day
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function getWeekId(date) {
@@ -719,9 +726,9 @@ function updateDisplay() {
 
     // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
     if (s.allTimeTotal > 0) {
-        document.getElementById('legacy-projected').innerText = `${s.currentYearStr} PROJ: ${s.projectedYearly.toLocaleString()}`;
-        document.getElementById('legacy-since').innerText = `SINCE ${s.firstDateStr}`;
-        document.getElementById('legacy-active-days').innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed}`;
+        document.getElementById('legacy-projected').innerText = `${s.currentYearStr} PROJECTION: ${s.projectedYearly.toLocaleString()}`;
+        document.getElementById('legacy-since').innerText = `STARTED ${s.firstDateStr}`;
+        document.getElementById('legacy-active-days').innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
         
         document.getElementById('stat-all-time').innerText = s.allTimeTotal.toLocaleString();
         document.getElementById('stat-pb').innerText = s.pb.toLocaleString();
