@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DailyGrind</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>DailyGrind</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="pushup-icon.PNG">
@@ -12,9 +11,12 @@
     <link rel="stylesheet" href="style.css">
 
 </head>
-<body> <div id="pull-to-refresh">
-    <div class="spinner"></div>
-  </div>
+<body>
+
+    <div id="pull-to-refresh">
+        <div class="spinner"></div>
+    </div>
+
 <!-- LOGIN BUTTON -->
     <button id="auth-button" class="btn-login-pill">
         <span class="login-text">Login to &nbsp;</span>
@@ -44,11 +46,11 @@
         </div>
         
         <div class="goal-info"> 
-            <div class="label-mini goal-description" style=" padding-bottom: 8px;" >Goal: Max(Avg, Median) of 14 active days (Min 60)</div> 
+            <div class="label-mini goal-description">Goal Description</div> 
         </div>
         
         <div class="daily-numbers-row">
-            <div class="label-tiny" style="color: white; font-weight: bold;">Today: <span id="today-val">0</span></div>
+            <div class="label-tiny label-bold">Today: <span id="today-val">0</span></div>
             <div class="label-tiny">Yesterday: <span id="yest-val">0</span></div>
         </div>
     </div>
@@ -69,7 +71,7 @@
 
     <h3> Last 7 Days</h3>
     <div class="widget-card">
-        <p class="label-tiny"><span id="weekly-title" style="color: white; font-weight: bold;"></span></p>
+        <p class="label-tiny label-bold"><span id="weekly-title"></span></p>
         <div class="chart-section">
         <div class="chart-with-axis">
             <div class="axis left">
@@ -90,7 +92,7 @@
     
     <h3>30-Day Performance Trend</h3>
     <div class="widget-card trend-section">
-        <p class="label-tiny">Total: <span id="total-30-val" style="color: white; font-weight: bold;">0</span></p>
+        <p class="label-tiny">Total: <span id="total-30-val" class="label-bold">0</span></p>
 
         <div class="segmented-track">
         <div class="segment red"></div>
@@ -200,7 +202,7 @@
                     </div>
                     <div class="widget-card collapsed">
                         <h3>Leaderboard Display Name</h3>
-                        <div class="input-inline-group">
+                        <div class="input-inline-group input-wide">
                             <input type="text" id="username-input" maxlength="20" placeholder="Enter name...">
                             <button id="btn-update-username" class="btn-secondary">Update</button>
                         </div>
@@ -214,13 +216,13 @@
                                 <span class="slider round"></span>
                             </label>
                         </div>
-                        <p class="label-tiny goal-description" style="margin-top: 12px; opacity: 0.6;">
+                        <p class="label-tiny goal-description">
                             Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
                         </p>
-                        <div id="manual-goal-container" class="setting-row" style="margin-top: 15px; display: none;">
+                        <div id="manual-goal-container" class="setting-row" style="display: none;">
                             <label for="manual-goal-input">Daily Target:</label>
-                            <div class="input-inline-group" style="width: 120px;">
-                                <input type="number" id="manual-goal-input" min="1" max="999" placeholder="###">
+                            <div class="input-inline-group input-compact">
+                                <input type="text" inputmode="numeric" id="manual-goal-input" min="1" max="999" placeholder="###">
                                 <span class="unit-label">Reps</span>
                             </div>
                         </div>
@@ -322,7 +324,7 @@
             <input
                 type="text"
                 id="modal-input"
-                inputmode="decimal"
+                inputmode="numeric"
                 min="1"
                 pattern="[0-9]*"
                 placeholder="0"
@@ -367,11 +369,12 @@
         <div class="install-content">
             <span id="install-text"></span>
             <div class="install-actions">
-                <button id="btn-install-now" class="btn-primary-small"></button>
-                <button id="btn-install-close">✕</button>
+                <button id="btn-install-now" class="btn-primary-small" title="Install app"></button>
+                <button id="btn-install-close" title="Close Banner">✕</button>
             </div>
         </div>
     </div>
+    
    <script type="module">
   // 1. Import the specific tools we need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";

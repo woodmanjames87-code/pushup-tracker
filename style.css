@@ -156,11 +156,18 @@ h3 {
     font-size: 0.75rem;
     color: var(--text-muted);
 }
-
+.label-bold {
+    font-weight: bold;
+    color: var(--text);
+}
 .label-mini {
     font-size: 0.65rem;
     color: var(--text-muted);
     font-weight: bold;
+}
+.goal-description {
+    padding-bottom: 8px;
+    opacity: 0.6;
 }
 
 .daily-numbers-row {
@@ -362,18 +369,36 @@ h3 {
 
 .input-inline-group {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 10px auto;
+    box-sizing: border-box;
+}
+.input-wide {
+    width: 100%;
+}
+.input-compact {
+    width: 120px;
 }
 
 .input-inline-group input {
     flex: 1;
-    padding: 12px;
+    min-width: 0;
+    padding: 10px;
     border-radius: 8px;
     border: 1px solid var(--text);
     background: var(--bg-color);
     color: var(--text-color);
     font-size: 1rem;
+    text-align: center;
+}
+.input-inline-group button {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 10px 15px;
+    white-space: nowrap;
+    
 }
 
 /* Container for the switch */

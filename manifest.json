@@ -1,7 +1,7 @@
 {
   "name": "DailyGrind: Bodyweight Workout Tracker",
   "short_name": "DailyGrind",
-  "start_url": ".",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
@@ -12,7 +12,22 @@
       "src": "pushup-icon.PNG",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "pushup-icon.PNG",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+  {
+    "src": "screenshot-mobile.png",
+    "sizes": "1170x2532", 
+    "type": "image/png",
+    "form_factor": "narrow",
+    "label": "Daily Workout Tracker"
+  }
+]
 }

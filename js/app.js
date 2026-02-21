@@ -9,8 +9,7 @@ const okBtn = document.getElementById('modal-ok');
 
 const trackerPage = document.getElementById('tracker-page');
 const settingsPage = document.getElementById('settings-page');
-const goToSettingsBtn = document.getElementById('go-to-settings');
-const backToTrackerBtn = document.getElementById('back-to-tracker');
+const leaderboardPage = document.getElementById('leaderboard-page');
 const editSetsList = document.getElementById('edit-sets-list');
 
 /*************************************************
@@ -610,15 +609,15 @@ let isPulling = false;
 const ptr = document.getElementById('pull-to-refresh');
 
 window.addEventListener('touchstart', (e) => {
-    // Only trigger if we are at the top and on the tracker page
-    if (window.scrollY === 0 && document.getElementById('tracker-page').offsetParent !== null) {
+    // Only trigger if we are at the top and the PTR element exists
+    if (ptr && window.scrollY === 0) {
         startY = e.touches[0].pageY;
         isPulling = true;
     }
 }, { passive: true });
 
 window.addEventListener('touchmove', (e) => {
-    if (!isPulling) return;
+    if (!isPulling || !ptr) return;
     const currentY = e.touches[0].pageY;
     const diff = currentY - startY;
 
@@ -630,15 +629,28 @@ window.addEventListener('touchmove', (e) => {
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-    if (!isPulling) return;
+    if (!isPulling || !ptr) return;
     const diff = e.changedTouches[0].pageY - startY;
     
     if (diff > 70) {
-        // Success! Reload or call your refresh function
         ptr.style.transform = 'translateY(60px)';
+
+        // Find the page that is NOT set to 'none'
+        // We look for all divs with the class 'page' (make sure your page divs have this class)
+        const pages = document.querySelectorAll('.page');
+        let activePageId = 'tracker-page'; // Default fallback
+
+        pages.forEach(page => {
+            if (page.style.display !== 'none') {
+                activePageId = page.id;
+            }
+        });
+
+        // Save the ID in the URL hash
+        window.location.hash = activePageId;
+
         location.reload(); 
     } else {
-        // Cancelled
         ptr.style.transform = 'translateY(0)';
     }
     isPulling = false;
@@ -803,7 +815,6 @@ function updateGoalUI() {
 
     // Loop through every instance found and update them together
     descriptions.forEach(el => {
-        el.style.opacity = '0.6';
         el.innerHTML = statusText;
     });
 }
@@ -1232,11 +1243,33 @@ initAuthListener();
 
 async function initApp() {
     console.log("Initializing/Refreshing App Data...");
-    // Update all UI elements
+
+    // Check for a saved page in the URL hash
+    const savedPageId = window.location.hash.substring(1); 
+    
+    if (savedPageId) {
+        // First, hide ALL pages (add all your page IDs here)
+        const allPages = ['tracker-page', 'leaderboard-page','settings-page'];
+        allPages.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        // Then, show the saved one
+        const activeEl = document.getElementById(savedPageId);
+        if (activeEl) {
+            activeEl.style.display = 'block'; // or 'flex' depending on your layout
+        }
+    }
+
+    // Update all UI elements (Your existing code)
     updateDisplay();
     renderEditList();
+    updateGoalUI();
+    
     console.log("App state is now current.");
 }
+
 // A. Run when the page first loads
 window.addEventListener('DOMContentLoaded', initApp);
 // B. Run whenever the user "switches back" to the app (PWA resume)
@@ -1247,6 +1280,8 @@ document.addEventListener('visibilitychange', () => {
 });
 // C. Run when the window gets focus (extra safety for desktop/laptops)
 window.addEventListener('focus', initApp);
+
+
 
 /*****Install prompt*********/
 let deferredPrompt;
@@ -1268,6 +1303,13 @@ if (isIOS && !isStandalone) {
 
 function showUnifiedInstallBanner(platform) {
     const banner = document.getElementById('install-banner');
+    
+    // Check if they closed it today already
+    const lastClosed = localStorage.getItem('installBannerClosed');
+    if (lastClosed === new Date().toLocaleDateString()) {
+        return; // Don't show it
+    }
+
     const text = document.getElementById('install-text');
     const btn = document.getElementById('btn-install-now');
 
@@ -1275,12 +1317,12 @@ function showUnifiedInstallBanner(platform) {
 
     if (platform === 'ios') {
         text.innerText = "Install for the full experience!";
-        btn.innerText = "How to Install"; // iOS needs instructions
+        btn.innerText = "How to Install";
     } else {
         text.innerText = "Install the app for easy access!";
-        btn.innerText = "Install Now"; // Android can trigger a prompt
+        btn.innerText = "Install Now";
     }
-}
+};
 
 // 3. Handle the click for both platforms
 document.getElementById('btn-install-now').onclick = async () => {
@@ -1296,4 +1338,13 @@ document.getElementById('btn-install-now').onclick = async () => {
         // iOS Path: Show instructions instead of a prompt
         alert("To install on iPhone:\n1. Tap the 'Share' button (square with arrow)\n2. Scroll down and tap 'Add to Home Screen' (+ icon)");
     }
+};
+
+// 4. Handle the "Close" button
+document.getElementById('btn-install-close').onclick = () => {
+    const banner = document.getElementById('install-banner');
+    banner.classList.add('hidden');
+    
+    // Optional: Save to local storage so it doesn't bother them again today
+    localStorage.setItem('installBannerClosed', new Date().toLocaleDateString());
 };
