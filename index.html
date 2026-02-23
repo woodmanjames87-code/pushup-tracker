@@ -226,6 +226,18 @@
                                 <span class="unit-label">Reps</span>
                             </div>
                         </div>
+
+                        <hr class="divider">
+
+                        <div class="setting-row">
+                            <label for="theme-selector">Display Mode:</label>
+                            <div class="segmented-control" id="theme-selector">
+                                <button class="seg-btn" data-theme="light">Light</button>
+                                <button class="seg-btn" data-theme="auto">System</button>
+                                <button class="seg-btn" data-theme="dark">Dark</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
                 <hr class="divider">
@@ -295,7 +307,7 @@
         </header>
 
         <div class="leaderboard-nav">
-            <div class="segmented-control">
+            <div class="segmented-control" id="leaderboard-filter">
                 <button class="seg-btn active" data-filter="stats.daily">Daily</button>
                 <button class="seg-btn" data-filter="stats.week">Week</button>
                 <button class="seg-btn" data-filter="stats.month">Month</button>
@@ -434,6 +446,7 @@
   console.log("Firebase is ready and leaderboard methods are attached!");
 </script>
 
+<script src="js/settings.js"></script>
 <script src="js/app.js"></script>
 
 </body>

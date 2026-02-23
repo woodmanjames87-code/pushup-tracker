@@ -851,9 +851,11 @@ document.getElementById('manual-goal-input').addEventListener('input', (e) => {
 async function fetchLeaderboard() {
     const lbList = document.getElementById('lb-list');
     const rangeText = document.getElementById('lb-date-range-text');
-    const activeBtn = document.querySelector('.seg-btn.active');
     
-    // Default to daily if no button is active
+    // Updated to match your ID: leaderboard-filter
+    const filterContainer = document.getElementById('leaderboard-filter');
+    const activeBtn = filterContainer ? filterContainer.querySelector('.seg-btn.active') : null;
+    
     const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.daily'; 
     
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
@@ -861,7 +863,7 @@ async function fetchLeaderboard() {
     const now = new Date();
     let displayLabel = "";
 
-    // 1. SET THE DISPLAY LABEL (The text at the top)
+    // 1. SET THE DISPLAY LABEL
     if (filter === 'stats.daily') {
         displayLabel = "Today & Yesterday";
     } else if (filter === 'stats.week') {
@@ -882,14 +884,12 @@ async function fetchLeaderboard() {
 
         // 2. FETCH THE DATA
         if (filter === 'stats.daily') {
-            // --- DAILY LOGIC: Fetch Today & Yesterday ---
             const qToday = query(usersRef, where("stats.todayId", "==", getTodayId()), limit(30));
             const qYest = query(usersRef, where("stats.todayId", "==", getYesterdayId()), limit(30));
 
             const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
             const userMap = new Map();
 
-            // Load Yesterday's scores
             snapYest.forEach(doc => {
                 const s = doc.data().stats;
                 userMap.set(doc.id, {
@@ -900,7 +900,6 @@ async function fetchLeaderboard() {
                 });
             });
 
-            // Merge Today's scores
             snapToday.forEach(doc => {
                 const s = doc.data().stats;
                 if (userMap.has(doc.id)) {
@@ -919,11 +918,9 @@ async function fetchLeaderboard() {
             leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
 
         } else {
-            // --- STANDARD LOGIC: Week, Month, Year ---
-            const fieldName = filter.split('.')[1]; // e.g. 'week'
+            const fieldName = filter.split('.')[1];
             const idField = `stats.${fieldName}Id`;
             
-            // Generate the ID based on your existing helper functions
             let idValue;
             if (fieldName === 'week') idValue = getWeekId(now);
             else if (fieldName === 'month') idValue = getMonthId(now);
@@ -945,7 +942,7 @@ async function fetchLeaderboard() {
         lbList.innerHTML = '';
 
         if (leaderboardData.length === 0) {
-            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet. Get moving!</p>`;
+            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
             return;
         }
 
@@ -953,10 +950,9 @@ async function fetchLeaderboard() {
             const isMe = user.uid === window.auth.currentUser?.uid;
             const displayScore = filter === 'stats.daily' ? user.todayScore : user.score;
             
-            let subScoreHTML = "";
-            if (filter === 'stats.daily') {
-                subScoreHTML = `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>`;
-            }
+            let subScoreHTML = (filter === 'stats.daily') 
+                ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` 
+                : "";
 
             const row = `
                 <div class="lb-row ${isMe ? 'is-me' : ''}">
@@ -977,20 +973,29 @@ async function fetchLeaderboard() {
     }
 }
 
-// Button Click Handling
-document.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        // UI: Toggle active class
-        document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
+// Scoped Button Handling for Leaderboard Filters
+// Scoped Button Handling for Leaderboard
+const lbFilterContainer = document.getElementById('leaderboard-filter');
 
-        // UI: Show loading state
-        document.getElementById('lb-list').innerHTML = 
-            '<p class="h3" style="text-align:center; opacity:0.5; margin-top: 40px;">Loading ranks...</p>';
-        
-        fetchLeaderboard();
+if (lbFilterContainer) {
+    lbFilterContainer.querySelectorAll('.seg-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Scope removal to ONLY buttons inside this specific container
+            lbFilterContainer.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+            
+            // Add active to the clicked button
+            btn.classList.add('active');
+
+            // Reset UI list to loading state
+            const lbList = document.getElementById('lb-list');
+            if (lbList) {
+                lbList.innerHTML = '<div class="loader"></div>';
+            }
+            
+            fetchLeaderboard();
+        });
     });
-});
+}
 
 /*************************************************
  * LOGGING FLOW

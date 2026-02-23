@@ -14,14 +14,13 @@
     --orange: #ff9f0a;
     --track-bg: #39e6391a;
 }
-@media (prefers-color-scheme: light) {
-    :root {
+
+    :root[data-theme="light"] {
         --bg-color: #ffffff;
         --card-bg: #f2f2f7;
         --text: #000000;
         --text-muted: #5f6368;
     }
-}
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -40,6 +39,7 @@ body {
     padding: 0;
     /* Ensure the body doesn't bounce horizontally */
     overflow-x: hidden;
+    transition: background-color 0.3s, ease;
 }
 
 /* =================================================
@@ -354,19 +354,22 @@ h3 {
     flex: 1;
     border: none;
     background: none;
-    padding: 10px 0;
+    padding: 10px 10px;
     font-size: 0.85rem;
     font-weight: 700;
     color: #5f6368;
     cursor: pointer;
     border-radius: 9px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .seg-btn.active {
     background: white; /* The "floating" active pill */
     color: var(--fitness-green);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+#theme-selector .seg-btn.active {
+    background: var(--bg-color); /* Match the current theme for a more integrated look */
 }
 
 .input-inline-group {
@@ -426,7 +429,7 @@ h3 {
   top: 0; left: 0; right: 0; bottom: 0;
   transition: .3s;
   border-radius: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--text-muted);
   box-sizing: border-box;
   background-color: var(--bg-color);
 }
@@ -439,9 +442,10 @@ h3 {
   width: 20px;
   left: 2px;
   bottom: 1px;
-  background-color: white;
+  background-color: var(--text);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
+  border: black 1px solid;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
