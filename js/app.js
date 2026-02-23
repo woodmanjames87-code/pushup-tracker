@@ -777,7 +777,7 @@ function updateDisplay() {
                             ${val > 0 ? val : ''}
                         </span>
 
-                        <div class="bar-unit legacy" style="height:${hPct}%; width: 20px; opacity:${val > 0 ? 1 : 0.2}; background-color: var(--accent-color); border-radius: 2px 2px 0 0;"></div>
+                        <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2};"></div>
                     </div>
                     
                     <span class="month-label" style="font-size: 0.6rem; margin-top: 4px;">
