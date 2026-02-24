@@ -382,11 +382,28 @@ async function startCloudSync() {
                 createdAt: new Date().toISOString()
             });
 
+            // Update Local Settings immediately
+            const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+            if (!data.settings) data.settings = {};
+            data.settings.username = finalAlias; 
+            localStorage.setItem('workout-data', JSON.stringify(data));
+
             alert(`Welcome, ${finalAlias}!`);
+            
         } else {
-            // Existing user? Just trigger a standard sync
-            await syncLocalToCloud(user.uid);
+            // Existing user? Pull cloud name down to local storage
+            const existingData = userSnap.data();
+            if (existingData && existingData.username) {
+                const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+                if (!data.settings) data.settings = {};
+                data.settings.username = existingData.username;
+                localStorage.setItem('workout-data', JSON.stringify(data));
+            }
         }
+
+        // Run general sync for everyone (reps, history, etc.)
+        await syncLocalToCloud(user.uid);
+
     } catch (error) {
         console.error("Login failed:", error);
     }
@@ -504,7 +521,9 @@ document.getElementById('import-input').addEventListener('change', function(e) {
     reader.readAsText(file);
 });
 
-// --- PWA VERSION & UPDATE LOGIC ---
+/*************************************************
+ * INITIALIZATION
+ *************************************************/
 async function initPWAUtils() {
     const versionEl = document.getElementById('app-version');
     const updateBtn = document.getElementById('btn-update-app');
@@ -603,7 +622,9 @@ function showPage(pageId) {
     }
 }
 
-// Pull to refresh
+/*************************************************
+ * PULL TO REFRESH LOGIC
+ *************************************************/
 let startY = 0;
 let isPulling = false;
 const ptr = document.getElementById('pull-to-refresh');
@@ -656,7 +677,9 @@ window.addEventListener('touchend', (e) => {
     isPulling = false;
 });
 
-//Expand rows (Accordian style)
+/*************************************************
+ * EXPANDABLE SECTIONS (ACCORDION)
+ *************************************************/
 document.querySelectorAll('.accordion-header').forEach(header => {
     header.addEventListener('click', () => {
         const item = header.parentElement;
@@ -974,7 +997,6 @@ async function fetchLeaderboard() {
 }
 
 // Scoped Button Handling for Leaderboard Filters
-// Scoped Button Handling for Leaderboard
 const lbFilterContainer = document.getElementById('leaderboard-filter');
 
 if (lbFilterContainer) {
@@ -1036,20 +1058,24 @@ logForm.onsubmit = (e) => {
 };
 
 /*************************************************
- * SETTINGS LOGIC
+ * USERNAME SETTINGS LOGIC
  *************************************************/
 // 1. Logic to populate the input when entering settings
 function loadCurrentUsername() {
+    // 1. Force a fresh pull from localStorage
     const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
     const user = window.auth?.currentUser;
     const nameInput = document.getElementById('username-input');
     
     if (!nameInput) return;
 
-    // Check localStorage first (this has your custom alias), 
-    // fall back to Google name if no custom name exists yet.
+    // 2. PRIORITY: Use custom name from data, then Firebase profile, then empty
     const customName = data.settings?.username; 
-    nameInput.value = customName || user?.displayName || "";
+    const firebaseName = user?.displayName;
+    
+    nameInput.value = customName || firebaseName || "";
+    
+    console.log("Input box updated to:", nameInput.value); // Debugging
 }
 
 // 2. Logic to save the new name
@@ -1107,6 +1133,9 @@ document.getElementById('btn-update-username').onclick = async () => {
     }
 };
 
+/*************************************************
+ * Edit Sets for Any Date Logic
+ *************************************************/
 // 1. Store the "currently selected date" globally
 let selectedEditDate = getDateKey(); // Defaults to today
 
@@ -1202,6 +1231,7 @@ function addSetToDate(dateKey, reps) {
     renderEditList(); // Refresh the list you are looking at
     updateDisplay();  // Force the charts and streaks to recalculate
 }
+
 /*************************************************
  * Import/Export/Clear Data Functions
  *************************************************/
@@ -1237,119 +1267,55 @@ async function exportData() {
 }
 
 
-
-
-// Start
-updateDisplay();
-// Call this for PWA VERSION & UPDATE LOGIC
-initPWAUtils();
-//Leaderboard sync
-initAuthListener();
+/*************************************************
+ * APP INITIALIZATION
+ *************************************************/
 
 async function initApp() {
+    // 1. Check visibility - don't refresh if the app is hidden
+    if (document.visibilityState === 'hidden') return;
+
     console.log("Initializing/Refreshing App Data...");
 
-    // Check for a saved page in the URL hash
+    // 2. Routing Logic (Hash check)
     const savedPageId = window.location.hash.substring(1); 
-    
     if (savedPageId) {
-        // First, hide ALL pages (add all your page IDs here)
         const allPages = ['tracker-page', 'leaderboard-page','settings-page'];
         allPages.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
 
-        // Then, show the saved one
         const activeEl = document.getElementById(savedPageId);
-        if (activeEl) {
-            activeEl.style.display = 'block'; // or 'flex' depending on your layout
-        }
+        if (activeEl) activeEl.style.display = 'block';
     }
 
-    // Update all UI elements (Your existing code)
+    // 3. UI Updates (Keep all refreshes here)
     updateDisplay();
     renderEditList();
     updateGoalUI();
+
+    // 4. One-time utilities (Logic to ensure these only run ONCE)
+    if (!window.appInitialized) {
+        initPWAUtils();
+        initAuthListener();
+        window.appInitialized = true;
+    }
     
     console.log("App state is now current.");
 }
 
-// A. Run when the page first loads
+/*************************************************
+ * EVENT LISTENERS
+ *************************************************/
+
+// Use a single "load" event
 window.addEventListener('DOMContentLoaded', initApp);
-// B. Run whenever the user "switches back" to the app (PWA resume)
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        initApp();
-    }
-});
-// C. Run when the window gets focus (extra safety for desktop/laptops)
+
+// Visibility change covers both PWA resume and tab switching
+document.addEventListener('visibilitychange', initApp);
+
+// 'focus' is often redundant with visibilitychange, but if you keep it, 
+// the "if hidden return" check inside initApp will prevent double-firing.
 window.addEventListener('focus', initApp);
 
-
-
-/*****Install prompt*********/
-let deferredPrompt;
-
-// 1. Listen for the Android/Chrome Install Prompt
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    showUnifiedInstallBanner('android');
-});
-
-// 2. Check for iOS (Safari)
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-
-if (isIOS && !isStandalone) {
-    showUnifiedInstallBanner('ios');
-}
-
-function showUnifiedInstallBanner(platform) {
-    const banner = document.getElementById('install-banner');
-    
-    // Check if they closed it today already
-    const lastClosed = localStorage.getItem('installBannerClosed');
-    if (lastClosed === new Date().toLocaleDateString()) {
-        return; // Don't show it
-    }
-
-    const text = document.getElementById('install-text');
-    const btn = document.getElementById('btn-install-now');
-
-    banner.classList.remove('hidden');
-
-    if (platform === 'ios') {
-        text.innerText = "Install for the full experience!";
-        btn.innerText = "How to Install";
-    } else {
-        text.innerText = "Install the app for easy access!";
-        btn.innerText = "Install Now";
-    }
-};
-
-// 3. Handle the click for both platforms
-document.getElementById('btn-install-now').onclick = async () => {
-    if (deferredPrompt) {
-        // Android Path
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            document.getElementById('install-banner').classList.add('hidden');
-        }
-        deferredPrompt = null;
-    } else if (isIOS) {
-        // iOS Path: Show instructions instead of a prompt
-        alert("To install on iPhone:\n1. Tap the 'Share' button (square with arrow)\n2. Scroll down and tap 'Add to Home Screen' (+ icon)");
-    }
-};
-
-// 4. Handle the "Close" button
-document.getElementById('btn-install-close').onclick = () => {
-    const banner = document.getElementById('install-banner');
-    banner.classList.add('hidden');
-    
-    // Optional: Save to local storage so it doesn't bother them again today
-    localStorage.setItem('installBannerClosed', new Date().toLocaleDateString());
-};

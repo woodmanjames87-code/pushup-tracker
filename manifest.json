@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "pushup-icon.PNG",
+      "src": "img/pushup-icon.PNG",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "pushup-icon.PNG",
+      "src": "img/pushup-icon.PNG",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -23,7 +23,7 @@
   ],
   "screenshots": [
   {
-    "src": "screenshot-mobile.png",
+    "src": "img/screenshot-mobile.png",
     "sizes": "1170x2532", 
     "type": "image/png",
     "form_factor": "narrow",
