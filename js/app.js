@@ -1062,25 +1062,34 @@ logForm.onsubmit = (e) => {
  *************************************************/
 // 1. Logic to populate the input when entering settings
 function loadCurrentUsername() {
-    // 1. Force a fresh pull from localStorage
     const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    const user = window.auth?.currentUser;
     const nameInput = document.getElementById('username-input');
-    
     if (!nameInput) return;
 
-    // 2. PRIORITY: Use custom name from data, then Firebase profile, then empty
-    const customName = data.settings?.username; 
-    const firebaseName = user?.displayName;
-    
-    nameInput.value = customName || firebaseName || "";
-    
-    console.log("Input box updated to:", nameInput.value); // Debugging
+    // Use an "Interval" or "Timeout" to wait if Auth isn't ready yet
+    const checkAuth = setInterval(() => {
+        const user = window.auth?.currentUser;
+        const customName = data.settings?.username;
+        const firebaseName = user?.displayName;
+
+        if (customName || firebaseName) {
+            nameInput.value = customName || firebaseName;
+            clearInterval(checkAuth); // Stop looking once we have a name
+        }
+    }, 100); 
+
+    // Safety: stop looking after 2 seconds so it doesn't run forever
+    setTimeout(() => clearInterval(checkAuth), 2000);
 }
 
 // 2. Logic to save the new name
 document.getElementById('btn-update-username').onclick = async () => {
+    // Inside your onclick...
     const newName = document.getElementById('username-input').value.trim();
+        if (!newName || newName === "") {
+            alert("Please enter a valid name.");
+            return;
+        }
     const user = window.auth?.currentUser;
     const btn = document.getElementById('btn-update-username');
 
