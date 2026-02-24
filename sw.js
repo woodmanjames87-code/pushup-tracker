@@ -1,4 +1,4 @@
-const VERSION = 'v4.7.3.1'; // Increment this to update the app
+const VERSION = 'v4.7.3.2'; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`; 
 
 const ASSETS = [
@@ -10,17 +10,27 @@ const ASSETS = [
   'manifest.json',
   'img/pushup-icon.PNG',
   'img/Google_G_logo.png',
-  'img/workout-app-icon.png',
+  'img/workout-app-icon.PNG',
   'img/screenshot-mobile.png'
 ];
 
 // 1. Install
 self.addEventListener('install', (event) => {
-  // NEW: Force the waiting service worker to become the active service worker.
+  // 1. Force the SW to take over immediately
   self.skipWaiting(); 
   
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      // 2. Map through assets so one failure doesn't break the whole install
+      return Promise.all(
+        ASSETS.map((url) => {
+          return cache.add(url).catch((err) => {
+            console.error(`PWA: Failed to cache file: ${url}`, err);
+            // We don't re-throw the error, so the SW keeps installing
+          });
+        })
+      );
+    })
   );
 });
 
@@ -73,4 +83,8 @@ self.addEventListener('message', (event) => {
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+self.addEventListener('activate', (event) => {
+  // This forces the new service worker to take control of all open tabs immediately
+  event.waitUntil(clients.claim());
 });
