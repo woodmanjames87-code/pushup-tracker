@@ -1,455 +1,467 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>DailyGrind</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/pushup-icon.PNG">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <link rel="stylesheet" href="style.css">
+        <title>DailyGrind</title>
 
-</head>
-<body>
+        <link rel="manifest" href="manifest.json" />
+        <link rel="apple-touch-icon" sizes="180x180" href="img/pushup-icon.PNG" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet" />
 
-    <div id="pull-to-refresh">
-        <div class="spinner"></div>
-    </div>
-
-<!-- LOGIN BUTTON -->
-    <button id="auth-button" class="btn-login-pill">
-        <span class="login-text">Login to &nbsp;</span>
-        <img src="img/Google_G_logo.png" alt="G" class="google-icon">
-    </button>
-
-  <!-- TRACKER PAGE -->
-  <section id="tracker-page" class="app-container" data-page="tracker">
-    
-    <header class="page-header">
-        <div class="header-content">
-            <h1>Push-Ups</h1>
-        </div>
-        <hr class="divider">
-    </header>
-
-    <main>
-    <h3>Daily Progress</h3>
-    <div class="widget-card">
-        <div class="header-row">
-        <span id="goal-text" class="label-tiny">Goal: 60</span>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div id="pull-to-refresh">
+            <div class="spinner"></div>
         </div>
 
-        <div class="progress-container">
-            <div id="progress-bar-green" class="bar-fill green"></div>
-            <div id="progress-bar-blue" class="bar-fill blue"></div>
-        </div>
-        
-        <div class="goal-info"> 
-            <div class="label-mini goal-description">Goal Description</div> 
-        </div>
-        
-        <div class="daily-numbers-row">
-            <div class="label-tiny label-bold">Today: <span id="today-val">0</span></div>
-            <div class="label-tiny">Yesterday: <span id="yest-val">0</span></div>
-        </div>
-    </div>
-   
-    <div class="widget-card">
-        <div class="streak-row">
-            <span class="streak-tag">
-                Streak:&nbsp; <span id="streak-val">0</span>
-            </span>
-            <span class="rest-tag">
-                Rest Days:&nbsp; <span id="rest-val">0</span>/14
-            </span>
-            <div id="rest-streak-tag" class="rest-streak-tag" style="display:none;">
-                Consecutive Rest Days:&nbsp; <span id="rest-streak-val">0</span>
-            </div>
-        </div>
-    </div>
+        <!-- LOGIN BUTTON -->
+        <button id="auth-button" class="btn-login-pill">
+            <span class="login-text">Login to &nbsp;</span>
+            <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
+        </button>
 
-    <h3> Last 7 Days</h3>
-    <div class="widget-card">
-        <p class="label-tiny label-bold"><span id="weekly-title"></span></p>
-        <div class="chart-section">
-        <div class="chart-with-axis">
-            <div class="axis left">
-            <span id="axis-max-l">0</span>
-            <span id="axis-mid-l">0</span>
-            <span>0</span>
-            </div>
-            <div id="bar-chart" class="bar-chart"></div>
-            <div class="axis right">
-            <span id="axis-max-r">0</span>
-            <span id="axis-mid-r">0</span>
-            <span>0</span>
-            </div>
-        </div>
-        <div id="bar-labels" class="bar-labels"></div>
-        </div>
-    </div>
-    
-    <h3>30-Day Performance Trend</h3>
-    <div class="widget-card trend-section">
-        <p class="label-tiny">Total: <span id="total-30-val" class="label-bold">0</span></p>
-
-        <div class="segmented-track">
-        <div class="segment red"></div>
-        <div class="segment yellow"></div>
-        <div class="segment green-bg"></div>
-        <div id="trend-fill" class="trend-fill"></div>
-        </div>
-
-        <div class="trend-footer-grid">
-        <div class="trend-col-left">
-            <div id="trend-label">On Track</div>
-            <div class="label-tiny">Active Days: <span id="active-30-val">0/30</span></div>
-            <div class="label-tiny"><span id="avg-30">0/day</span></div>
-        </div>
-        <div class="trend-col-right">
-            <div class="label-tiny">30-Day Goal:</div>
-            <div class="label-tiny"><span id="thirty-goal-val">0</span> - <span id="thirty-improv-val">0</span></div>
-        </div>
-        </div>
-    </div>
-
-    <h3>6 Month Trend</h3>
-    <div id="6-month-trend" class="widget-card">
-            <div id="monthly-chart" class="chart-with-axis">
-            </div>
-    </div>
-
-    <h3>Legacy Insights</h3>
-    <div id="legacy-insights" class="widget-card">
-        <div class="header-row">     
-            <span id="legacy-since" class="label-tiny"></span>
-            <span id="legacy-projected" class="label-tiny"></span>
-        </div>
-        
-        <div class="header-row" >
-            <span id="legacy-active-days" class="label-tiny"></span>
-        </div>
-        <div class="divider"></div>
-
-
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0;">
-            <div>
-                <div class="label-tiny">ALL-TIME TOTAL</div>
-                <div id="stat-all-time" style="font-size: 1.4rem; font-weight: 800;">0</div>
-            </div>
-            <div>
-                <div class="label-tiny">PERSONAL BEST</div>
-                <div id="stat-pb" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green);">0</div>
-            </div>
-            <div>
-                <div id="label-ytd" class="label-tiny">YTD TOTAL</div>
-                <div id="stat-ytd" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green);">0</div>
-            </div>
-            <div>
-                <div class="label-tiny">100+ CLUB</div>
-                <div id="stat-century" style="font-size: 1.4rem; font-weight: 800; color: var(--orange);">0</div>
-            </div>
-            <div>
-                <div class="label-tiny">LIFETIME AVG</div>
-                <div id="stat-avg" style="font-size: 1.4rem; font-weight: 800;">0/day</div>
-            </div>
-            <div>
-                <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px;">NEXT MILESTONE: 0</div>
-                <div class="progress-container" style="height: 9px;">
-                    <div id="milestone-fill" class="bar-fill green" style="width: 0%;"></div>
+        <!-- TRACKER PAGE -->
+        <section id="tracker-page" class="app-container" data-page="tracker">
+            <header class="page-header">
+                <div class="header-content">
+                    <h1>Push-Ups</h1>
                 </div>
-            </div>
-        </div>
+                <hr class="divider" />
+            </header>
 
-        <div class="divider"></div>
-
-        <div class="label-tiny" style="text-align: center; margin-bottom: 4px;">VOLUME BY INTENSITY</div>
-        <div class="segmented-track" style="height: 9px;">
-            <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%;"></div>
-            <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%;"></div>
-            <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%;"></div>
-        </div>
-        <div class="intensity-legend">
-            <div class="legend-item"><span class="dot green"></span>(100+)</div>
-            <div class="legend-item"><span class="dot orange"></span>(50-99)</div>
-            <div class="legend-item"><span class="dot red"></span>(<50)</div>
-        </div>
-
-    </div>
-
-    </main>
-
-  </section>
-
-  <!-- SETTINGS PAGE -->
-    <section id="settings-page" class="app-container" data-page="settings" hidden>
-        <header class="page-header">
-            <div class="header-content">
-                <h1>Settings</h1>
-            </div>
-            <hr class="divider">
-        </header>
-
-        <main>
-            <section class="settings-section">
-
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <h3>USER SETTINGS</h3>
-                        <span class="chevron">&#10095;</span>
+            <main>
+                <h3>Daily Progress</h3>
+                <div class="widget-card">
+                    <div class="header-row">
+                        <span id="goal-text" class="label-tiny">Goal: 60</span>
                     </div>
-                    <div class="widget-card collapsed">
-                        <h3>Leaderboard Display Name</h3>
-                        <div class="input-inline-group input-wide">
-                            <input type="text" id="username-input" maxlength="20" placeholder="Enter name...">
-                            <button id="btn-update-username" class="btn-secondary">Update</button>
-                        </div>
-                        
-                        <hr class="divider">
 
-                        <div class="setting-row">
-                            <label for="goal-mode-toggle">Auto Calculate Goal:</label>
-                            <label class="switch"> 
-                                <input type="checkbox" id="goal-mode-toggle" checked>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                        <p class="label-tiny goal-description">
-                            Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
-                        </p>
-                        <div id="manual-goal-container" class="setting-row" style="display: none;">
-                            <label for="manual-goal-input">Daily Target:</label>
-                            <div class="input-inline-group input-compact">
-                                <input type="text" inputmode="numeric" id="manual-goal-input" min="1" max="999" placeholder="###">
-                                <span class="unit-label">Reps</span>
-                            </div>
-                        </div>
+                    <div class="progress-container">
+                        <div id="progress-bar-green" class="bar-fill green"></div>
+                        <div id="progress-bar-blue" class="bar-fill blue"></div>
+                    </div>
 
-                        <hr class="divider">
+                    <div class="goal-info">
+                        <div class="label-mini goal-description">Goal Description</div>
+                    </div>
 
-                        <div class="setting-row">
-                            <label for="theme-selector">Display Mode:</label>
-                            <div class="segmented-control" id="theme-selector">
-                                <button class="seg-btn" data-theme="light">Light</button>
-                                <button class="seg-btn" data-theme="auto">System</button>
-                                <button class="seg-btn" data-theme="dark">Dark</button>
-                            </div>
-                        </div>
-
+                    <div class="daily-numbers-row">
+                        <div class="label-tiny label-bold">Today: <span id="today-val">0</span></div>
+                        <div class="label-tiny">Yesterday: <span id="yest-val">0</span></div>
                     </div>
                 </div>
-                <hr class="divider">
 
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <h3>EDIT ENTRIES</h3>
-                        <span class="chevron">&#10095;</span>
-                    </div>
-                    <div class="widget-card collapsed">
-                        <div class="settings-header">
-                            <h2 id="display-date-label">Today</h2> 
-                            <div class="date-picker-trigger">
-                                <span class="trigger-text">&#128197; Change Date</span> 
-                                <input type="date" id="edit-date-picker">
-                            </div>
+                <div class="widget-card">
+                    <div class="streak-row">
+                        <span class="streak-tag"> Streak:&nbsp; <span id="streak-val">0</span> </span>
+                        <span class="rest-tag"> Rest Days:&nbsp; <span id="rest-val">0</span>/14 </span>
+                        <div id="rest-streak-tag" class="rest-streak-tag" style="display: none">
+                            Consecutive Rest Days:&nbsp;
+                            <span id="rest-streak-val">0</span>
                         </div>
-                        <div id="edit-sets-list"></div>
-                        <button id="btn-add-past" class="btn-secondary" style="width:100%; margin-top:15px;">
-                            + Add Set to Selected Date
-                        </button>
                     </div>
                 </div>
-                <hr class="divider">
 
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <h3>DATA MANAGEMENT</h3>
-                        <span class="chevron">&#10095;</span>
+                <h3>Last 7 Days</h3>
+                <div class="widget-card">
+                    <p class="label-tiny label-bold">
+                        <span id="weekly-title"></span>
+                    </p>
+                    <div class="chart-section">
+                        <div class="chart-with-axis">
+                            <div class="axis left">
+                                <span id="axis-max-l">0</span>
+                                <span id="axis-mid-l">0</span>
+                                <span>0</span>
+                            </div>
+                            <div id="bar-chart" class="bar-chart"></div>
+                            <div class="axis right">
+                                <span id="axis-max-r">0</span>
+                                <span id="axis-mid-r">0</span>
+                                <span>0</span>
+                            </div>
+                        </div>
+                        <div id="bar-labels" class="bar-labels"></div>
                     </div>
-                    <div class="widget-card collapsed">
-                        <div style="display: grid; gap: 10px; margin-top: 10px;">
-                            <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
-                            <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
-                                Import Data
+                </div>
+
+                <h3>30-Day Performance Trend</h3>
+                <div class="widget-card trend-section">
+                    <p class="label-tiny">
+                        Total:
+                        <span id="total-30-val" class="label-bold">0</span>
+                    </p>
+
+                    <div class="segmented-track">
+                        <div class="segment red"></div>
+                        <div class="segment yellow"></div>
+                        <div class="segment green-bg"></div>
+                        <div id="trend-fill" class="trend-fill"></div>
+                    </div>
+
+                    <div class="trend-footer-grid">
+                        <div class="trend-col-left">
+                            <div id="trend-label">On Track</div>
+                            <div class="label-tiny">
+                                Active Days:
+                                <span id="active-30-val">0/30</span>
+                            </div>
+                            <div class="label-tiny">
+                                <span id="avg-30">0/day</span>
+                            </div>
+                        </div>
+                        <div class="trend-col-right">
+                            <div class="label-tiny">30-Day Goal:</div>
+                            <div class="label-tiny">
+                                <span id="thirty-goal-val">0</span> -
+                                <span id="thirty-improv-val">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>6 Month Trend</h3>
+                <div id="6-month-trend" class="widget-card">
+                    <div id="monthly-chart" class="chart-with-axis"></div>
+                </div>
+
+                <h3>Legacy Insights</h3>
+                <div id="legacy-insights" class="widget-card">
+                    <div class="header-row">
+                        <span id="legacy-since" class="label-tiny"></span>
+                        <span id="legacy-projected" class="label-tiny"></span>
+                    </div>
+
+                    <div class="header-row">
+                        <span id="legacy-active-days" class="label-tiny"></span>
+                    </div>
+                    <div class="divider"></div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0">
+                        <div>
+                            <div class="label-tiny">ALL-TIME TOTAL</div>
+                            <div id="stat-all-time" style="font-size: 1.4rem; font-weight: 800">0</div>
+                        </div>
+                        <div>
+                            <div class="label-tiny">PERSONAL BEST</div>
+                            <div id="stat-pb" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green)">
+                                0
+                            </div>
+                        </div>
+                        <div>
+                            <div id="label-ytd" class="label-tiny">YTD TOTAL</div>
+                            <div id="stat-ytd" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green)">
+                                0
+                            </div>
+                        </div>
+                        <div>
+                            <div class="label-tiny">100+ CLUB</div>
+                            <div id="stat-century" style="font-size: 1.4rem; font-weight: 800; color: var(--orange)">
+                                0
+                            </div>
+                        </div>
+                        <div>
+                            <div class="label-tiny">LIFETIME AVG</div>
+                            <div id="stat-avg" style="font-size: 1.4rem; font-weight: 800">0/day</div>
+                        </div>
+                        <div>
+                            <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px">
+                                NEXT MILESTONE: 0
+                            </div>
+                            <div class="progress-container" style="height: 9px">
+                                <div id="milestone-fill" class="bar-fill green" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="label-tiny" style="text-align: center; margin-bottom: 4px">VOLUME BY INTENSITY</div>
+                    <div class="segmented-track" style="height: 9px">
+                        <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%"></div>
+                        <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%"></div>
+                        <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%"></div>
+                    </div>
+                    <div class="intensity-legend">
+                        <div class="legend-item"><span class="dot green"></span>(100+)</div>
+                        <div class="legend-item"><span class="dot orange"></span>(50-99)</div>
+                        <div class="legend-item"><span class="dot red"></span>(<50)</div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- SETTINGS PAGE -->
+        <section id="settings-page" class="app-container" data-page="settings" hidden>
+            <header class="page-header">
+                <div class="header-content">
+                    <h1>Settings</h1>
+                </div>
+                <hr class="divider" />
+            </header>
+
+            <main>
+                <section class="settings-section">
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <h3>USER SETTINGS</h3>
+                            <span class="chevron">&#10095;</span>
+                        </div>
+                        <div class="widget-card collapsed">
+                            <h3>Leaderboard Display Name</h3>
+                            <div class="input-inline-group input-wide">
+                                <input type="text" id="username-input" maxlength="20" placeholder="Enter name..." />
+                                <button id="btn-update-username" class="btn-secondary">Update</button>
+                            </div>
+
+                            <hr class="divider" />
+
+                            <div class="setting-row">
+                                <label for="goal-mode-toggle">Auto Calculate Goal:</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="goal-mode-toggle" checked />
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <p class="label-tiny goal-description">
+                                Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
+                            </p>
+                            <div id="manual-goal-container" class="setting-row" style="display: none">
+                                <label for="manual-goal-input">Daily Target:</label>
+                                <div class="input-inline-group input-compact">
+                                    <input
+                                        type="text"
+                                        inputmode="numeric"
+                                        id="manual-goal-input"
+                                        min="1"
+                                        max="999"
+                                        placeholder="###" />
+                                    <span class="unit-label">Reps</span>
+                                </div>
+                            </div>
+
+                            <hr class="divider" />
+
+                            <div class="setting-row">
+                                <label for="theme-selector">Display Mode:</label>
+                                <div class="segmented-control" id="theme-selector">
+                                    <button class="seg-btn" data-theme="light">Light</button>
+                                    <button class="seg-btn" data-theme="auto">System</button>
+                                    <button class="seg-btn" data-theme="dark">Dark</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="divider" />
+
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <h3>EDIT ENTRIES</h3>
+                            <span class="chevron">&#10095;</span>
+                        </div>
+                        <div class="widget-card collapsed">
+                            <div class="settings-header">
+                                <h2 id="display-date-label">Today</h2>
+                                <div class="date-picker-trigger">
+                                    <span class="trigger-text">&#128197; Change Date</span>
+                                    <input type="date" id="edit-date-picker" />
+                                </div>
+                            </div>
+                            <div id="edit-sets-list"></div>
+                            <button id="btn-add-past" class="btn-secondary" style="width: 100%; margin-top: 15px">
+                                + Add Set to Selected Date
                             </button>
-                            <input type="file" id="import-input" hidden accept=".json">
-                        </div>
-                        <div class="danger-zone" style="margin-top: 20px;">
-                            <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
                         </div>
                     </div>
-                </div>
-                <hr class="divider">
+                    <hr class="divider" />
 
-                <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-                    <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px;">
-                        Check for Updates
-                    </button>
-                    <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5;">
-                        Version --
+                    <div class="accordion-item">
+                        <div class="accordion-header">
+                            <h3>DATA MANAGEMENT</h3>
+                            <span class="chevron">&#10095;</span>
+                        </div>
+                        <div class="widget-card collapsed">
+                            <div style="display: grid; gap: 10px; margin-top: 10px">
+                                <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
+                                <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
+                                    Import Data
+                                </button>
+                                <input type="file" id="import-input" hidden accept=".json" />
+                            </div>
+                            <div class="danger-zone" style="margin-top: 20px">
+                                <button onclick="clearAllData()" class="btn-danger">Clear All Data</button>
+                            </div>
+                        </div>
                     </div>
+                    <hr class="divider" />
+
+                    <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee">
+                        <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px">
+                            Check for Updates
+                        </button>
+                        <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5">Version --</div>
+                    </div>
+
+                    <h3 style="text-align: center">More workout types to come!</h3>
+                </section>
+            </main>
+        </section>
+
+        <!--LEADERBOARD PAGE-->
+        <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
+            <header class="page-header">
+                <div class="header-content">
+                    <h1>Leaderboards</h1>
                 </div>
-                
-                <h3 style="text-align: center;">More workout types to come!</h3>
-            </section>
-        </main>
-    </section>
+                <hr class="divider" />
+            </header>
 
-    <!--LEADERBOARD PAGE-->
-    <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
-        <header class="page-header">
-            <div class="header-content">
-                <h1>Leaderboards</h1>
+            <div class="leaderboard-nav">
+                <div class="segmented-control" id="leaderboard-filter">
+                    <button class="seg-btn active" data-filter="stats.daily">Daily</button>
+                    <button class="seg-btn" data-filter="stats.week">Week</button>
+                    <button class="seg-btn" data-filter="stats.month">Month</button>
+                    <button class="seg-btn" data-filter="stats.year">Year</button>
+                </div>
+                <hr class="divider" />
+                <div class="lb-context-label">
+                    <span id="lb-date-range-text">This Week</span>
+                </div>
             </div>
-            <hr class="divider">
-        </header>
 
-        <div class="leaderboard-nav">
-            <div class="segmented-control" id="leaderboard-filter">
-                <button class="seg-btn active" data-filter="stats.daily">Daily</button>
-                <button class="seg-btn" data-filter="stats.week">Week</button>
-                <button class="seg-btn" data-filter="stats.month">Month</button>
-                <button class="seg-btn" data-filter="stats.year">Year</button>
+            <div id="lb-list" class="leaderboard-list">
+                <p class="h3" style="text-align: center; opacity: 0.5; margin-top: 40px">Loading ranks...</p>
             </div>
-            <hr class="divider">
-            <div class="lb-context-label">
-                <span id="lb-date-range-text">This Week</span>
+        </section>
+
+        <!-- LOG MODAL -->
+        <div id="log-modal" class="modal-overlay">
+            <div class="modal-content" role="dialog" aria-modal="true">
+                <h3>Log Push-ups</h3>
+                <p>How many reps did you do?</p>
+
+                <form id="log-form" action="#">
+                    <input
+                        type="text"
+                        id="modal-input"
+                        inputmode="numeric"
+                        min="1"
+                        pattern="[0-9]*"
+                        placeholder="0"
+                        required />
+
+                    <div class="modal-buttons">
+                        <button id="modal-cancel" class="btn-secondary" type="button">Cancel</button>
+                        <button id="modal-ok" class="btn-primary-small" type="submit">OK</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- FLOATING LOG BUTTON-->
+        <button id="floating-log-btn" class="btn-primary floating-btn">+ LOG SET</button>
+
+        <!--BOTTOM NAVIGATION-->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="showPage('tracker')">
+                <svg viewBox="0 0 24 24" class="nav-icon">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
+                <small>Tracker</small>
+            </button>
+
+            <button class="nav-item" onclick="showPage('leaderboard')">
+                <svg viewBox="0 0 24 24" class="nav-icon">
+                    <path
+                        d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 10.82C5.84 10.4 5 9.3 5 8V7h2v3.82zM19 8c0 1.3-.84 2.4-2 2.82V7h2v1z" />
+                </svg>
+                <small>Social</small>
+            </button>
+
+            <button class="nav-item" onclick="showPage('settings')">
+                <svg viewBox="0 0 24 24" class="nav-icon">
+                    <path
+                        d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                </svg>
+                <small>Settings</small>
+            </button>
+        </nav>
+
+        <!--Install Banner-->
+        <div id="install-banner" class="hidden">
+            <div class="install-content">
+                <span id="install-text"></span>
+                <div class="install-actions">
+                    <button id="btn-install-now" class="btn-primary-small" title="Install app"></button>
+                    <button id="btn-install-close" title="Close Banner">✕</button>
+                </div>
             </div>
         </div>
 
-        <div id="lb-list" class="leaderboard-list">
-            <p class="h3" style="text-align:center; opacity:0.5; margin-top: 40px;">Loading ranks...</p>
-        </div>
-        
-    </section>
+        <script type="module">
+            // 1. Import the specific tools we need
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+            import {
+                getAuth,
+                signInWithPopup,
+                GoogleAuthProvider,
+                onAuthStateChanged,
+            } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+            import {
+                getFirestore,
+                doc,
+                setDoc,
+                getDoc,
+                collection,
+                query,
+                orderBy,
+                limit,
+                getDocs,
+                where,
+            } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-  <!-- LOG MODAL -->
-    <div id="log-modal" class="modal-overlay">
-        <div class="modal-content" role="dialog" aria-modal="true">
-            <h3>Log Push-ups</h3>
-            <p>How many reps did you do?</p>
-    
-            <form id="log-form" action="#">
-            <input
-                type="text"
-                id="modal-input"
-                inputmode="numeric"
-                min="1"
-                pattern="[0-9]*"
-                placeholder="0"
-                required
-            >
+            // 2. Your specific config
+            const firebaseConfig = {
+                apiKey: "AIzaSyCPXMYnQufpyWx6zXznDpJtMukbtLA-Vfo",
+                authDomain: "my-pushup-tracker-2367b.firebaseapp.com",
+                projectId: "my-pushup-tracker-2367b",
+                storageBucket: "my-pushup-tracker-2367b.firebasestorage.app",
+                messagingSenderId: "76145599652",
+                appId: "1:76145599652:web:c011f6b47120d4a986b231",
+                measurementId: "G-R8L7NNJ79M",
+            };
 
-            <div class="modal-buttons">
-                <button id="modal-cancel" class="btn-secondary" type="button">
-                Cancel
-                </button>
-                <button id="modal-ok" class="btn-primary-small" type="submit">
-                OK
-                </button>
-            </div>
-            </form>
-        </div>
-    </div>
-  
-  <!-- FLOATING LOG BUTTON-->
-    <button id="floating-log-btn" class="btn-primary floating-btn"> + LOG SET</button>
-  
-  <!--BOTTOM NAVIGATION-->  
-    <nav class="bottom-nav">
-        <button class="nav-item active" onclick="showPage('tracker')">
-            <svg viewBox="0 0 24 24" class="nav-icon"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-            <small>Tracker</small>
-        </button>
+            // 3. Initialize Firebase services
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const provider = new GoogleAuthProvider();
 
-        <button class="nav-item" onclick="showPage('leaderboard')">
-            <svg viewBox="0 0 24 24" class="nav-icon"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 10.82C5.84 10.4 5 9.3 5 8V7h2v3.82zM19 8c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
-            <small>Social</small>
-        </button>
+            // 4. CRITICAL: Make these functions global so app.js can use them
+            window.auth = auth;
+            window.db = db;
+            window.googleProvider = provider;
+            window.firebaseMethods = {
+                signInWithPopup,
+                onAuthStateChanged,
+                doc,
+                setDoc,
+                getDoc,
+                collection,
+                query,
+                orderBy,
+                limit,
+                getDocs,
+                where,
+            };
 
-        <button class="nav-item" onclick="showPage('settings')">
-            <svg viewBox="0 0 24 24" class="nav-icon"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-            <small>Settings</small>
-        </button>
-    </nav>
-   
-  <!--Install Banner-->
-    <div id="install-banner" class="hidden">
-        <div class="install-content">
-            <span id="install-text"></span>
-            <div class="install-actions">
-                <button id="btn-install-now" class="btn-primary-small" title="Install app"></button>
-                <button id="btn-install-close" title="Close Banner">✕</button>
-            </div>
-        </div>
-    </div>
-    
-   <script type="module">
-  // 1. Import the specific tools we need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import { 
-    getAuth, 
-    signInWithPopup, 
-    GoogleAuthProvider, 
-    onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-  import { 
-    getFirestore, 
-    doc, 
-    setDoc, 
-    getDoc,
-    collection,
-    query,
-    orderBy,
-    limit,
-    getDocs,
-    where
-  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+            console.log("Firebase is ready and leaderboard methods are attached!");
+        </script>
 
-  // 2. Your specific config
-  const firebaseConfig = {
-    apiKey: "AIzaSyCPXMYnQufpyWx6zXznDpJtMukbtLA-Vfo",
-    authDomain: "my-pushup-tracker-2367b.firebaseapp.com",
-    projectId: "my-pushup-tracker-2367b",
-    storageBucket: "my-pushup-tracker-2367b.firebasestorage.app",
-    messagingSenderId: "76145599652",
-    appId: "1:76145599652:web:c011f6b47120d4a986b231",
-    measurementId: "G-R8L7NNJ79M"
-  };
-
-  // 3. Initialize Firebase services
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-
-  // 4. CRITICAL: Make these functions global so app.js can use them
-  window.auth = auth;
-  window.db = db;
-  window.googleProvider = provider;
-  window.firebaseMethods = { 
-    signInWithPopup, 
-    onAuthStateChanged, 
-    doc, 
-    setDoc, 
-    getDoc,
-    collection,
-    query,
-    orderBy,
-    limit,
-    getDocs,
-    where
-  };
-
-  console.log("Firebase is ready and leaderboard methods are attached!");
-</script>
-
-<script src="js/settings.js"></script>
-<script src="js/app.js"></script>
-
-</body>
+        <script src="js/settings.js"></script>
+        <script src="js/app.js"></script>
+    </body>
 </html>

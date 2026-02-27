@@ -1,59 +1,60 @@
 /*************************************************
  * DOM REFERENCES
  *************************************************/
-const floatingLogBtn = document.getElementById('floating-log-btn');
-const logModal = document.getElementById('log-modal');
-const modalInput = document.getElementById('modal-input');
-const cancelBtn = document.getElementById('modal-cancel');
-const okBtn = document.getElementById('modal-ok');
+const floatingLogBtn = document.getElementById("floating-log-btn");
+const logModal = document.getElementById("log-modal");
+const modalInput = document.getElementById("modal-input");
+const cancelBtn = document.getElementById("modal-cancel");
+const okBtn = document.getElementById("modal-ok");
 
-const trackerPage = document.getElementById('tracker-page');
-const settingsPage = document.getElementById('settings-page');
-const leaderboardPage = document.getElementById('leaderboard-page');
-const editSetsList = document.getElementById('edit-sets-list');
+const trackerPage = document.getElementById("tracker-page");
+const settingsPage = document.getElementById("settings-page");
+const leaderboardPage = document.getElementById("leaderboard-page");
+const editSetsList = document.getElementById("edit-sets-list");
 
 /*************************************************
  * CONSTANTS & CONFIG
  *************************************************/
-const STORAGE_KEY = 'workout-data';
-const currentExercise = 'pushups';
+const STORAGE_KEY = "workout-data";
+const currentExercise = "pushups";
 
 const GOALS = {
     DAYS_PER_WEEK: 7,
     ON_TRACK_DAYS: 4,
-    IMPROVE_DAYS: 5, 
-    WINDOW_DAYS: 30
+    IMPROVE_DAYS: 5,
+    WINDOW_DAYS: 30,
 };
 
 /*************************************************
  * SERVICE WORKER REGISTRATION
  *************************************************/
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log("Offline Mode Active"))
-    .catch(err => console.log("Offline Mode Failed", err));
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+        .register("./sw.js")
+        .then(() => console.log("Offline Mode Active"))
+        .catch((err) => console.log("Offline Mode Failed", err));
 }
 
 /*************************************************
- * STATS ENGINE 
+ * STATS ENGINE
  *************************************************/
 function getDateKey(date = new Date()) {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
 
 function getDayTotal(data, date) {
     const key = getDateKey(date);
-    return (data[key] && data[key][currentExercise]) ? data[key][currentExercise].reduce((a, b) => a + b, 0) : 0;
+    return data[key] && data[key][currentExercise] ? data[key][currentExercise].reduce((a, b) => a + b, 0) : 0;
 }
 
 function getTodayId() {
     const d = new Date();
     const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
 
@@ -61,25 +62,25 @@ function getYesterdayId() {
     const d = new Date();
     d.setDate(d.getDate() - 1); // Subtract one day
     const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
 
 function getWeekId(date) {
     const d = new Date(date);
-        // Find the Sunday of this week
-        d.setDate(d.getDate() - d.getDay());
+    // Find the Sunday of this week
+    d.setDate(d.getDate() - d.getDay());
     const year = d.getFullYear();
     const month = d.getMonth() + 1;
     const day = d.getDate();
-    // Returns a string like "2026-W-Feb-8" 
+    // Returns a string like "2026-W-Feb-8"
     return `${year}-W-${month}-${day}`;
 }
 function getMonthId(date) {
     const d = new Date(date);
-    // Returns "2026-02" 
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    // Returns "2026-02"
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 function getYearId(date) {
     return String(new Date(date).getFullYear());
@@ -89,50 +90,51 @@ function computeStats() {
     const data = loadData();
     const today = new Date();
     const currentYearStr = today.getFullYear().toString();
-    
+
     // Basic Totals
     const todayTotal = getDayTotal(data, today);
-    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
     const yesterdayTotal = getDayTotal(data, yest);
 
     // Weekly Data
     let weeklyData = [];
     let weeklyTotal = 0;
     for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(today.getDate() - i);
+        const d = new Date();
+        d.setDate(today.getDate() - i);
         const v = getDayTotal(data, d);
         weeklyData.push(v);
         weeklyTotal += v;
     }
 
     // Calendar Week Total
-    const diffToSunday = today.getDay(); 
-    
+    const diffToSunday = today.getDay();
+
     const sunday = new Date(today);
     sunday.setDate(today.getDate() - diffToSunday);
     sunday.setHours(0, 0, 0, 0); // Start of Sunday morning
 
     let calendarWeeklyTotal = 0;
-    
+
     // Loop from Sunday until Today
     for (let i = 0; i <= diffToSunday; i++) {
         const d = new Date(sunday);
         d.setDate(sunday.getDate() + i);
         calendarWeeklyTotal += getDayTotal(data, d);
     }
-    
 
     // Daily Goal Manual or Auto (Avg/Median of last 14 active days)
     let dailyGoal = 60; // Default fallback
 
-    if (data.settings?.goalMode === 'manual') {
+    if (data.settings?.goalMode === "manual") {
         // Use the user's manual preference
         dailyGoal = data.settings.manualGoal || 60;
     } else {
         // Use your original smart calculation
         let activeValues = [];
         for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
-            const d = new Date(); 
+            const d = new Date();
             d.setDate(today.getDate() - i);
             const v = getDayTotal(data, d);
             if (v > 0) activeValues.push(v);
@@ -144,7 +146,7 @@ function computeStats() {
             const sorted = [...activeValues].sort((a, b) => a - b);
             const mid = Math.floor(sorted.length / 2);
             const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-            
+
             // Your original rounding logic
             dailyGoal = Math.max(60, Math.ceil(Math.max(avg, median) / 5) * 5);
         }
@@ -153,34 +155,38 @@ function computeStats() {
     // 30-Day Windows
     const thirtyGoal = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK));
     const thirtyImprov = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK));
-    
+
     let total30 = 0;
     for (let i = 0; i < 30; i++) {
-        const d = new Date(); d.setDate(today.getDate() - i);
+        const d = new Date();
+        d.setDate(today.getDate() - i);
         total30 += getDayTotal(data, d);
     }
     const avg30 = Number((total30 / 30).toFixed(1));
 
     let active30 = 0;
-    for (let i = 0; i <30; i++) {
-        const d = new Date(); d.setDate(today.getDate() - i);
+    for (let i = 0; i < 30; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
         if (getDayTotal(data, d) > 0) active30++;
     }
     // Streaks
     let streak = todayTotal > 0 ? 1 : 0;
     for (let i = 1; i < 30; i++) {
-        const d = new Date(); d.setDate(today.getDate() - i);
-        if (getDayTotal(data, d) > 0) streak++; else break;
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        if (getDayTotal(data, d) > 0) streak++;
+        else break;
     }
 
     // Rest Streak (Days since last workout)
     let restStreak = 0;
-    // We start checking from "Yesterday" (i = 1) 
+    // We start checking from "Yesterday" (i = 1)
     // because we don't want to penalize them for not working out "yet" today.
     for (let i = 1; i < 365; i++) {
-        const d = new Date(); 
+        const d = new Date();
         d.setDate(today.getDate() - i);
-        
+
         if (getDayTotal(data, d) === 0) {
             restStreak++;
         } else {
@@ -198,11 +204,13 @@ function computeStats() {
 
     // Best Streak (All time)
     const allKeys = Object.keys(data).sort();
-    let bestStreak = 0, currentStreak = 0;
+    let bestStreak = 0,
+        currentStreak = 0;
     if (allKeys.length) {
         let d = new Date(allKeys[0]);
         while (d <= today) {
-            if (getDayTotal(data, d) > 0) currentStreak++; else currentStreak = 0;
+            if (getDayTotal(data, d) > 0) currentStreak++;
+            else currentStreak = 0;
             bestStreak = Math.max(bestStreak, currentStreak);
             d.setDate(d.getDate() + 1);
         }
@@ -210,7 +218,7 @@ function computeStats() {
 
     // Rest Days (Last 14 days)
     const rest14 = Array.from({ length: 14 }, (_, i) => {
-        const d = new Date(today); 
+        const d = new Date(today);
         d.setDate(today.getDate() - i);
         return getDayTotal(data, d) === 0 ? 1 : 0;
     }).reduce((a, b) => a + b, 0);
@@ -218,31 +226,38 @@ function computeStats() {
     // Trend
     const trendPct = avg30 / dailyGoal;
     let trend = { label: "Below Target", color: "#ff3b30" };
-    if (trendPct >= (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK)) {
+    if (trendPct >= GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK) {
         trend = { label: "Improving", color: "#007aff" };
-    } else if (trendPct >= (GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK)) {
+    } else if (trendPct >= GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK) {
         trend = { label: "On Track", color: "#34c759" };
     }
 
-// --- All-Time Data ---
+    // --- All-Time Data ---
     let allTimeTotal = 0;
     let ytdTotal = 0;
     let pb = 0;
     let centuryDays = 0;
     let activeDays = 0;
-    let eliteVol = 0, solidVol = 0, lightVol = 0;
-    
+    let eliteVol = 0,
+        solidVol = 0,
+        lightVol = 0;
+
     // One loop to rule them all (All-Time Stats)
-    allKeys.forEach(dateKey => {
-        const val = getDayTotal(data, new Date(dateKey + 'T00:00:00'));
+    allKeys.forEach((dateKey) => {
+        const val = getDayTotal(data, new Date(dateKey + "T00:00:00"));
         if (val > 0) {
             allTimeTotal += val;
             activeDays++;
             if (val > pb) pb = val;
-            if (val >= 100) { centuryDays++; eliteVol += val; }
-            else if (val >= 50) { solidVol += val; }
-            else { lightVol += val; }
-            
+            if (val >= 100) {
+                centuryDays++;
+                eliteVol += val;
+            } else if (val >= 50) {
+                solidVol += val;
+            } else {
+                lightVol += val;
+            }
+
             if (dateKey.startsWith(currentYearStr)) {
                 ytdTotal += val;
             }
@@ -250,26 +265,28 @@ function computeStats() {
     });
 
     // --- Legacy Calculations ---
-    const firstDateObj = allKeys.length ? new Date(allKeys[0] + 'T00:00:00') : today;
-    const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }).toUpperCase();
-    
+    const firstDateObj = allKeys.length ? new Date(allKeys[0] + "T00:00:00") : today;
+    const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase();
+
     const diffTime = Math.abs(today - firstDateObj);
     const totalDaysElapsed = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
     const lifetimeAvg = Math.round(allTimeTotal / totalDaysElapsed);
 
     // Monthly Chart (Last 6 Months)
     const monthlyData = {};
-    let currentMonthLabel = ""
+    let currentMonthLabel = "";
     for (let i = 5; i >= 0; i--) {
-        let d = new Date(); d.setDate(1); d.setMonth(today.getMonth() - i);
-        const label = d.toLocaleString('default', { month: 'short' });
+        let d = new Date();
+        d.setDate(1);
+        d.setMonth(today.getMonth() - i);
+        const label = d.toLocaleString("default", { month: "short" });
 
         if (i === 0) currentMonthLabel = label;
 
-        const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         monthlyData[label] = allKeys
-            .filter(date => date.startsWith(monthPrefix))
-            .reduce((s, date) => s + getDayTotal(data, new Date(date + 'T00:00:00')), 0);
+            .filter((date) => date.startsWith(monthPrefix))
+            .reduce((s, date) => s + getDayTotal(data, new Date(date + "T00:00:00")), 0);
     }
     const monthlyTotal = monthlyData[currentMonthLabel];
 
@@ -278,27 +295,51 @@ function computeStats() {
     const daysInYearSoFar = Math.max(Math.ceil((today - startOfYear) / 86400000), 1);
     const projectedYearly = Math.round((ytdTotal / daysInYearSoFar) * 365);
 
-
-    return { 
+    return {
         // Leaderboard Helpers
-        weekId: getWeekId(today), 
+        weekId: getWeekId(today),
         monthId: getMonthId(today),
         yearId: getYearId(today),
 
         // Core Stats
-        todayTotal, yesterdayTotal, weeklyTotal, calendarWeeklyTotal, 
-        monthlyTotal, total30, allTimeTotal, ytdTotal,
-        
+        todayTotal,
+        yesterdayTotal,
+        weeklyTotal,
+        calendarWeeklyTotal,
+        monthlyTotal,
+        total30,
+        allTimeTotal,
+        ytdTotal,
+
         // Streaks & Goals
-        dailyGoal, thirtyGoal, active30, restStreak, streak, bestStreak, 
-        
+        dailyGoal,
+        thirtyGoal,
+        active30,
+        restStreak,
+        streak,
+        bestStreak,
+
         // Insights & Trends
-        rest14, avg30, trend, thirtyImprov, weeklyData, monthlyData,
-        pb, centuryDays, lifetimeAvg, nextMilestone, projectedYearly,
-        
+        rest14,
+        avg30,
+        trend,
+        thirtyImprov,
+        weeklyData,
+        monthlyData,
+        pb,
+        centuryDays,
+        lifetimeAvg,
+        nextMilestone,
+        projectedYearly,
+
         // Metadata
-        currentYearStr, eliteVol, solidVol, lightVol, firstDateStr, 
-        totalDaysElapsed, activeDays 
+        currentYearStr,
+        eliteVol,
+        solidVol,
+        lightVol,
+        firstDateStr,
+        totalDaysElapsed,
+        activeDays,
     };
 }
 
@@ -306,7 +347,7 @@ function computeStats() {
  * DATA & CLOUD SYNC
  *************************************************/
 function loadData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 }
 
 // This handles the LOCAL SAVE + triggers the Cloud Push
@@ -321,8 +362,8 @@ async function saveData(data) {
     }
 }
 
-/** * Helper to transform the raw computeStats() result into the 
- * schema used by Firestore. 
+/** * Helper to transform the raw computeStats() result into the
+ * schema used by Firestore.
  */
 function mapStatsToSchema(s) {
     return {
@@ -352,7 +393,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
         stats: mapStatsToSchema(s),
         workouts: localData,
         lastUpdated: new Date().toISOString(),
-        ...extraData // Merges in things like 'username' or 'createdAt'
+        ...extraData, // Merges in things like 'username' or 'createdAt'
     };
 
     try {
@@ -365,7 +406,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
 
 async function startCloudSync() {
     const { signInWithPopup, getDoc, doc } = window.firebaseMethods;
-    
+
     try {
         const result = await signInWithPopup(window.auth, window.googleProvider);
         const user = result.user;
@@ -379,31 +420,29 @@ async function startCloudSync() {
             // Run initial sync with the new profile data
             await syncLocalToCloud(user.uid, {
                 username: finalAlias,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
             });
 
             // Update Local Settings immediately
-            const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+            const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
             if (!data.settings) data.settings = {};
-            data.settings.username = finalAlias; 
-            localStorage.setItem('workout-data', JSON.stringify(data));
+            data.settings.username = finalAlias;
+            localStorage.setItem("workout-data", JSON.stringify(data));
 
             alert(`Welcome, ${finalAlias}!`);
-            
         } else {
             // Existing user? Pull cloud name down to local storage
             const existingData = userSnap.data();
             if (existingData && existingData.username) {
-                const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+                const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
                 if (!data.settings) data.settings = {};
                 data.settings.username = existingData.username;
-                localStorage.setItem('workout-data', JSON.stringify(data));
+                localStorage.setItem("workout-data", JSON.stringify(data));
             }
         }
 
         // Run general sync for everyone (reps, history, etc.)
         await syncLocalToCloud(user.uid);
-
     } catch (error) {
         console.error("Login failed:", error);
     }
@@ -412,14 +451,16 @@ async function startCloudSync() {
 function initAuthListener() {
     if (window.firebaseMethods?.onAuthStateChanged) {
         window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
-            const btn = document.getElementById('auth-button');
+            const btn = document.getElementById("auth-button");
             if (!btn) return;
 
             if (user) {
                 // UI Setup
-                btn.classList.add('logged-in');
+                btn.classList.add("logged-in");
                 btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => { if(confirm("Sign out?")) window.auth.signOut(); };
+                btn.onclick = () => {
+                    if (confirm("Sign out?")) window.auth.signOut();
+                };
 
                 // 🛡️ SILENT PULL: Restore data if local is empty
                 const localData = loadData();
@@ -434,12 +475,12 @@ function initAuthListener() {
                         console.log("Backup restored successfully.");
                     }
                 }
-                
-                initApp(); 
+
+                initApp();
             } else {
                 // Logged out state...
-                btn.classList.remove('logged-in');
-                btn.style.backgroundImage = 'none';
+                btn.classList.remove("logged-in");
+                btn.style.backgroundImage = "none";
                 btn.onclick = startCloudSync;
                 updateDisplay();
                 updateGoalUI();
@@ -453,15 +494,15 @@ function initAuthListener() {
 function smartImport(jsonString) {
     try {
         const imported = JSON.parse(jsonString);
-        const current = JSON.parse(localStorage.getItem('workout-data') || '{}');
+        const current = JSON.parse(localStorage.getItem("workout-data") || "{}");
         let newEntries = 0;
         let mergedEntries = 0;
 
-        Object.keys(imported).forEach(date => {
+        Object.keys(imported).forEach((date) => {
             let incomingSets = [];
 
             // Detect Old vs New Format
-            if (typeof imported[date] === 'number') {
+            if (typeof imported[date] === "number") {
                 incomingSets = [imported[date]]; // Normalize old format
             } else if (imported[date].pushups) {
                 incomingSets = imported[date].pushups;
@@ -485,36 +526,36 @@ function smartImport(jsonString) {
         });
 
         // Save and Reload
-        localStorage.setItem('workout-data', JSON.stringify(current));
+        localStorage.setItem("workout-data", JSON.stringify(current));
         alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
-        location.reload(); 
-
+        location.reload();
     } catch (e) {
         alert("Invalid file format.");
         console.error(e);
     }
 }
 function clearAllData() {
-    const warning = "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
-    
+    const warning =
+        "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
+
     if (confirm(warning)) {
         // Second layer of protection for a "Nuclear" action
         const finalCheck = confirm("Final check: Delete everything?");
-        
+
         if (finalCheck) {
-            localStorage.removeItem('workout-data');
+            localStorage.removeItem("workout-data");
             alert("Database cleared. Starting fresh!");
             location.reload(); // Refresh to reset all charts and totals
         }
     }
 }
 // Listen for file selection
-document.getElementById('import-input').addEventListener('change', function(e) {
+document.getElementById("import-input").addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const content = e.target.result;
         smartImport(content);
     };
@@ -525,31 +566,31 @@ document.getElementById('import-input').addEventListener('change', function(e) {
  * INITIALIZATION
  *************************************************/
 async function initPWAUtils() {
-    const versionEl = document.getElementById('app-version');
-    const updateBtn = document.getElementById('btn-update-app');
+    const versionEl = document.getElementById("app-version");
+    const updateBtn = document.getElementById("btn-update-app");
 
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         // 1. Get Version from SW
         const msgChan = new MessageChannel();
         msgChan.port1.onmessage = (event) => {
             if (event.data.version) versionEl.innerText = `Version ${event.data.version}`;
         };
-        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [msgChan.port2]);
+        navigator.serviceWorker.controller.postMessage({ type: "GET_VERSION" }, [msgChan.port2]);
 
         // 2. Force Update Logic
         updateBtn.onclick = async () => {
             updateBtn.innerText = "Checking...";
-            
+
             const registration = await navigator.serviceWorker.getRegistration();
-            
+
             if (registration) {
                 // 1. Set up a listener for the NEW worker arriving
                 registration.onupdatefound = () => {
                     const newWorker = registration.installing;
                     newWorker.onstatechange = () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                             // New version found and fully downloaded!
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            newWorker.postMessage({ type: "SKIP_WAITING" });
                         }
                     };
                 };
@@ -559,11 +600,11 @@ async function initPWAUtils() {
 
                 // 3. Handle the case where the update was already downloaded but not active
                 if (registration.waiting) {
-                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    registration.waiting.postMessage({ type: "SKIP_WAITING" });
                 }
 
                 // 4. Listen for the controller change to reload the page
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                navigator.serviceWorker.addEventListener("controllerchange", () => {
                     window.location.reload();
                     alert("Updated to newest version!");
                 });
@@ -572,7 +613,9 @@ async function initPWAUtils() {
                 setTimeout(() => {
                     if (!registration.waiting && !registration.installing) {
                         updateBtn.innerText = "App is up to date";
-                        setTimeout(() => { updateBtn.innerText = "Check for Updates"; }, 3000);
+                        setTimeout(() => {
+                            updateBtn.innerText = "Check for Updates";
+                        }, 3000);
                     }
                 }, 1000);
             }
@@ -584,38 +627,37 @@ async function initPWAUtils() {
  *************************************************/
 function showPage(pageId) {
     // 1. Hide all pages
-    document.getElementById('tracker-page').style.display = 'none';
-    document.getElementById('settings-page').style.display = 'none';
-    document.getElementById('leaderboard-page').style.display = 'none';
-    
+    document.getElementById("tracker-page").style.display = "none";
+    document.getElementById("settings-page").style.display = "none";
+    document.getElementById("leaderboard-page").style.display = "none";
+
     // 2. Show the requested page
     const activePage = document.getElementById(`${pageId}-page`);
     if (activePage) {
-        activePage.style.display = 'flex';
+        activePage.style.display = "flex";
     }
 
     // 3. Update Nav Bar Button Colors
-    const navButtons = document.querySelectorAll('.nav-item');
-    navButtons.forEach(btn => btn.classList.remove('active'));
-    
+    const navButtons = document.querySelectorAll(".nav-item");
+    navButtons.forEach((btn) => btn.classList.remove("active"));
+
     // Logic to highlight the correct icon
     const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
-    navButtons[indexMap[pageId]].classList.add('active');
+    navButtons[indexMap[pageId]].classList.add("active");
 
     // 4. Special logic: Refresh leaderboard when entering social page
-    if (pageId === 'leaderboard') {
+    if (pageId === "leaderboard") {
         fetchLeaderboard();
     }
-    
-    // 5. Special logic: Show/Hide the floating log button
-    const floatingBtn = document.getElementById('floating-log-btn');
-    if (pageId === 'tracker') {
-        floatingBtn.style.display = 'block';
-        updateDisplay(); // Refresh home stats
-    } else {
-        floatingBtn.style.display = 'none';
-    }
-    if (pageId === 'settings') {
+
+    // 5. Special logic: Show/hide the floating log button (tracker + leaderboard)
+    const floatingBtn = document.getElementById("floating-log-btn");
+    const showBtn = pageId === "tracker" || pageId === "leaderboard";
+    floatingBtn.style.display = showBtn ? "block" : "none";
+    if (showBtn) updateDisplay();
+
+    // 6. Settings‑page setup
+    if (pageId === "settings") {
         loadCurrentUsername();
         renderEditList();
         updateGoalUI();
@@ -627,42 +669,50 @@ function showPage(pageId) {
  *************************************************/
 let startY = 0;
 let isPulling = false;
-const ptr = document.getElementById('pull-to-refresh');
+const ptr = document.getElementById("pull-to-refresh");
 
-window.addEventListener('touchstart', (e) => {
-    // Only trigger if we are at the top and the PTR element exists
-    if (ptr && window.scrollY === 0) {
-        startY = e.touches[0].pageY;
-        isPulling = true;
-    }
-}, { passive: true });
+window.addEventListener(
+    "touchstart",
+    (e) => {
+        // Only trigger if we are at the top and the PTR element exists
+        if (ptr && window.scrollY === 0) {
+            startY = e.touches[0].pageY;
+            isPulling = true;
+        }
+    },
+    { passive: true },
+);
 
-window.addEventListener('touchmove', (e) => {
-    if (!isPulling || !ptr) return;
-    const currentY = e.touches[0].pageY;
-    const diff = currentY - startY;
+window.addEventListener(
+    "touchmove",
+    (e) => {
+        if (!isPulling || !ptr) return;
+        const currentY = e.touches[0].pageY;
+        const diff = currentY - startY;
 
-    if (diff > 0) {
-        // Tension: makes it feel like pulling a rubber band
-        const y = Math.pow(diff, 0.85); 
-        ptr.style.transform = `translateY(${y}px)`;
-    }
-}, { passive: true });
+        if (diff > 0) {
+            // Tension: makes it feel like pulling a rubber band
+            const y = Math.pow(diff, 0.85);
+            ptr.style.transform = `translateY(${y}px)`;
+        }
+    },
+    { passive: true },
+);
 
-window.addEventListener('touchend', (e) => {
+window.addEventListener("touchend", (e) => {
     if (!isPulling || !ptr) return;
     const diff = e.changedTouches[0].pageY - startY;
-    
+
     if (diff > 70) {
-        ptr.style.transform = 'translateY(60px)';
+        ptr.style.transform = "translateY(60px)";
 
         // Find the page that is NOT set to 'none'
         // We look for all divs with the class 'page' (make sure your page divs have this class)
-        const pages = document.querySelectorAll('.page');
-        let activePageId = 'tracker-page'; // Default fallback
+        const pages = document.querySelectorAll(".page");
+        let activePageId = "tracker-page"; // Default fallback
 
-        pages.forEach(page => {
-            if (page.style.display !== 'none') {
+        pages.forEach((page) => {
+            if (page.style.display !== "none") {
                 activePageId = page.id;
             }
         });
@@ -670,9 +720,9 @@ window.addEventListener('touchend', (e) => {
         // Save the ID in the URL hash
         window.location.hash = activePageId;
 
-        location.reload(); 
+        location.reload();
     } else {
-        ptr.style.transform = 'translateY(0)';
+        ptr.style.transform = "translateY(0)";
     }
     isPulling = false;
 });
@@ -680,21 +730,21 @@ window.addEventListener('touchend', (e) => {
 /*************************************************
  * EXPANDABLE SECTIONS (ACCORDION)
  *************************************************/
-document.querySelectorAll('.accordion-header').forEach(header => {
-    header.addEventListener('click', () => {
+document.querySelectorAll(".accordion-header").forEach((header) => {
+    header.addEventListener("click", () => {
         const item = header.parentElement;
-        const card = item.querySelector('.widget-card');
-        
+        const card = item.querySelector(".widget-card");
+
         // Toggle Active Class on Item (for the arrow)
-        item.classList.toggle('active');
-        
+        item.classList.toggle("active");
+
         // Toggle Expanded/Collapsed on Card
-        if (card.classList.contains('collapsed')) {
-            card.classList.remove('collapsed');
-            card.classList.add('expanded');
+        if (card.classList.contains("collapsed")) {
+            card.classList.remove("collapsed");
+            card.classList.add("expanded");
         } else {
-            card.classList.remove('expanded');
-            card.classList.add('collapsed');
+            card.classList.remove("expanded");
+            card.classList.add("collapsed");
         }
     });
 });
@@ -706,98 +756,106 @@ function updateDisplay() {
     const s = computeStats();
 
     // --- 1. DAILY STATS & PROGRESS ---
-    document.getElementById('today-val').innerText = s.todayTotal;
-    document.getElementById('yest-val').innerText = s.yesterdayTotal;
-    document.getElementById('goal-text').innerText = `Goal: ${s.dailyGoal}`;
-    
-    const pct = s.todayTotal / s.dailyGoal;
-    document.getElementById('progress-bar-green').style.width = Math.min(pct, 1) * 100 + "%";
-    document.getElementById('progress-bar-blue').style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
+    document.getElementById("today-val").innerText = s.todayTotal;
+    document.getElementById("yest-val").innerText = s.yesterdayTotal;
+    document.getElementById("goal-text").innerText = `Goal: ${s.dailyGoal}`;
 
-    document.getElementById('streak-val').innerText = s.streak;
-    const restStreakTag = document.getElementById('rest-streak-tag');
+    const pct = s.todayTotal / s.dailyGoal;
+    document.getElementById("progress-bar-green").style.width = Math.min(pct, 1) * 100 + "%";
+    document.getElementById("progress-bar-blue").style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
+
+    document.getElementById("streak-val").innerText = s.streak;
+    const restStreakTag = document.getElementById("rest-streak-tag");
     if (s.restStreak > 0) {
-        restStreakTag.style.display = 'inline-flex';
-        document.getElementById('rest-streak-val').innerText = s.restStreak;
+        restStreakTag.style.display = "inline-flex";
+        document.getElementById("rest-streak-val").innerText = s.restStreak;
     } else {
-        restStreakTag.style.display = 'none';
+        restStreakTag.style.display = "none";
     }
-    document.getElementById('rest-val').innerText = s.rest14;
-    
+    document.getElementById("rest-val").innerText = s.rest14;
+
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
-    document.getElementById('total-30-val').innerText = s.total30;
-    document.getElementById('active-30-val').innerText = `${s.active30}/30`;
-    document.getElementById('avg-30').innerText = `Avg: ${s.avg30}/day`;
-    document.getElementById('thirty-goal-val').innerText = s.thirtyGoal;
-    document.getElementById('thirty-improv-val').innerText = s.thirtyImprov;
+    document.getElementById("total-30-val").innerText = s.total30;
+    document.getElementById("active-30-val").innerText = `${s.active30}/30`;
+    document.getElementById("avg-30").innerText = `Avg: ${s.avg30}/day`;
+    document.getElementById("thirty-goal-val").innerText = s.thirtyGoal;
+    document.getElementById("thirty-improv-val").innerText = s.thirtyImprov;
 
     const trendPct30 = (s.total30 / s.thirtyImprov) * 100;
-    document.getElementById('trend-fill').style.width = Math.min(trendPct30, 100) + "%";
-    document.getElementById('trend-label').innerText = s.trend.label;
-    document.getElementById('trend-label').style.color = s.trend.color;
+    document.getElementById("trend-fill").style.width = Math.min(trendPct30, 100) + "%";
+    document.getElementById("trend-label").innerText = s.trend.label;
+    document.getElementById("trend-label").style.color = s.trend.color;
 
     // --- 3. WEEKLY CHART ---
-    const chart = document.getElementById('bar-chart');
-    const labelContainer = document.getElementById('bar-labels');
-    chart.innerHTML = '';
-    labelContainer.innerHTML = '';
-    const days = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
+    const chart = document.getElementById("bar-chart");
+    const labelContainer = document.getElementById("bar-labels");
+    chart.innerHTML = "";
+    labelContainer.innerHTML = "";
+    const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
     const maxVal = Math.max(...s.weeklyData, 1);
     const midVal = Math.round(maxVal / 2);
-    
-    document.getElementById('axis-max-l').innerText = maxVal;
-    document.getElementById('axis-max-r').innerText = maxVal;
-    document.getElementById('axis-mid-l').innerText = midVal;
-    document.getElementById('axis-mid-r').innerText = midVal;
+
+    document.getElementById("axis-max-l").innerText = maxVal;
+    document.getElementById("axis-max-r").innerText = maxVal;
+    document.getElementById("axis-mid-l").innerText = midVal;
+    document.getElementById("axis-mid-r").innerText = midVal;
 
     s.weeklyData.forEach((v, i) => {
         const hPercentage = (v / maxVal) * 100;
-        chart.insertAdjacentHTML('beforeend', `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`);
+        chart.insertAdjacentHTML(
+            "beforeend",
+            `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`,
+        );
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
-        labelContainer.insertAdjacentHTML('beforeend', `<span class="day-label">${days[d.getDay()]}</span>`);
+        labelContainer.insertAdjacentHTML("beforeend", `<span class="day-label">${days[d.getDay()]}</span>`);
     });
-    document.getElementById('weekly-title').innerText = `Total: ${s.weeklyTotal}`;
+    document.getElementById("weekly-title").innerText = `Total: ${s.weeklyTotal}`;
 
     // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
     if (s.allTimeTotal > 0) {
-        document.getElementById('legacy-projected').innerText = `${s.currentYearStr} PROJECTION: ${s.projectedYearly.toLocaleString()}`;
-        document.getElementById('legacy-since').innerText = `STARTED ${s.firstDateStr}`;
-        document.getElementById('legacy-active-days').innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
-        
-        document.getElementById('stat-all-time').innerText = s.allTimeTotal.toLocaleString();
-        document.getElementById('stat-pb').innerText = s.pb.toLocaleString();
-        document.getElementById('stat-ytd').innerText = s.ytdTotal.toLocaleString();
-        document.getElementById('stat-century').innerText = s.centuryDays;
-        document.getElementById('stat-avg').innerText = `${s.lifetimeAvg}/day`;
+        document.getElementById("legacy-projected").innerText =
+            `${s.currentYearStr} PROJECTION: ${s.projectedYearly.toLocaleString()}`;
+        document.getElementById("legacy-since").innerText = `STARTED ${s.firstDateStr}`;
+        document.getElementById("legacy-active-days").innerText =
+            `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
+
+        document.getElementById("stat-all-time").innerText = s.allTimeTotal.toLocaleString();
+        document.getElementById("stat-pb").innerText = s.pb.toLocaleString();
+        document.getElementById("stat-ytd").innerText = s.ytdTotal.toLocaleString();
+        document.getElementById("stat-century").innerText = s.centuryDays;
+        document.getElementById("stat-avg").innerText = `${s.lifetimeAvg}/day`;
 
         // Milestone Progress
-        document.getElementById('label-next-milestone').innerText = `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`;
+        document.getElementById("label-next-milestone").innerText =
+            `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`;
         const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
-        document.getElementById('milestone-fill').style.width = Math.min(milestonePct, 100) + "%";
+        document.getElementById("milestone-fill").style.width = Math.min(milestonePct, 100) + "%";
 
         // Intensity Pill
         const total = s.allTimeTotal || 1;
-        document.getElementById('pill-elite').style.width = (s.eliteVol / total * 100) + "%";
-        document.getElementById('pill-solid').style.width = (s.solidVol / total * 100) + "%";
-        document.getElementById('pill-light').style.width = (s.lightVol / total * 100) + "%";
+        document.getElementById("pill-elite").style.width = (s.eliteVol / total) * 100 + "%";
+        document.getElementById("pill-solid").style.width = (s.solidVol / total) * 100 + "%";
+        document.getElementById("pill-light").style.width = (s.lightVol / total) * 100 + "%";
 
         // Monthly Chart
-        const monthlyChart = document.getElementById('monthly-chart');
-        monthlyChart.innerHTML = '';
+        const monthlyChart = document.getElementById("monthly-chart");
+        monthlyChart.innerHTML = "";
         const monthEntries = Object.entries(s.monthlyData);
         const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
 
         monthEntries.forEach(([label, val]) => {
             const hPct = (val / maxMonth) * 100;
 
-            monthlyChart.insertAdjacentHTML('beforeend', `
+            monthlyChart.insertAdjacentHTML(
+                "beforeend",
+                `
                 <div class="monthly-bar-container">
                     
                     <div style="height: 60px; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                         
                         <span class="label-tiny chart-value" style="font-size: 0.6rem; margin-bottom: 2px; line-height: 1;">
-                            ${val > 0 ? val : ''}
+                            ${val > 0 ? val : ""}
                         </span>
 
                         <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2};"></div>
@@ -807,95 +865,96 @@ function updateDisplay() {
                         ${label.toUpperCase()}
                     </span>
                 </div>
-            `);
+            `,
+            );
         });
     }
 }
 
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    const toggle = document.getElementById('goal-mode-toggle');
-    const manualContainer = document.getElementById('manual-goal-container');
-    const manualInput = document.getElementById('manual-goal-input');
-    const descriptions = document.querySelectorAll('.goal-description');
+    const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
+    const toggle = document.getElementById("goal-mode-toggle");
+    const manualContainer = document.getElementById("manual-goal-container");
+    const manualInput = document.getElementById("manual-goal-input");
+    const descriptions = document.querySelectorAll(".goal-description");
 
-    const isAuto = data.settings?.goalMode !== 'manual'; 
+    const isAuto = data.settings?.goalMode !== "manual";
     toggle.checked = isAuto;
     manualInput.value = data.settings?.manualGoal || 60;
 
     // 1. Determine the content based on the state
-    const statusText = isAuto 
-        ? `Goal: Max(Avg,Median) of 14 active days (Min 60).` 
-        : `Manual Goal Setpoint Active.`;
+    const statusText = isAuto ? `Goal: Max(Avg,Median) of 14 active days (Min 60).` : `Manual Goal Setpoint Active.`;
 
     // 2. Toggle Visibility & Update all descriptions
     if (isAuto) {
-        manualContainer.style.display = 'none';
+        manualContainer.style.display = "none";
     } else {
-        manualContainer.style.display = 'flex';
+        manualContainer.style.display = "flex";
     }
 
     // Loop through every instance found and update them together
-    descriptions.forEach(el => {
+    descriptions.forEach((el) => {
         el.innerHTML = statusText;
     });
 }
 
 // Listener for the Switch
-document.getElementById('goal-mode-toggle').addEventListener('change', (e) => {
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+document.getElementById("goal-mode-toggle").addEventListener("change", (e) => {
+    const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
     if (!data.settings) data.settings = {};
 
     // If checked, it's auto. If unchecked, it's manual.
-    data.settings.goalMode = e.target.checked ? 'auto' : 'manual';
-    
+    data.settings.goalMode = e.target.checked ? "auto" : "manual";
+
     saveData(data);
     updateGoalUI();
     updateDisplay(); // Refresh the home page rings/stats
 });
 
 // Listener for the Manual Number Input
-document.getElementById('manual-goal-input').addEventListener('input', (e) => {
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+document.getElementById("manual-goal-input").addEventListener("input", (e) => {
+    const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
     if (!data.settings) data.settings = {};
-    
+
     const val = parseInt(e.target.value);
     data.settings.manualGoal = val > 0 ? val : 60; // Don't allow 0
-    
+
     saveData(data);
     updateDisplay();
 });
-
 
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
 async function fetchLeaderboard() {
-    const lbList = document.getElementById('lb-list');
-    const rangeText = document.getElementById('lb-date-range-text');
-    
+    const lbList = document.getElementById("lb-list");
+    const rangeText = document.getElementById("lb-date-range-text");
+
     // Updated to match your ID: leaderboard-filter
-    const filterContainer = document.getElementById('leaderboard-filter');
-    const activeBtn = filterContainer ? filterContainer.querySelector('.seg-btn.active') : null;
-    
-    const filter = activeBtn ? activeBtn.getAttribute('data-filter') : 'stats.daily'; 
-    
+    const filterContainer = document.getElementById("leaderboard-filter");
+    const activeBtn = filterContainer ? filterContainer.querySelector(".seg-btn.active") : null;
+
+    const filter = activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily";
+
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
     const usersRef = collection(window.db, "users");
     const now = new Date();
     let displayLabel = "";
 
     // 1. SET THE DISPLAY LABEL
-    if (filter === 'stats.daily') {
+    if (filter === "stats.daily") {
         displayLabel = "Today & Yesterday";
-    } else if (filter === 'stats.week') {
+    } else if (filter === "stats.week") {
         const sun = new Date(now);
         sun.setDate(now.getDate() - now.getDay());
-        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-    } else if (filter === 'stats.month') {
-        displayLabel = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    } else if (filter === 'stats.year') {
+        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    } else if (filter === "stats.month") {
+        displayLabel = now.toLocaleDateString(undefined, {
+            month: "long",
+            year: "numeric",
+        });
+    } else if (filter === "stats.year") {
         displayLabel = now.getFullYear();
     }
 
@@ -906,63 +965,62 @@ async function fetchLeaderboard() {
         let leaderboardData = [];
 
         // 2. FETCH THE DATA
-        if (filter === 'stats.daily') {
+        if (filter === "stats.daily") {
             const qToday = query(usersRef, where("stats.todayId", "==", getTodayId()), limit(30));
             const qYest = query(usersRef, where("stats.todayId", "==", getYesterdayId()), limit(30));
 
             const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
             const userMap = new Map();
 
-            snapYest.forEach(doc => {
+            snapYest.forEach((doc) => {
                 const s = doc.data().stats;
                 userMap.set(doc.id, {
                     uid: doc.id,
-                    username: doc.data().username || 'Anonymous',
-                    todayScore: 0, 
-                    yesterdayScore: s.today || 0 
+                    username: doc.data().username || "Anonymous",
+                    todayScore: 0,
+                    yesterdayScore: s.today || 0,
                 });
             });
 
-            snapToday.forEach(doc => {
+            snapToday.forEach((doc) => {
                 const s = doc.data().stats;
                 if (userMap.has(doc.id)) {
                     userMap.get(doc.id).todayScore = s.today;
                 } else {
                     userMap.set(doc.id, {
                         uid: doc.id,
-                        username: doc.data().username || 'Anonymous',
+                        username: doc.data().username || "Anonymous",
                         todayScore: s.today,
-                        yesterdayScore: s.yest || 0 
+                        yesterdayScore: s.yest || 0,
                     });
                 }
             });
 
             leaderboardData = Array.from(userMap.values());
             leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
-
         } else {
-            const fieldName = filter.split('.')[1];
+            const fieldName = filter.split(".")[1];
             const idField = `stats.${fieldName}Id`;
-            
+
             let idValue;
-            if (fieldName === 'week') idValue = getWeekId(now);
-            else if (fieldName === 'month') idValue = getMonthId(now);
+            if (fieldName === "week") idValue = getWeekId(now);
+            else if (fieldName === "month") idValue = getMonthId(now);
             else idValue = getYearId(now);
 
             const q = query(usersRef, where(idField, "==", idValue), orderBy(filter, "desc"), limit(20));
             const querySnapshot = await getDocs(q);
-            
-            querySnapshot.forEach(doc => {
+
+            querySnapshot.forEach((doc) => {
                 leaderboardData.push({
                     uid: doc.id,
-                    username: doc.data().username || 'Anonymous',
-                    score: doc.data().stats[fieldName] || 0
+                    username: doc.data().username || "Anonymous",
+                    score: doc.data().stats[fieldName] || 0,
                 });
             });
         }
 
         // 3. RENDER THE ROWS
-        lbList.innerHTML = '';
+        lbList.innerHTML = "";
 
         if (leaderboardData.length === 0) {
             lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
@@ -971,14 +1029,15 @@ async function fetchLeaderboard() {
 
         leaderboardData.forEach((user, index) => {
             const isMe = user.uid === window.auth.currentUser?.uid;
-            const displayScore = filter === 'stats.daily' ? user.todayScore : user.score;
-            
-            let subScoreHTML = (filter === 'stats.daily') 
-                ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` 
-                : "";
+            const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
+
+            let subScoreHTML =
+                filter === "stats.daily"
+                    ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>`
+                    : "";
 
             const row = `
-                <div class="lb-row ${isMe ? 'is-me' : ''}">
+                <div class="lb-row ${isMe ? "is-me" : ""}">
                     <span class="lb-rank">${index + 1}</span>
                     <span class="lb-name">${user.username}</span>
                     <div style="text-align:right">
@@ -987,33 +1046,32 @@ async function fetchLeaderboard() {
                     </div>
                 </div>
             `;
-            lbList.insertAdjacentHTML('beforeend', row);
+            lbList.insertAdjacentHTML("beforeend", row);
         });
-
     } catch (err) {
         console.error("Leaderboard failed:", err);
-        lbList.innerHTML = "<p class='h3'>Error loading leaderboard.</p>";
+        lbList.innerHTML = "<p class='h3'>Login to join - Error loading leaderboard.</p>";
     }
 }
 
 // Scoped Button Handling for Leaderboard Filters
-const lbFilterContainer = document.getElementById('leaderboard-filter');
+const lbFilterContainer = document.getElementById("leaderboard-filter");
 
 if (lbFilterContainer) {
-    lbFilterContainer.querySelectorAll('.seg-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    lbFilterContainer.querySelectorAll(".seg-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
             // Scope removal to ONLY buttons inside this specific container
-            lbFilterContainer.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-            
+            lbFilterContainer.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+
             // Add active to the clicked button
-            btn.classList.add('active');
+            btn.classList.add("active");
 
             // Reset UI list to loading state
-            const lbList = document.getElementById('lb-list');
+            const lbList = document.getElementById("lb-list");
             if (lbList) {
                 lbList.innerHTML = '<div class="loader"></div>';
             }
-            
+
             fetchLeaderboard();
         });
     });
@@ -1023,36 +1081,35 @@ if (lbFilterContainer) {
  * LOGGING FLOW
  *************************************************/
 floatingLogBtn.onclick = (e) => {
-     
-    logModal.style.display = 'flex';
-    selectedEditDate = getDateKey(); 
-    modalInput.value = '';
+    logModal.style.display = "flex";
+    selectedEditDate = getDateKey();
+    modalInput.value = "";
     modalInput.focus();
 };
 
-cancelBtn.onclick = () => logModal.style.display = 'none';
+cancelBtn.onclick = () => (logModal.style.display = "none");
 
-const logForm = document.getElementById('log-form');
+const logForm = document.getElementById("log-form");
 
 logForm.onsubmit = (e) => {
     e.preventDefault();
-    
+
     const reps = parseInt(modalInput.value);
     if (isNaN(reps) || reps <= 0) return;
 
     // 1. Save the data
     addSetToDate(selectedEditDate, reps);
-    
+
     // 2. Close the modal
-    logModal.style.display = 'none';
-    modalInput.value = ''; 
+    logModal.style.display = "none";
+    modalInput.value = "";
 
     // 3. Scroll to the top of the page
     // Using a tiny timeout ensures the UI has updated before it scrolls
     setTimeout(() => {
         window.scrollTo({
             top: 0,
-            behavior: 'smooth'
+            behavior: "smooth",
         });
     }, 100);
 };
@@ -1062,8 +1119,8 @@ logForm.onsubmit = (e) => {
  *************************************************/
 // 1. Logic to populate the input when entering settings
 function loadCurrentUsername() {
-    const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
-    const nameInput = document.getElementById('username-input');
+    const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
+    const nameInput = document.getElementById("username-input");
     if (!nameInput) return;
 
     // Use an "Interval" or "Timeout" to wait if Auth isn't ready yet
@@ -1076,22 +1133,22 @@ function loadCurrentUsername() {
             nameInput.value = customName || firebaseName;
             clearInterval(checkAuth); // Stop looking once we have a name
         }
-    }, 100); 
+    }, 100);
 
     // Safety: stop looking after 2 seconds so it doesn't run forever
     setTimeout(() => clearInterval(checkAuth), 2000);
 }
 
 // 2. Logic to save the new name
-document.getElementById('btn-update-username').onclick = async () => {
+document.getElementById("btn-update-username").onclick = async () => {
     // Inside your onclick...
-    const newName = document.getElementById('username-input').value.trim();
-        if (!newName || newName === "") {
-            alert("Please enter a valid name.");
-            return;
-        }
+    const newName = document.getElementById("username-input").value.trim();
+    if (!newName || newName === "") {
+        alert("Please enter a valid name.");
+        return;
+    }
     const user = window.auth?.currentUser;
-    const btn = document.getElementById('btn-update-username');
+    const btn = document.getElementById("btn-update-username");
 
     if (!user) {
         alert("Please log in to change your name.");
@@ -1112,21 +1169,21 @@ document.getElementById('btn-update-username').onclick = async () => {
 
         // Update Firestore (The source of truth for the Leaderboard)
         await setDoc(userRef, { username: newName }, { merge: true });
-        
+
         // 1. Get current local data
-        const data = JSON.parse(localStorage.getItem('workout-data') || '{}');
+        const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
         if (!data.settings) data.settings = {};
-        
+
         // 2. Update the local username
-        data.settings.username = newName; 
-        
-        // 3. Save it! 
+        data.settings.username = newName;
+
+        // 3. Save it!
         if (typeof saveData === "function") {
-            saveData(data); 
+            saveData(data);
         } else {
-            localStorage.setItem('workout-data', JSON.stringify(data));
+            localStorage.setItem("workout-data", JSON.stringify(data));
         }
-        
+
         // Optional: Update the Firebase Auth Profile too
         if (updateProfile) {
             await updateProfile(user, { displayName: newName });
@@ -1149,29 +1206,29 @@ document.getElementById('btn-update-username').onclick = async () => {
 let selectedEditDate = getDateKey(); // Defaults to today
 
 // 2. Setup the Date Picker
-const datePicker = document.getElementById('edit-date-picker');
+const datePicker = document.getElementById("edit-date-picker");
 datePicker.value = selectedEditDate;
 
 // 3. Update the view when the date changes
-datePicker.addEventListener('change', (e) => {
+datePicker.addEventListener("change", (e) => {
     selectedEditDate = e.target.value; // e.g., "2024-05-20"
-    renderEditList(); 
+    renderEditList();
 });
 
 // Date Label
 function updateDateLabel(dateKey) {
-    const label = document.getElementById('display-date-label');
+    const label = document.getElementById("display-date-label");
     const todayKey = getDateKey();
-    
+
     if (dateKey === todayKey) {
         label.innerText = "Today";
     } else {
         // Formats "2026-01-30" into something nicer like "Jan 30, 2026"
-        const dateObj = new Date(dateKey + 'T00:00:00'); // T00:00:00 prevents timezone shifts
-        label.innerText = dateObj.toLocaleDateString(undefined, { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
+        const dateObj = new Date(dateKey + "T00:00:00"); // T00:00:00 prevents timezone shifts
+        label.innerText = dateObj.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
         });
     }
 }
@@ -1183,7 +1240,7 @@ function renderEditList() {
     // Instead of todayKey, we use the date from the picker
     const sets = data[selectedEditDate]?.[currentExercise] || [];
 
-    editSetsList.innerHTML = '';
+    editSetsList.innerHTML = "";
 
     if (sets.length === 0) {
         editSetsList.innerHTML = '<p class="h3" style="text-align:center;">No sets for this date.</p>';
@@ -1191,12 +1248,15 @@ function renderEditList() {
     }
 
     sets.forEach((reps, i) => {
-        editSetsList.insertAdjacentHTML('beforeend', `
+        editSetsList.insertAdjacentHTML(
+            "beforeend",
+            `
             <div class="edit-item">
                 <span>Set ${i + 1}: <strong>${reps}</strong></span>
                 <button class="btn-delete" onclick="deleteSet(${i})">Delete</button>
             </div>
-        `);
+        `,
+        );
     });
 }
 
@@ -1208,14 +1268,13 @@ window.deleteSet = (i) => {
         data[selectedEditDate][currentExercise].splice(i, 1);
         saveData(data);
         renderEditList(); // Refresh the settings list
-        updateDisplay();  // Refresh the main dashboard charts/streaks
+        updateDisplay(); // Refresh the main dashboard charts/streaks
     }
 };
 // Listener for the "Add Past Set" button
-document.getElementById('btn-add-past').addEventListener('click', () => {
-    
-    modalInput.value = '';
-    logModal.style.display = 'flex';
+document.getElementById("btn-add-past").addEventListener("click", () => {
+    modalInput.value = "";
+    logModal.style.display = "flex";
     modalInput.focus();
 });
 
@@ -1238,24 +1297,24 @@ function addSetToDate(dateKey, reps) {
     // 4. Save and Refresh everything
     saveData(data);
     renderEditList(); // Refresh the list you are looking at
-    updateDisplay();  // Force the charts and streaks to recalculate
+    updateDisplay(); // Force the charts and streaks to recalculate
 }
 
 /*************************************************
  * Import/Export/Clear Data Functions
  *************************************************/
 async function exportData() {
-    const data = localStorage.getItem('workout-data') || '{}';
-    const blob = new Blob([data], { type: 'application/json' });
-    const fileName = `pushups-backup-${new Date().toISOString().slice(0,10)}.json`;
-    const file = new File([blob], fileName, { type: 'application/json' });
+    const data = localStorage.getItem("workout-data") || "{}";
+    const blob = new Blob([data], { type: "application/json" });
+    const fileName = `pushups-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const file = new File([blob], fileName, { type: "application/json" });
 
     // Check if sharing is supported AND allowed
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({
                 files: [file],
-                title: 'Push-Up Tracker Backup',
+                title: "Push-Up Tracker Backup",
             });
             return; // Success!
         } catch (err) {
@@ -1266,7 +1325,7 @@ async function exportData() {
 
     // FALLBACK: Standard Download
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
     document.body.appendChild(a); // Required for some browsers
@@ -1275,28 +1334,26 @@ async function exportData() {
     URL.revokeObjectURL(url);
 }
 
-
 /*************************************************
  * APP INITIALIZATION
  *************************************************/
-
 async function initApp() {
     // 1. Check visibility - don't refresh if the app is hidden
-    if (document.visibilityState === 'hidden') return;
+    if (document.visibilityState === "hidden") return;
 
     console.log("Initializing/Refreshing App Data...");
 
     // 2. Routing Logic (Hash check)
-    const savedPageId = window.location.hash.substring(1); 
+    const savedPageId = window.location.hash.substring(1);
     if (savedPageId) {
-        const allPages = ['tracker-page', 'leaderboard-page','settings-page'];
-        allPages.forEach(id => {
+        const allPages = ["tracker-page", "leaderboard-page", "settings-page"];
+        allPages.forEach((id) => {
             const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
+            if (el) el.style.display = "none";
         });
 
         const activeEl = document.getElementById(savedPageId);
-        if (activeEl) activeEl.style.display = 'block';
+        if (activeEl) activeEl.style.display = "block";
     }
 
     // 3. UI Updates (Keep all refreshes here)
@@ -1310,7 +1367,7 @@ async function initApp() {
         initAuthListener();
         window.appInitialized = true;
     }
-    
+
     console.log("App state is now current.");
 }
 
@@ -1319,12 +1376,11 @@ async function initApp() {
  *************************************************/
 
 // Use a single "load" event
-window.addEventListener('DOMContentLoaded', initApp);
+window.addEventListener("DOMContentLoaded", initApp);
 
 // Visibility change covers both PWA resume and tab switching
-document.addEventListener('visibilitychange', initApp);
+document.addEventListener("visibilitychange", initApp);
 
-// 'focus' is often redundant with visibilitychange, but if you keep it, 
+// 'focus' is often redundant with visibilitychange, but if you keep it,
 // the "if hidden return" check inside initApp will prevent double-firing.
-window.addEventListener('focus', initApp);
-
+window.addEventListener("focus", initApp);
