@@ -1314,6 +1314,7 @@ function addSetToDate(dateKey, reps) {
     saveData(data);
     renderEditList(); // Refresh the list you are looking at
     updateDisplay(); // Force the charts and streaks to recalculate
+    fetchLeaderboard(); // Updates leaderboards
 }
 
 /*************************************************
