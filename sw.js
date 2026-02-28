@@ -1,4 +1,4 @@
-const VERSION = "v4.7.3.4"; // Increment this to update the app
+const VERSION = "v4.7.3.5"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
@@ -57,23 +57,32 @@ self.addEventListener("activate", (event) => {
 
 // 3. Fetch
 self.addEventListener("fetch", (event) => {
+    // Skip Firebase/Google API calls - let the SDK handle those
     if (event.request.url.includes("googleapis.com") || event.request.url.includes("firebase")) {
         return;
     }
+
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            const fetchPromise = fetch(event.request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, networkResponse.clone());
-                        });
-                    }
-                    return networkResponse;
-                })
-                .catch(() => cachedResponse);
+            // Start the network fetch
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                // If it's a good response, clone it and save it to cache
+                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+                return networkResponse;
+            }).catch(() => {
+                // If network fails and there's no cache, this is where you'd return an offline page
+                return cachedResponse; 
+            });
+
+            // Return the cached response immediately if we have it, 
+            // otherwise wait for the network fetch
             return cachedResponse || fetchPromise;
-        }),
+        })
     );
 });
 
@@ -85,8 +94,4 @@ self.addEventListener("message", (event) => {
     if (event.data.type === "SKIP_WAITING") {
         self.skipWaiting();
     }
-});
-self.addEventListener("activate", (event) => {
-    // This forces the new service worker to take control of all open tabs immediately
-    event.waitUntil(clients.claim());
 });

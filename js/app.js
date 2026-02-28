@@ -615,7 +615,7 @@ async function initPWAUtils() {
                         updateBtn.innerText = "App is up to date";
                         setTimeout(() => {
                             updateBtn.innerText = "Check for Updates";
-                        }, 3000);
+                        }, 5000);
                     }
                 }, 1000);
             }
@@ -626,6 +626,9 @@ async function initPWAUtils() {
  * NAVIGATION
  *************************************************/
 function showPage(pageId) {
+    // Hash the current page
+    window.location.hash = `${pageId}-page`;
+
     // 1. Hide all pages
     document.getElementById("tracker-page").style.display = "none";
     document.getElementById("settings-page").style.display = "none";
@@ -732,19 +735,32 @@ window.addEventListener("touchend", (e) => {
  *************************************************/
 document.querySelectorAll(".accordion-header").forEach((header) => {
     header.addEventListener("click", () => {
-        const item = header.parentElement;
-        const card = item.querySelector(".widget-card");
+        const currentItem = header.parentElement;
+        const currentCard = currentItem.querySelector(".widget-card");
+        const isAlreadyOpen = currentItem.classList.contains("active");
 
-        // Toggle Active Class on Item (for the arrow)
-        item.classList.toggle("active");
+        // 1. CLOSE ALL OTHER ACCORDIONS
+        document.querySelectorAll(".accordion-item").forEach((item) => {
+            if (item !== currentItem) {
+                item.classList.remove("active");
+                const card = item.querySelector(".widget-card");
+                if (card) {
+                    card.classList.remove("expanded");
+                    card.classList.add("collapsed");
+                }
+            }
+        });
 
-        // Toggle Expanded/Collapsed on Card
-        if (card.classList.contains("collapsed")) {
-            card.classList.remove("collapsed");
-            card.classList.add("expanded");
+        // 2. TOGGLE THE CLICKED ACCORDION
+        // If it was already open, this closes it. If it was closed, it opens it.
+        if (isAlreadyOpen) {
+            currentItem.classList.remove("active");
+            currentCard.classList.remove("expanded");
+            currentCard.classList.add("collapsed");
         } else {
-            card.classList.remove("expanded");
-            card.classList.add("collapsed");
+            currentItem.classList.add("active");
+            currentCard.classList.remove("collapsed");
+            currentCard.classList.add("expanded");
         }
     });
 });
@@ -1023,7 +1039,7 @@ async function fetchLeaderboard() {
         lbList.innerHTML = "";
 
         if (leaderboardData.length === 0) {
-            lbList.innerHTML = `<p class="h3" style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
+            lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
             return;
         }
 
@@ -1050,11 +1066,11 @@ async function fetchLeaderboard() {
         });
     } catch (err) {
         console.error("Leaderboard failed:", err);
-        lbList.innerHTML = "<p class='h3'>Login to join - Error loading leaderboard.</p>";
+        lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">Login to join - Error loading leaderboard.</p>`;
     }
 }
 
-// Scoped Button Handling for Leaderboard Filters
+// Button Handling for Leaderboard Filters
 const lbFilterContainer = document.getElementById("leaderboard-filter");
 
 if (lbFilterContainer) {
@@ -1338,30 +1354,24 @@ async function exportData() {
  * APP INITIALIZATION
  *************************************************/
 async function initApp() {
-    // 1. Check visibility - don't refresh if the app is hidden
     if (document.visibilityState === "hidden") return;
 
     console.log("Initializing/Refreshing App Data...");
 
-    // 2. Routing Logic (Hash check)
-    const savedPageId = window.location.hash.substring(1);
-    if (savedPageId) {
-        const allPages = ["tracker-page", "leaderboard-page", "settings-page"];
-        allPages.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = "none";
-        });
-
-        const activeEl = document.getElementById(savedPageId);
-        if (activeEl) activeEl.style.display = "block";
+    // 2. Routing Logic - Use showPage so ALL UI logic triggers
+    // This checks the URL hash (e.g., #leaderboard-page)
+    const hash = window.location.hash.substring(1); // e.g., "leaderboard-page"
+    
+    if (hash) {
+        // We strip "-page" to get just the ID showPage expects (e.g., "leaderboard")
+        const pageId = hash.replace("-page", "");
+        showPage(pageId);
+    } else {
+        // Default to tracker if no hash exists
+        showPage('tracker');
     }
 
-    // 3. UI Updates (Keep all refreshes here)
-    updateDisplay();
-    renderEditList();
-    updateGoalUI();
-
-    // 4. One-time utilities (Logic to ensure these only run ONCE)
+    // 3. One-time utilities 
     if (!window.appInitialized) {
         initPWAUtils();
         initAuthListener();
@@ -1384,3 +1394,14 @@ document.addEventListener("visibilitychange", initApp);
 // 'focus' is often redundant with visibilitychange, but if you keep it,
 // the "if hidden return" check inside initApp will prevent double-firing.
 window.addEventListener("focus", initApp);
+
+// Listen for manual URL changes (like the Back button)
+window.addEventListener("hashchange", () => {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        const pageId = hash.replace("-page", "");
+        // Only call showPage if we aren't already on that page 
+        // (to prevent infinite loops)
+        showPage(pageId);
+    }
+});
