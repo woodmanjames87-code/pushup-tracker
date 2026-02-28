@@ -331,7 +331,8 @@ h3 {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 80px;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom);
     background: #1a1a1a;
     display: flex;
     justify-content: space-around;
@@ -408,7 +409,7 @@ h3 {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: 10px auto;
+    margin-top: 10px;
     box-sizing: border-box;
 }
 .input-wide {
@@ -435,7 +436,9 @@ h3 {
     padding: 10px 15px;
     white-space: nowrap;
 }
-
+/* =================================================
+   Pill Toggle
+   ================================================= */
 /* Container for the switch */
 .switch {
     position: relative;
@@ -461,7 +464,7 @@ h3 {
     right: 0;
     bottom: 0;
     transition: 0.3s;
-    border-radius: 34px;
+    border-radius: 999px;
     border: 1px solid var(--text-muted);
     box-sizing: border-box;
     background-color: var(--bg-color);
@@ -472,12 +475,12 @@ h3 {
     position: absolute;
     content: "";
     height: 20px;
-    width: 20px;
-    left: 2px;
-    bottom: 1px;
+    width: 30px;
+    left: 1px;
+    bottom: 1.2px;
     background-color: var(--text);
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 50%;
+    border-radius: 999px;
     border: black 1px solid;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -489,9 +492,10 @@ input:checked + .slider {
 
 /* Movement of the knob */
 input:checked + .slider:before {
-    transform: translateX(22px);
+    transform: translateX(14px);
 }
 
+/* =========================================== */
 .unit-label {
     align-self: center;
     font-size: 0.9rem;
