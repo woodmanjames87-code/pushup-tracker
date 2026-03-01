@@ -1,12 +1,14 @@
-const VERSION = "v4.7.3.6"; // Increment this to update the app
+const VERSION = "v4.7.4.0"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
     "./",
     "index.html",
     "style.css",
-    "js/app.js",
-    "js/settings.js",
+    "js/init-firebase.js",
+    "js/store.js",
+    "js/ui.js",
+    "js/main.js",
     "manifest.json",
     "img/pushup-icon.PNG",
     "img/Google_G_logo.png",
