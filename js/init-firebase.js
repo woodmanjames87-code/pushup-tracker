@@ -308,7 +308,7 @@ async function fetchLeaderboard(passedFilter = null) {
         });
     } catch (err) {
         console.error("Leaderboard failed:", err);
-        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
+        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.<br>Sign in to see your rank.</p>`;
     }
 }
 // EXPOSE TO WINDOW

@@ -24,6 +24,9 @@ const themeContainer = document.getElementById("theme-selector");
 const addPastBtn = document.getElementById("btn-add-past");
 const editDatePicker = document.getElementById("edit-date-picker");
 const updateNameBtn = document.getElementById("btn-update-username");
+const installBanner = document.getElementById("install-banner");
+const installNowBtn = document.getElementById("btn-install-now");
+const installCloseBtn = document.getElementById("btn-install-close");
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -308,7 +311,6 @@ function setupEventListeners() {
     const addPastBtn = document.getElementById("btn-add-past");
 
     if (addPastBtn) {
-        console.log("Found Add Past Button - Attaching Listener"); // Debug log
         addPastBtn.onclick = () => {
             const editDatePicker = document.getElementById("edit-date-picker");
             const logModal = document.getElementById("log-modal");
@@ -369,31 +371,110 @@ async function initPWAUtils() {
         if (updateBtn) {
             updateBtn.onclick = async () => {
                 updateBtn.innerText = "Checking...";
+                updateBtn.disabled = true;
+
                 const reg = await navigator.serviceWorker.getRegistration();
+
                 if (reg) {
+                    // Listen for the new worker state
                     reg.onupdatefound = () => {
                         const newWorker = reg.installing;
                         newWorker.onstatechange = () => {
-                            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                            if (newWorker.state === "installed") {
+                                updateBtn.innerText = "Update Found! Reloading...";
                                 newWorker.postMessage({ type: "SKIP_WAITING" });
                             }
                         };
                     };
+
+                    // Force a check against the server
                     await reg.update();
-                    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+
+                    // If there was ALREADY a worker waiting (common!)
+                    if (reg.waiting) {
+                        updateBtn.innerText = "Updating...";
+                        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+                    } else {
+                        // If no update was found after 2 seconds, reset button
+                        setTimeout(() => {
+                            if (updateBtn.innerText === "Checking...") {
+                                updateBtn.innerText = "Up to Date!";
+                                updateBtn.disabled = false;
+                                setTimeout(() => (updateBtn.innerText = "Check for Updates"), 5000);
+                            }
+                        }, 2000);
+                    }
                 }
             };
         }
     }
-}
 
-// Logic to handle PWA Install Prompt
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (window.showUnifiedInstallBanner) window.showUnifiedInstallBanner("android");
-});
+    //Install Banner Logic (Unified for iOS & Android/PC)
+    const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
+
+    let deferredPrompt;
+    const installBanner = document.getElementById("install-banner");
+    const installBtn = document.getElementById("btn-install-now");
+    const installText = document.getElementById("install-text");
+    const closeBtn = document.getElementById("btn-install-close");
+
+    window.showUnifiedInstallBanner = function (platform = "auto") {
+        if (!installBanner) return;
+        const device = platform === "auto" ? (isIOS() ? "ios" : "android") : platform;
+
+        if (device === "ios") {
+            if (installText)
+                installText.innerHTML =
+                    'Tap the <strong>Share</strong> icon then <strong>"Add to Home Screen"</strong>';
+            if (installBtn) installBtn.style.display = "none";
+        } else {
+            if (installText) installText.innerText = "Install App for easy access!";
+            if (installBtn) {
+                installBtn.innerText = "Install App"; // Fixes the "How to Install" text on PC
+                installBtn.style.display = "inline-block";
+            }
+        }
+        installBanner.classList.remove("hidden");
+    };
+    // 1. Android/PC Signal
+    window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        window.showUnifiedInstallBanner("android");
+    });
+    // 2. Immediate Check: If NOT already installed, set up the UI state
+    if (!isStandalone) {
+        if (isIOS()) {
+            // Show iOS instructions immediately
+            window.showUnifiedInstallBanner("ios");
+        } else {
+            // On PC/Android, set the button text correctly even before the prompt fires
+            if (installBtn) installBtn.innerText = "Install App";
+            // We don't remove "hidden" here yet; we wait for 'beforeinstallprompt'
+            // OR you can remove 'hidden' here if you want it to always show.
+        }
+    }
+    // 3. Button Click Logic
+    if (installBtn) {
+        installBtn.onclick = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBanner.classList.add("hidden");
+            } else {
+                alert(
+                    "Installation is ready! If the prompt didn't appear, check your browser address bar for the install icon.",
+                );
+            }
+        };
+    }
+
+    if (closeBtn) {
+        closeBtn.onclick = () => installBanner.classList.add("hidden");
+    }
+}
 
 /*************************************************
  * 5. DATA MANAGEMENT (Import/Export/Clear)
