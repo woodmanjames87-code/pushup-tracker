@@ -2,7 +2,7 @@
  * 1. GLOBAL STATE & DOM REFERENCES
  *************************************************/
 window.currentExercise = "pushups";
-window.selectedEditDate = ""; 
+window.selectedEditDate = "";
 window.appInitialized = false;
 
 // DOM References for the "Conductor"
@@ -24,8 +24,6 @@ const themeContainer = document.getElementById("theme-selector");
 const addPastBtn = document.getElementById("btn-add-past");
 const editDatePicker = document.getElementById("edit-date-picker");
 const updateNameBtn = document.getElementById("btn-update-username");
-
-
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -55,7 +53,7 @@ async function initApp() {
 
     if (window.loadCurrentUsername) {
         window.loadCurrentUsername();
-}
+    }
     if (window.updateDisplay) window.updateDisplay();
 }
 
@@ -71,7 +69,7 @@ window.addEventListener("hashchange", () => {
 /*************************************************
  * 3. EVENT LISTENERS SETUP
  *************************************************/
-function setupModalListeners() {
+function setupEventListeners() {
     initDOMReferences(); // Ensure we have the elements
 
     // --- 1. OPENING THE MODAL ---
@@ -97,16 +95,17 @@ function setupModalListeners() {
     if (logForm) {
         logForm.onsubmit = (e) => {
             e.preventDefault(); // Prevent page reload
-            
+
             const reps = parseInt(modalInput.value);
             if (reps > 0 && window.addSetToDate) {
-                // Save using the currently active date
-                window.addSetToDate(window.selectedEditDate, reps);
-                
+                // (adds a fallback to Today just in case):
+                const targetDate = window.selectedEditDate || window.getDateKey();
+                window.addSetToDate(targetDate, reps);
+
                 // UI Cleanup
                 logModal.style.display = "none";
                 modalInput.value = "";
-                
+
                 // Refresh visuals
                 if (window.updateDisplay) window.updateDisplay();
                 if (window.renderEditList) window.renderEditList();
@@ -121,15 +120,13 @@ function setupModalListeners() {
 
     // --- 3. CANCEL & OUTSIDE CLICK ---
     if (cancelBtn) {
-        cancelBtn.onclick = () => { logModal.style.display = "none"; };
-    };
+        cancelBtn.onclick = () => {
+            logModal.style.display = "none";
+        };
+    }
     window.addEventListener("click", (e) => {
         if (e.target === logModal) logModal.style.display = "none";
     });
-}
-
-function setupEventListeners() {
-
     // --- Navigation ---
     document.querySelectorAll(".nav-item").forEach((btn, idx) => {
         btn.addEventListener("click", () => {
@@ -150,7 +147,9 @@ function setupEventListeners() {
                 if (item !== currentItem) {
                     item.classList.remove("active");
                     const card = item.querySelector(".widget-card");
-                    if (card) { card.classList.replace("expanded", "collapsed"); }
+                    if (card) {
+                        card.classList.replace("expanded", "collapsed");
+                    }
                 }
             });
 
@@ -166,11 +165,11 @@ function setupEventListeners() {
     // --- Leaderboard Filter Toggle ---
     if (lbFilterContainer) {
         const filterButtons = lbFilterContainer.querySelectorAll(".seg-btn");
-        
+
         filterButtons.forEach((btn) => {
             btn.addEventListener("click", () => {
                 // 1. Visual Active Toggle
-                filterButtons.forEach(b => b.classList.remove("active"));
+                filterButtons.forEach((b) => b.classList.remove("active"));
                 btn.classList.add("active");
 
                 // 2. Show Loader immediately so user knows it's working
@@ -181,7 +180,7 @@ function setupEventListeners() {
                 const rangeText = document.getElementById("lb-date-range-text");
                 if (rangeText) {
                     const label = btn.innerText;
-                    rangeText.innerText = (label === "Daily") ? "Today & Yesterday" : `This ${label}`;
+                    rangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
                 }
 
                 // 4. Trigger Fetch with the specific filter
@@ -288,41 +287,55 @@ function setupEventListeners() {
     // --- Theme / Display Mode Selector ---
     if (themeContainer) {
         const themeButtons = themeContainer.querySelectorAll(".seg-btn");
-        
+
         themeButtons.forEach((btn) => {
             btn.addEventListener("click", () => {
                 const selectedTheme = btn.getAttribute("data-theme");
-                
+
                 // 1. Call the Painter to change the actual CSS colors
                 if (window.setTheme) {
                     window.setTheme(selectedTheme);
                 }
 
                 // 2. Update visual button states
-                themeButtons.forEach(b => b.classList.remove("active"));
+                themeButtons.forEach((b) => b.classList.remove("active"));
                 btn.classList.add("active");
             });
         });
     }
 
     // --- Add Set to Past Date (Settings Page) ---
+    const addPastBtn = document.getElementById("btn-add-past");
+
     if (addPastBtn) {
-        addPastBtn.addEventListener("click", () => {
-            // 1. Get the date from the picker (or default to today)
-            const selectedDate = editDatePicker ? editDatePicker.value : window.getDateKey();
-            
-            // 2. Open the same modal we use for current logs
-            if (window.logModal) {
-                // Update the global state so the 'OK' button knows which date to save to
-                window.selectedEditDate = selectedDate; 
-                
-                window.logModal.style.display = "flex";
-                if (window.modalInput) {
-                    window.modalInput.value = "";
-                    window.modalInput.focus();
+        console.log("Found Add Past Button - Attaching Listener"); // Debug log
+        addPastBtn.onclick = () => {
+            const editDatePicker = document.getElementById("edit-date-picker");
+            const logModal = document.getElementById("log-modal");
+            const modalInput = document.getElementById("modal-input");
+
+            // 1. Get the date (Local time check)
+            const selectedDate =
+                editDatePicker && editDatePicker.value
+                    ? editDatePicker.value
+                    : window.getDateKey
+                      ? window.getDateKey()
+                      : new Date().toISOString().split("T")[0];
+
+            // 2. Set the global state for the OK button
+            window.selectedEditDate = selectedDate;
+
+            // 3. Open the modal
+            if (logModal) {
+                logModal.style.display = "flex";
+                if (modalInput) {
+                    modalInput.value = "";
+                    setTimeout(() => modalInput.focus(), 50);
                 }
             }
-        });
+        };
+    } else {
+        console.warn("Could not find button with ID: btn-add-past");
     }
 
     // --- Pull to Refresh (Leaderboard) ---
@@ -335,7 +348,8 @@ function setupEventListeners() {
 async function initPWAUtils() {
     // Register Service Worker
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js")
+        navigator.serviceWorker
+            .register("./sw.js")
             .then(() => console.log("DailyGrind: Offline Mode Active"))
             .catch((err) => console.log("SW Registration Failed", err));
     }
@@ -346,7 +360,9 @@ async function initPWAUtils() {
     if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         // Get Version
         const msgChan = new MessageChannel();
-        msgChan.port1.onmessage = (e) => { if (e.data.version && versionEl) versionEl.innerText = `Version ${e.data.version}`; };
+        msgChan.port1.onmessage = (e) => {
+            if (e.data.version && versionEl) versionEl.innerText = `Version ${e.data.version}`;
+        };
         navigator.serviceWorker.controller.postMessage({ type: "GET_VERSION" }, [msgChan.port2]);
 
         // Update App Logic
@@ -387,13 +403,15 @@ window.handleExport = async () => {
     const data = localStorage.getItem("workout-data") || "{}";
     const blob = new Blob([data], { type: "application/json" });
     const fileName = `dailygrind-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    
+
     if (navigator.share) {
         const file = new File([blob], fileName, { type: "application/json" });
         try {
             await navigator.share({ files: [file], title: "DailyGrind Backup" });
             return;
-        } catch (err) { console.log("Share failed, falling back."); }
+        } catch (err) {
+            console.log("Share failed, falling back.");
+        }
     }
     // Fallback Download
     const a = document.createElement("a");
@@ -418,7 +436,7 @@ window.handleImport = (event) => {
         try {
             const importedData = JSON.parse(e.target.result);
             // Basic validation to ensure it's a DailyGrind file
-            if (typeof importedData === 'object') {
+            if (typeof importedData === "object") {
                 localStorage.setItem("workout-data", JSON.stringify(importedData));
                 alert("Import successful!");
                 location.reload();
@@ -437,21 +455,29 @@ function setupPullToRefresh() {
 
     if (!ptr) return; // Guard clause
 
-    window.addEventListener("touchstart", (e) => {
-        if (window.scrollY === 0) {
-            startY = e.touches[0].pageY;
-            isPulling = true;
-        }
-    }, { passive: true });
+    window.addEventListener(
+        "touchstart",
+        (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].pageY;
+                isPulling = true;
+            }
+        },
+        { passive: true },
+    );
 
-    window.addEventListener("touchmove", (e) => {
-        if (!isPulling) return;
-        const diff = e.touches[0].pageY - startY;
-        if (diff > 0) {
-            const y = Math.pow(diff, 0.85);
-            ptr.style.transform = `translateY(${y}px)`;
-        }
-    }, { passive: true });
+    window.addEventListener(
+        "touchmove",
+        (e) => {
+            if (!isPulling) return;
+            const diff = e.touches[0].pageY - startY;
+            if (diff > 0) {
+                const y = Math.pow(diff, 0.85);
+                ptr.style.transform = `translateY(${y}px)`;
+            }
+        },
+        { passive: true },
+    );
 
     window.addEventListener("touchend", (e) => {
         if (!isPulling) return;
@@ -459,10 +485,10 @@ function setupPullToRefresh() {
 
         if (diff > 70) {
             ptr.style.transform = "translateY(60px)";
-            
+
             // --- Save current page state ---
             const pages = document.querySelectorAll(".page");
-            let activePageId = "tracker-page"; 
+            let activePageId = "tracker-page";
             pages.forEach((page) => {
                 if (page.style.display !== "none") activePageId = page.id;
             });
@@ -476,7 +502,6 @@ function setupPullToRefresh() {
     });
 }
 
-
 // Watch for system theme changes if set to auto
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
     if (localStorage.getItem("user-theme") === "auto") {
@@ -484,11 +509,8 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", ()
     }
 });
 
-
-
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 if (isIOS && !isStandalone) {
     window.showUnifiedInstallBanner("ios");
 }
-

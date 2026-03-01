@@ -6,15 +6,15 @@ function showPage(pageId) {
 
     // 1. Hide all pages (using a loop is cleaner/safer)
     const pageIds = ["tracker", "settings", "leaderboard"];
-    pageIds.forEach(id => {
+    pageIds.forEach((id) => {
         const el = document.getElementById(`${id}-page`);
-        if (el) el.style.display = (id === pageId) ? "flex" : "none";
+        if (el) el.style.display = id === pageId ? "flex" : "none";
     });
 
     // 2. Update Nav Bar Button Colors
     const navButtons = document.querySelectorAll(".nav-item");
     const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
-    
+
     navButtons.forEach((btn, idx) => {
         // Only add 'active' if the index matches our map
         btn.classList.toggle("active", idx === indexMap[pageId]);
@@ -27,12 +27,12 @@ function showPage(pageId) {
 
     // 4. Floating log button logic
     const floatingBtn = document.getElementById("floating-log-btn");
-    const isTrackerOrSocial = (pageId === "tracker" || pageId === "leaderboard");
-    
+    const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
+
     if (floatingBtn) {
         floatingBtn.style.display = isTrackerOrSocial ? "block" : "none";
     }
-    
+
     // Refresh stats if on main views
     if (isTrackerOrSocial && window.updateDisplay) {
         window.updateDisplay();
@@ -123,7 +123,7 @@ function updateDisplay() {
     // --- 3. WEEKLY CHART ---
     const chart = document.getElementById("bar-chart");
     const labelContainer = document.getElementById("bar-labels");
-    
+
     if (chart && labelContainer) {
         chart.innerHTML = "";
         labelContainer.innerHTML = "";
@@ -140,7 +140,7 @@ function updateDisplay() {
             const hPercentage = (v / maxVal) * 100;
             chart.insertAdjacentHTML(
                 "beforeend",
-                `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`
+                `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`,
             );
             const d = new Date();
             d.setDate(d.getDate() - (6 - i));
@@ -187,7 +187,9 @@ function updateDisplay() {
 
             monthEntries.forEach(([label, val]) => {
                 const hPct = (val / maxMonth) * 100;
-                monthlyChart.insertAdjacentHTML("beforeend", `
+                monthlyChart.insertAdjacentHTML(
+                    "beforeend",
+                    `
                     <div class="monthly-bar-container">
                         <div style="height: 60px; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                             <span class="label-tiny chart-value" style="font-size: 0.6rem; margin-bottom: 2px; line-height: 1;">
@@ -199,7 +201,8 @@ function updateDisplay() {
                             ${label.toUpperCase()}
                         </span>
                     </div>
-                `);
+                `,
+                );
             });
         }
     }
@@ -233,9 +236,8 @@ function updateGoalUI() {
     });
 }
 
-
 function renderEditList() {
-    const dateKey = window.selectedEditDate; 
+    const dateKey = window.selectedEditDate;
     const exercise = window.currentExercise;
     const listEl = document.getElementById("edit-sets-list");
 
@@ -268,7 +270,7 @@ function renderEditList() {
 
 window.deleteSet = (i) => {
     const data = window.loadData();
-    
+
     // FIX: Added 'window.' to these state variables
     const dateKey = window.selectedEditDate;
     const exercise = window.currentExercise;
@@ -276,13 +278,13 @@ window.deleteSet = (i) => {
     if (data[dateKey] && data[dateKey][exercise]) {
         // Remove the set from the array
         data[dateKey][exercise].splice(i, 1);
-        
+
         // Save back to LocalStorage
         window.saveData(data);
-        
+
         // Refresh the UI immediately
         window.renderEditList(); // Redraw the list in Settings
-        window.updateDisplay();  // Redraw the charts on the Home page
+        window.updateDisplay(); // Redraw the charts on the Home page
     }
 };
 
@@ -299,7 +301,7 @@ function loadCurrentUsername() {
 
         if (customName || firebaseName) {
             nameInput.value = customName || firebaseName;
-            clearInterval(checkAuth); 
+            clearInterval(checkAuth);
         }
     }, 100);
 
@@ -353,7 +355,6 @@ function showUnifiedInstallBanner(platform) {
         btn.innerText = "Install Now";
     }
 }
-
 
 // EXPOSE TO WINDOW
 window.showPage = showPage;

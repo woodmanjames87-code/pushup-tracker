@@ -5,7 +5,7 @@ import {
     signInWithPopup,
     GoogleAuthProvider,
     onAuthStateChanged,
-    updateProfile // Added for the username fix
+    updateProfile, // Added for the username fix
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
     getFirestore,
@@ -70,10 +70,12 @@ async function initAuthListener() {
             if (user) {
                 btn.classList.add("logged-in");
                 btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => { if (confirm("Sign out?")) window.auth.signOut(); };
+                btn.onclick = () => {
+                    if (confirm("Sign out?")) window.auth.signOut();
+                };
 
                 // 🛡️ SILENT PULL: Use window.loadData from store.js
-                const localData = window.loadData(); 
+                const localData = window.loadData();
                 if (Object.keys(localData).length === 0) {
                     const { getDoc, doc } = window.firebaseMethods;
                     const userRef = doc(window.db, "users", user.uid);
@@ -85,15 +87,15 @@ async function initAuthListener() {
                     }
                 }
                 // Call initApp from main.js
-                if(window.initApp) window.initApp(); 
+                if (window.initApp) window.initApp();
             } else {
                 btn.classList.remove("logged-in");
                 btn.style.backgroundImage = "none";
                 btn.onclick = startCloudSync;
-                
+
                 // Call UI refreshes from ui.js
-                if(window.updateDisplay) window.updateDisplay();
-                if(window.updateGoalUI) window.updateGoalUI();
+                if (window.updateDisplay) window.updateDisplay();
+                if (window.updateGoalUI) window.updateGoalUI();
             }
         });
     } else {
@@ -230,7 +232,7 @@ async function fetchLeaderboard(passedFilter = null) {
         if (filter === "stats.daily") {
             const qToday = query(usersRef, where("stats.todayId", "==", window.getTodayId()), limit(30));
             const qYest = query(usersRef, where("stats.todayId", "==", window.getYesterdayId()), limit(30));
-            
+
             const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
             const userMap = new Map();
 
@@ -257,7 +259,7 @@ async function fetchLeaderboard(passedFilter = null) {
                     });
                 }
             });
-            
+
             leaderboardData = Array.from(userMap.values());
             leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
         } else {
@@ -278,7 +280,8 @@ async function fetchLeaderboard(passedFilter = null) {
                     username: doc.data().username || "Anonymous",
                     score: doc.data().stats[fieldName] || 0,
                 });
-            });        }
+            });
+        }
 
         // 5. Render
         lbList.innerHTML = "";
@@ -290,7 +293,7 @@ async function fetchLeaderboard(passedFilter = null) {
         leaderboardData.forEach((user, index) => {
             const isMe = user.uid === window.auth?.currentUser?.uid;
             const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
-            
+
             const row = `
                 <div class="lb-row ${isMe ? "is-me" : ""}">
                     <span class="lb-rank">${index + 1}</span>
@@ -303,7 +306,6 @@ async function fetchLeaderboard(passedFilter = null) {
             `;
             lbList.insertAdjacentHTML("beforeend", row);
         });
-
     } catch (err) {
         console.error("Leaderboard failed:", err);
         lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;

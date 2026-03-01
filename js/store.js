@@ -41,13 +41,13 @@ function addSetToDate(dateKey, reps) {
     if (!data[dateKey][currentExercise]) data[dateKey][currentExercise] = [];
 
     data[dateKey][currentExercise].push(reps);
-    saveData(data); 
+    saveData(data);
     // We just save. main.js will tell the UI to refresh.
 }
 
 function deleteSet(index, dateKey) {
     const data = loadData();
-    
+
     if (data[dateKey] && data[dateKey][currentExercise]) {
         data[dateKey][currentExercise].splice(index, 1);
         saveData(data);
@@ -360,8 +360,7 @@ function computeStats() {
         totalDaysElapsed,
         activeDays,
     };
-};
-
+}
 
 // Expose Data & Logic to the Global Window Object
 window.STORAGE_KEY = STORAGE_KEY;
