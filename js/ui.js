@@ -286,6 +286,27 @@ window.deleteSet = (i) => {
     }
 };
 
+function loadCurrentUsername() {
+    const data = window.loadData();
+    const nameInput = document.getElementById("username-input");
+    if (!nameInput) return;
+
+    // Use an interval to wait for Firebase Auth to "wake up"
+    const checkAuth = setInterval(() => {
+        const user = window.auth?.currentUser;
+        const customName = data.settings?.username;
+        const firebaseName = user?.displayName;
+
+        if (customName || firebaseName) {
+            nameInput.value = customName || firebaseName;
+            clearInterval(checkAuth); 
+        }
+    }, 100);
+
+    // Stop looking after 2 seconds
+    setTimeout(() => clearInterval(checkAuth), 2000);
+}
+
 /***********************
  * THEME MANAGEMENT
  ***********************/
@@ -340,5 +361,6 @@ window.updateDisplay = updateDisplay;
 window.renderEditList = renderEditList;
 window.updateDateLabel = updateDateLabel;
 window.updateGoalUI = updateGoalUI;
+window.loadCurrentUsername = loadCurrentUsername;
 window.setTheme = setTheme;
 window.showUnifiedInstallBanner = showUnifiedInstallBanner;

@@ -6,11 +6,26 @@ window.selectedEditDate = "";
 window.appInitialized = false;
 
 // DOM References for the "Conductor"
-const logForm = document.getElementById("log-form");
-const logInput = document.getElementById("log-input");
-const logModal = document.getElementById("log-modal");
-const modalInput = document.getElementById("modal-input");
+let floatingLogBtn, logModal, modalInput, cancelBtn, okBtn;
+
+function initDOMReferences() {
+    floatingLogBtn = document.getElementById("floating-log-btn");
+    logModal = document.getElementById("log-modal");
+    modalInput = document.getElementById("modal-input");
+    cancelBtn = document.getElementById("modal-cancel");
+    okBtn = document.getElementById("modal-ok");
+}
+
+const lbFilterContainer = document.getElementById("leaderboard-filter");
+const goalModeToggle = document.getElementById("goal-mode-toggle");
+const manualGoalInput = document.getElementById("manual-goal-input");
 const datePicker = document.getElementById("edit-date-picker");
+const themeContainer = document.getElementById("theme-selector");
+const addPastBtn = document.getElementById("btn-add-past");
+const editDatePicker = document.getElementById("edit-date-picker");
+const updateNameBtn = document.getElementById("btn-update-username");
+
+
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -37,7 +52,10 @@ async function initApp() {
         initPWAUtils(); // Version checking & Service Worker
         window.appInitialized = true;
     }
-    
+
+    if (window.loadCurrentUsername) {
+        window.loadCurrentUsername();
+}
     if (window.updateDisplay) window.updateDisplay();
 }
 
@@ -53,21 +71,64 @@ window.addEventListener("hashchange", () => {
 /*************************************************
  * 3. EVENT LISTENERS SETUP
  *************************************************/
-function setupEventListeners() {
-    // --- Logging & Forms ---
-    if (logForm) {
-        logForm.onsubmit = (e) => {
-            e.preventDefault();
-            const reps = parseInt(modalInput ? modalInput.value : logInput.value);
-            if (reps > 0 && window.addSetToDate) {
-                window.addSetToDate(window.selectedEditDate, reps);
-                if (modalInput) modalInput.value = "";
-                if (logInput) logInput.value = "";
-                if (logModal) logModal.style.display = "none";
-                window.updateDisplay();
+function setupModalListeners() {
+    initDOMReferences(); // Ensure we have the elements
+
+    // --- 1. OPENING THE MODAL ---
+    if (floatingLogBtn) {
+        floatingLogBtn.onclick = () => {
+            if (logModal) {
+                // Always reset to the user's current LOCAL date when logging from the main screen
+                if (window.getDateKey) {
+                    window.selectedEditDate = window.getDateKey();
+                }
+
+                logModal.style.display = "flex";
+                if (modalInput) {
+                    modalInput.value = "";
+                    modalInput.focus();
+                }
             }
         };
     }
+
+    // --- 2. SUBMITTING THE DATA (Form + Enter Key) ---
+    const logForm = document.getElementById("log-form");
+    if (logForm) {
+        logForm.onsubmit = (e) => {
+            e.preventDefault(); // Prevent page reload
+            
+            const reps = parseInt(modalInput.value);
+            if (reps > 0 && window.addSetToDate) {
+                // Save using the currently active date
+                window.addSetToDate(window.selectedEditDate, reps);
+                
+                // UI Cleanup
+                logModal.style.display = "none";
+                modalInput.value = "";
+                
+                // Refresh visuals
+                if (window.updateDisplay) window.updateDisplay();
+                if (window.renderEditList) window.renderEditList();
+
+                // Smooth scroll to top to see progress update
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                }, 100);
+            }
+        };
+    }
+
+    // --- 3. CANCEL & OUTSIDE CLICK ---
+    if (cancelBtn) {
+        cancelBtn.onclick = () => { logModal.style.display = "none"; };
+    };
+    window.addEventListener("click", (e) => {
+        if (e.target === logModal) logModal.style.display = "none";
+    });
+}
+
+function setupEventListeners() {
 
     // --- Navigation ---
     document.querySelectorAll(".nav-item").forEach((btn, idx) => {
@@ -102,11 +163,165 @@ function setupEventListeners() {
         });
     });
 
+    // --- Leaderboard Filter Toggle ---
+    if (lbFilterContainer) {
+        const filterButtons = lbFilterContainer.querySelectorAll(".seg-btn");
+        
+        filterButtons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                // 1. Visual Active Toggle
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+
+                // 2. Show Loader immediately so user knows it's working
+                const lbList = document.getElementById("lb-list");
+                if (lbList) lbList.innerHTML = '<div class="loader"></div>';
+
+                // 3. Update Label instantly
+                const rangeText = document.getElementById("lb-date-range-text");
+                if (rangeText) {
+                    const label = btn.innerText;
+                    rangeText.innerText = (label === "Daily") ? "Today & Yesterday" : `This ${label}`;
+                }
+
+                // 4. Trigger Fetch with the specific filter
+                const filterValue = btn.getAttribute("data-filter");
+                if (window.fetchLeaderboard) {
+                    window.fetchLeaderboard(filterValue);
+                }
+            });
+        });
+    }
+
+    // --- Update Leaderboard Display Name ---
+    if (updateNameBtn) {
+        updateNameBtn.onclick = async () => {
+            const nameInput = document.getElementById("username-input");
+            const newName = nameInput.value.trim();
+            const user = window.auth?.currentUser;
+
+            // Validation
+            if (!user) {
+                alert("Please log in to change your name.");
+                return;
+            }
+            if (newName.length < 2) {
+                alert("Name is too short!");
+                return;
+            }
+
+            // UI State: Loading
+            updateNameBtn.innerText = "Saving...";
+            updateNameBtn.disabled = true;
+
+            try {
+                // Get Firebase tools from the global window object (defined in init-firebase.js)
+                const { doc, setDoc, updateProfile } = window.firebaseMethods;
+                const userRef = doc(window.db, "users", user.uid);
+
+                // 1. Update Firestore (Source of truth for Leaderboard)
+                await setDoc(userRef, { username: newName }, { merge: true });
+
+                // 2. Update Local Storage via the Store
+                const data = window.loadData();
+                if (!data.settings) data.settings = {};
+                data.settings.username = newName;
+                window.saveData(data);
+
+                // 3. Update Firebase Auth Profile
+                if (updateProfile) {
+                    await updateProfile(user, { displayName: newName });
+                }
+
+                alert("Username updated!");
+            } catch (err) {
+                console.error("Update failed:", err);
+                alert("Failed to update name.");
+            } finally {
+                updateNameBtn.innerText = "Update";
+                updateNameBtn.disabled = false;
+            }
+        };
+    }
+
     // --- Date Picker ---
     if (datePicker) {
         datePicker.addEventListener("change", (e) => {
             window.selectedEditDate = e.target.value;
             if (window.renderEditList) window.renderEditList();
+        });
+    }
+
+    // --- Goal Mode Toggle ---
+    if (goalModeToggle) {
+        goalModeToggle.addEventListener("change", (e) => {
+            // 1. Get current data
+            const data = window.loadData ? window.loadData() : JSON.parse(localStorage.getItem("workout-data") || "{}");
+            if (!data.settings) data.settings = {};
+
+            // 2. Update the setting (Toggle ON = Auto, OFF = Manual)
+            data.settings.goalMode = e.target.checked ? "auto" : "manual";
+
+            // 3. Save it
+            if (window.saveData) {
+                window.saveData(data);
+            } else {
+                localStorage.setItem("workout-data", JSON.stringify(data));
+            }
+
+            // 4. Update the UI visibility immediately
+            if (window.updateGoalUI) window.updateGoalUI();
+            if (window.updateDisplay) window.updateDisplay();
+        });
+    }
+
+    if (manualGoalInput) {
+        manualGoalInput.addEventListener("change", (e) => {
+            const data = window.loadData();
+            if (!data.settings) data.settings = {};
+            data.settings.manualGoal = parseInt(e.target.value) || 60;
+            window.saveData(data);
+            window.updateDisplay();
+        });
+    }
+
+    // --- Theme / Display Mode Selector ---
+    if (themeContainer) {
+        const themeButtons = themeContainer.querySelectorAll(".seg-btn");
+        
+        themeButtons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const selectedTheme = btn.getAttribute("data-theme");
+                
+                // 1. Call the Painter to change the actual CSS colors
+                if (window.setTheme) {
+                    window.setTheme(selectedTheme);
+                }
+
+                // 2. Update visual button states
+                themeButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            });
+        });
+    }
+
+    // --- Add Set to Past Date (Settings Page) ---
+    if (addPastBtn) {
+        addPastBtn.addEventListener("click", () => {
+            // 1. Get the date from the picker (or default to today)
+            const selectedDate = editDatePicker ? editDatePicker.value : window.getDateKey();
+            
+            // 2. Open the same modal we use for current logs
+            if (window.logModal) {
+                // Update the global state so the 'OK' button knows which date to save to
+                window.selectedEditDate = selectedDate; 
+                
+                window.logModal.style.display = "flex";
+                if (window.modalInput) {
+                    window.modalInput.value = "";
+                    window.modalInput.focus();
+                }
+            }
         });
     }
 
@@ -186,22 +401,80 @@ window.handleExport = async () => {
     a.download = fileName;
     a.click();
 };
+// Clear local data
+window.handleClearData = () => {
+    if (confirm("⚠️ Are you sure? This will delete all local data and cannot be undone (unless synced to cloud).")) {
+        localStorage.removeItem("workout-data");
+        location.reload(); // Refresh to reset state
+    }
+};
+// Import data
+window.handleImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            // Basic validation to ensure it's a DailyGrind file
+            if (typeof importedData === 'object') {
+                localStorage.setItem("workout-data", JSON.stringify(importedData));
+                alert("Import successful!");
+                location.reload();
+            }
+        } catch (err) {
+            alert("Error: Invalid backup file.");
+        }
+    };
+    reader.readAsText(file);
+};
 
 function setupPullToRefresh() {
     let startY = 0;
+    let isPulling = false;
     const ptr = document.getElementById("pull-to-refresh");
-    window.addEventListener("touchstart", (e) => { if (window.scrollY === 0) startY = e.touches[0].pageY; }, { passive: true });
-    window.addEventListener("touchmove", (e) => {
-        const diff = e.touches[0].pageY - startY;
-        if (diff > 0 && ptr && window.scrollY === 0) ptr.style.transform = `translateY(${Math.pow(diff, 0.85)}px)`;
+
+    if (!ptr) return; // Guard clause
+
+    window.addEventListener("touchstart", (e) => {
+        if (window.scrollY === 0) {
+            startY = e.touches[0].pageY;
+            isPulling = true;
+        }
     }, { passive: true });
+
+    window.addEventListener("touchmove", (e) => {
+        if (!isPulling) return;
+        const diff = e.touches[0].pageY - startY;
+        if (diff > 0) {
+            const y = Math.pow(diff, 0.85);
+            ptr.style.transform = `translateY(${y}px)`;
+        }
+    }, { passive: true });
+
     window.addEventListener("touchend", (e) => {
+        if (!isPulling) return;
         const diff = e.changedTouches[0].pageY - startY;
-        if (diff > 70 && ptr) { location.reload(); } 
-        else if (ptr) { ptr.style.transform = "translateY(0)"; }
+
+        if (diff > 70) {
+            ptr.style.transform = "translateY(60px)";
+            
+            // --- Save current page state ---
+            const pages = document.querySelectorAll(".page");
+            let activePageId = "tracker-page"; 
+            pages.forEach((page) => {
+                if (page.style.display !== "none") activePageId = page.id;
+            });
+            window.location.hash = activePageId;
+
+            location.reload();
+        } else {
+            ptr.style.transform = "translateY(0)";
+        }
+        isPulling = false;
     });
 }
-
 
 
 // Watch for system theme changes if set to auto

@@ -401,71 +401,12 @@
             </div>
         </div>
 
-        <script type="module">
-            // 1. Import the specific tools we need
-            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-            import {
-                getAuth,
-                signInWithPopup,
-                GoogleAuthProvider,
-                onAuthStateChanged,
-            } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-            import {
-                getFirestore,
-                doc,
-                setDoc,
-                getDoc,
-                collection,
-                query,
-                orderBy,
-                limit,
-                getDocs,
-                where,
-            } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
-            // 2. Your specific config
-            const firebaseConfig = {
-                apiKey: "AIzaSyCPXMYnQufpyWx6zXznDpJtMukbtLA-Vfo",
-                authDomain: "my-pushup-tracker-2367b.firebaseapp.com",
-                projectId: "my-pushup-tracker-2367b",
-                storageBucket: "my-pushup-tracker-2367b.firebasestorage.app",
-                messagingSenderId: "76145599652",
-                appId: "1:76145599652:web:c011f6b47120d4a986b231",
-                measurementId: "G-R8L7NNJ79M",
-            };
-
-            // 3. Initialize Firebase services
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            const provider = new GoogleAuthProvider();
-
-            // 4. CRITICAL: Make these functions global so app.js can use them
-            window.auth = auth;
-            window.db = db;
-            window.googleProvider = provider;
-            window.firebaseMethods = {
-                signInWithPopup,
-                onAuthStateChanged,
-                doc,
-                setDoc,
-                getDoc,
-                collection,
-                query,
-                orderBy,
-                limit,
-                getDocs,
-                where,
-            };
-
-            console.log("Firebase is ready and leaderboard methods are attached!");
-        </script>
+ 
+        <script type="module" src="js/init-firebase.js"></script>
 
         <script src="js/store.js"></script>
 
         <script src="js/ui.js"></script>
-
-        <script type="module" src="js/init-firebase.js"></script>
 
         <script src="js/main.js"></script>
     </body>

@@ -1,3 +1,61 @@
+// js/init-firebase.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {
+    getAuth,
+    signInWithPopup,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    updateProfile // Added for the username fix
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import {
+    getFirestore,
+    doc,
+    setDoc,
+    getDoc,
+    collection,
+    query,
+    orderBy,
+    limit,
+    getDocs,
+    where,
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCPXMYnQufpyWx6zXznDpJtMukbtLA-Vfo",
+    authDomain: "my-pushup-tracker-2367b.firebaseapp.com",
+    projectId: "my-pushup-tracker-2367b",
+    storageBucket: "my-pushup-tracker-2367b.firebasestorage.app",
+    messagingSenderId: "76145599652",
+    appId: "1:76145599652:web:c011f6b47120d4a986b231",
+    measurementId: "G-R8L7NNJ79M",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// Attach to window so main.js and ui.js can use them
+window.auth = auth;
+window.db = db;
+window.googleProvider = provider;
+window.firebaseMethods = {
+    signInWithPopup,
+    onAuthStateChanged,
+    updateProfile,
+    doc,
+    setDoc,
+    getDoc,
+    collection,
+    query,
+    orderBy,
+    limit,
+    getDocs,
+    where,
+};
+
+console.log("Firebase initialized and methods attached to window.");
+
 /*************************************************
  * DATA & CLOUD SYNC
  *************************************************/
@@ -129,33 +187,35 @@ function mapStatsToSchema(s) {
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
-async function fetchLeaderboard() {
+async function fetchLeaderboard(passedFilter = null) {
     const lbList = document.getElementById("lb-list");
     const rangeText = document.getElementById("lb-date-range-text");
+    if (!lbList) return;
 
-    // Updated to match your ID: leaderboard-filter
+    // 1. Determine Filter
     const filterContainer = document.getElementById("leaderboard-filter");
     const activeBtn = filterContainer ? filterContainer.querySelector(".seg-btn.active") : null;
+    const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
 
-    const filter = activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily";
+    // 2. Safety Guard
+    if (!window.firebaseMethods || !window.db) {
+        lbList.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
+        return;
+    }
 
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
     const usersRef = collection(window.db, "users");
     const now = new Date();
     let displayLabel = "";
 
-    // 1. SET THE DISPLAY LABEL
-    if (filter === "stats.daily") {
-        displayLabel = "Today & Yesterday";
-    } else if (filter === "stats.week") {
+    // 3. Set Display Label (Logic remains the same as your snippet)
+    if (filter === "stats.daily") displayLabel = "Today & Yesterday";
+    else if (filter === "stats.week") {
         const sun = new Date(now);
         sun.setDate(now.getDate() - now.getDay());
         displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
     } else if (filter === "stats.month") {
-        displayLabel = now.toLocaleDateString(undefined, {
-            month: "long",
-            year: "numeric",
-        });
+        displayLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
     } else if (filter === "stats.year") {
         displayLabel = now.getFullYear();
     }
@@ -166,11 +226,11 @@ async function fetchLeaderboard() {
         lbList.innerHTML = '<div class="loader"></div>';
         let leaderboardData = [];
 
-        // 2. FETCH THE DATA
+        // 4. Fetch Logic (Keeping your logic for Map-based daily merging)
         if (filter === "stats.daily") {
-            const qToday = query(usersRef, where("stats.todayId", "==", getTodayId()), limit(30));
-            const qYest = query(usersRef, where("stats.todayId", "==", getYesterdayId()), limit(30));
-
+            const qToday = query(usersRef, where("stats.todayId", "==", window.getTodayId()), limit(30));
+            const qYest = query(usersRef, where("stats.todayId", "==", window.getYesterdayId()), limit(30));
+            
             const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
             const userMap = new Map();
 
@@ -197,7 +257,7 @@ async function fetchLeaderboard() {
                     });
                 }
             });
-
+            
             leaderboardData = Array.from(userMap.values());
             leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
         } else {
@@ -218,44 +278,37 @@ async function fetchLeaderboard() {
                     username: doc.data().username || "Anonymous",
                     score: doc.data().stats[fieldName] || 0,
                 });
-            });
-        }
+            });        }
 
-        // 3. RENDER THE ROWS
+        // 5. Render
         lbList.innerHTML = "";
-
         if (leaderboardData.length === 0) {
             lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
             return;
         }
 
         leaderboardData.forEach((user, index) => {
-            const isMe = user.uid === window.auth.currentUser?.uid;
+            const isMe = user.uid === window.auth?.currentUser?.uid;
             const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
-
-            let subScoreHTML =
-                filter === "stats.daily"
-                    ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>`
-                    : "";
-
+            
             const row = `
                 <div class="lb-row ${isMe ? "is-me" : ""}">
                     <span class="lb-rank">${index + 1}</span>
                     <span class="lb-name">${user.username}</span>
                     <div style="text-align:right">
                         <span class="lb-score">${displayScore.toLocaleString()}</span>
-                        ${subScoreHTML}
+                        ${filter === "stats.daily" ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` : ""}
                     </div>
                 </div>
             `;
             lbList.insertAdjacentHTML("beforeend", row);
         });
+
     } catch (err) {
         console.error("Leaderboard failed:", err);
-        lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">Login to join - Error loading leaderboard.</p>`;
+        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
     }
 }
-
 // EXPOSE TO WINDOW
 window.syncLocalToCloud = syncLocalToCloud;
 window.fetchLeaderboard = fetchLeaderboard;
