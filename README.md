@@ -27,3 +27,28 @@ Frontend: HTML5, CSS3, Vanilla JavaScript.
 Backend: Firebase Authentication & Firestore.
 
 PWA: Service Worker API for versioning and offline caching.
+
+# Project Architecture
+DailyGrind follows a modular separation of concerns to ensure the codebase remains scalable and easy to maintain.
+
+## JavaScript (Global Module Pattern)
+The logic is split into four core files. Functions are defined locally and exposed to the window object for cross-file communication.
+
+js/init-firebase.js: The Foundation. Initializes the Firebase SDK, configures the database connection, and provides the authentication state.
+
+js/store.js: The Brain. Uses the connection from init-firebase.js to sync your reps and streaks to the cloud.
+
+js/ui.js: The Hands. Listens for data changes from the Store and renders the charts and logs.
+
+js/main.js: The Conductor. The entry point that waits for the DOM to load, then triggers the initial data fetch and sets up the button listeners.
+
+## CSS (Modular Architecture)
+Styles are categorized into four specific files to improve performance via parallel loading and to make UI customization straightforward.
+
+css/variables.css: Global design tokens (colors, spacing, transitions).
+
+css/base.css: CSS resets, typography, and core element styles.
+
+css/layout.css: Structural containers, navigation, and page wrappers.
+
+css/components.css: Reusable UI elements (buttons, cards, modals, charts).
