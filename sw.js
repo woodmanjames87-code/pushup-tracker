@@ -4,17 +4,23 @@ const CACHE_NAME = `DailyGrind-${VERSION}`;
 const ASSETS = [
     "./",
     "index.html",
-    "style.css",
+   // --- CSS Architecture ---
+    'css/variables.css',
+    'css/base.css',
+    'css/layout.css',
+    'css/components.css',
+    // --- JS Architecture --
     "js/init-firebase.js",
     "js/store.js",
     "js/ui.js",
     "js/main.js",
+    // --- Manifest & Icons ---
     "manifest.json",
     "img/pushup-icon.PNG",
     "img/Google_G_logo.png",
     "img/workout-app-icon.PNG",
     "img/screenshot-mobile.png",
-];
+]; 
 
 // 1. Install
 self.addEventListener("install", (event) => {
