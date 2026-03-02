@@ -47,23 +47,24 @@ function showPage(pageId) {
     }
 }
 
-function updateDateLabel(dateKey) {
-    const label = document.getElementById("display-date-label");
-    if (!label) return;
+function openLogModal() {
+    const logModal = document.getElementById("log-modal");
+    const modalInput = document.getElementById("modal-input");
+    if (logModal) {
+        logModal.style.display = "flex";
+        if (modalInput) {
+            modalInput.value = "";
+            modalInput.focus();
+        }
+    }
+}
 
-    // Use whatever name you gave it in store.js
-    const todayKey = window.getTodayId ? window.getTodayId() : window.getDateKey();
-
-    if (dateKey === todayKey) {
-        label.innerText = "Today";
-    } else {
-        // T00:00:00 prevents timezone shifts (good job including that!)
-        const dateObj = new Date(dateKey + "T00:00:00");
-        label.innerText = dateObj.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
+function closeLogModal() {
+    const logModal = document.getElementById("log-modal");
+    const modalInput = document.getElementById("modal-input");
+    if (logModal) {
+        logModal.style.display = "none";
+        if (modalInput) modalInput.value = "";
     }
 }
 /*************************************************
@@ -208,6 +209,9 @@ function updateDisplay() {
     }
 }
 
+
+
+
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
     const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
@@ -270,10 +274,8 @@ function renderEditList() {
 
 window.deleteSet = (i) => {
     const data = window.loadData();
-
-    // FIX: Added 'window.' to these state variables
-    const dateKey = window.selectedEditDate;
-    const exercise = window.currentExercise;
+    const dateKey = window.selectedEditDate();
+    const exercise = window.currentExercise();
 
     if (data[dateKey] && data[dateKey][exercise]) {
         // Remove the set from the array
@@ -309,6 +311,25 @@ function loadCurrentUsername() {
     setTimeout(() => clearInterval(checkAuth), 2000);
 }
 
+function updateDateLabel(dateKey) {
+    const label = document.getElementById("display-date-label");
+    if (!label) return;
+
+    // Use whatever name you gave it in store.js
+    const todayKey = window.getTodayId ? window.getTodayId() : window.getDateKey();
+
+    if (dateKey === todayKey) {
+        label.innerText = "Today";
+    } else {
+        // T00:00:00 prevents timezone shifts
+        const dateObj = new Date(dateKey + "T00:00:00");
+        label.innerText = dateObj.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    }
+}
 /***********************
  * THEME MANAGEMENT
  ***********************/
@@ -334,25 +355,42 @@ function setTheme(theme) {
 /*************************
  * PWA INSTALL BANNER
  *************************/
-function showUnifiedInstallBanner(platform) {
+function showUnifiedInstallBanner(platform = "auto") {
     const banner = document.getElementById("install-banner");
+    const textEl = document.getElementById("install-text");
+    const installBtn = document.getElementById("btn-install-now");
     if (!banner) return;
 
-    // Don't show if closed today
-    const lastClosed = localStorage.getItem("installBannerClosed");
-    if (lastClosed === new Date().toLocaleDateString()) return;
+    // 1. Check if user closed it today (Logic/Storage check)
+    if (localStorage.getItem("installBannerClosed") === new Date().toLocaleDateString()) return;
 
-    const text = document.getElementById("install-text");
-    const btn = document.getElementById("btn-install-now");
+    // 2. Platform Detection
+    const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const device = platform === "auto" ? (isIOS() ? "ios" : "android") : platform;
+
+    // 3. Update the Visuals
+    if (device === "ios") {
+        if (textEl) textEl.innerHTML = 'Tap the <strong>Share</strong> icon then <strong>"Add to Home Screen"</strong>';
+        if (installBtn) installBtn.style.display = "none";
+    } else {
+        if (textEl) textEl.innerText = "Install App for easy access!";
+        if (installBtn) {
+            installBtn.innerText = "Install App";
+            installBtn.style.display = "inline-block";
+        }
+    }
 
     banner.classList.remove("hidden");
+}
 
-    if (platform === "ios") {
-        text.innerText = "Install for the full experience!";
-        btn.innerText = "How to Install";
-    } else {
-        text.innerText = "Install the app for easy access!";
-        btn.innerText = "Install Now";
+//------- HAPTIC FEEDBACK ----------
+function triggerHaptic(type = "success") {
+    if (!("vibrate" in navigator)) return;
+
+    if (type === "success") {
+        navigator.vibrate(50); // One short click
+    } else if (type === "warning") {
+        navigator.vibrate([40, 30, 40]); // Two quick pulses
     }
 }
 
@@ -361,7 +399,10 @@ window.showPage = showPage;
 window.updateDisplay = updateDisplay;
 window.renderEditList = renderEditList;
 window.updateDateLabel = updateDateLabel;
+window.openLogModal = openLogModal;
+window.closeLogModal = closeLogModal;
 window.updateGoalUI = updateGoalUI;
 window.loadCurrentUsername = loadCurrentUsername;
 window.setTheme = setTheme;
 window.showUnifiedInstallBanner = showUnifiedInstallBanner;
+window.triggerHaptic = triggerHaptic;

@@ -75,68 +75,74 @@ window.addEventListener("hashchange", () => {
 function setupEventListeners() {
     initDOMReferences(); // Ensure we have the elements
 
+
     // --- 1. OPENING THE MODAL ---
     if (floatingLogBtn) {
         floatingLogBtn.onclick = () => {
-            if (logModal) {
-                // Always reset to the user's current LOCAL date when logging from the main screen
-                if (window.getDateKey) {
-                    window.selectedEditDate = window.getDateKey();
-                }
-
-                logModal.style.display = "flex";
-                if (modalInput) {
-                    modalInput.value = "";
-                    modalInput.focus();
-                }
+            // 1. Check the Store (Logic)
+            if (window.getDateKey) {
+                window.selectedEditDate = window.getDateKey();
+            }
+            // 2. Check the UI (Visuals)
+            if (window.openLogModal) {
+                window.openLogModal();
             }
         };
     }
 
-    // --- 2. SUBMITTING THE DATA (Form + Enter Key) ---
-    const logForm = document.getElementById("log-form");
+    // --- 2. SUBMITTING THE DATA ---
     if (logForm) {
         logForm.onsubmit = (e) => {
-            e.preventDefault(); // Prevent page reload
-
+            e.preventDefault();
             const reps = parseInt(modalInput.value);
+
+            // Ensure we have the logic function before proceeding
             if (reps > 0 && window.addSetToDate) {
-                // (adds a fallback to Today just in case):
-                const targetDate = window.selectedEditDate || window.getDateKey();
-                window.addSetToDate(targetDate, reps);
+                
+                // 1. Resolve the Date (Logic)
+                // Use selected date if it exists, otherwise ask the Store for Today
+                let targetDate = window.selectedEditDate;
+                if (!targetDate && window.getDateKey) {
+                    targetDate = window.getDateKey();
+                }
 
-                // UI Cleanup
-                logModal.style.display = "none";
-                modalInput.value = "";
+                // 2. Perform the Save
+                if (window.addSetToDate) {
+                    window.addSetToDate(targetDate, reps);
+                    
+                    // Trigger the physical feedback
+                    if (window.triggerHaptic) window.triggerHaptic("success");}
 
-                // Refresh visuals
+                // 3. Update the Visuals (UI)
+                if (window.closeLogModal) window.closeLogModal();
                 if (window.updateDisplay) window.updateDisplay();
                 if (window.renderEditList) window.renderEditList();
-
-                // Smooth scroll to top to see progress update
-                setTimeout(() => {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                }, 100);
+                if (window.fetchLeaderboard) window.fetchLeaderboard();
+                
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        };
+    }
+    // --- 3. CANCEL BUTTON (The Dismissal) ---
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (window.closeLogModal) {
+                window.closeLogModal();
             }
         };
     }
 
-    // --- 3. CANCEL & OUTSIDE CLICK ---
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            logModal.style.display = "none";
-        };
-    }
+    // --- 4. OUTSIDE CLICK (The "Quick Exit") ---
+    // This closes the modal if the user clicks the dark overlay area
     window.addEventListener("click", (e) => {
-        if (e.target === logModal) logModal.style.display = "none";
+        const logModal = document.getElementById("log-modal");
+        if (e.target === logModal && window.closeLogModal) {
+            window.closeLogModal();
+        }
     });
-    // --- Navigation ---
-    document.querySelectorAll(".nav-item").forEach((btn, idx) => {
-        btn.addEventListener("click", () => {
-            const pages = ["tracker", "leaderboard", "settings"];
-            window.showPage(pages[idx]);
-        });
-    });
+
+    // NOTE: The "OK" button doesn't need a listener! 
+    // Because it's type="submit", the logForm.onsubmit handles it.
 
     // --- Settings / Accordion Logic ---
     document.querySelectorAll(".accordion-header").forEach((header) => {
@@ -345,7 +351,7 @@ function setupEventListeners() {
 }
 
 /*************************************************
- * 4. PWA & SERVICE WORKER UTILS
+ *  PWA & SERVICE WORKER UTILS
  *************************************************/
 async function initPWAUtils() {
     // Register Service Worker
@@ -398,7 +404,7 @@ async function initPWAUtils() {
                         // If no update was found after 2 seconds, reset button
                         setTimeout(() => {
                             if (updateBtn.innerText === "Checking...") {
-                                updateBtn.innerText = "Up to Date!";
+                                updateBtn.innerText = "App is up to date!";
                                 updateBtn.disabled = false;
                                 setTimeout(() => (updateBtn.innerText = "Check for Updates"), 5000);
                             }
@@ -409,126 +415,52 @@ async function initPWAUtils() {
         }
     }
 
-    //Install Banner Logic (Unified for iOS & Android/PC)
-    const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
-
+    // --- Install Banner Logic (The Conductor) ---
     let deferredPrompt;
-    const installBanner = document.getElementById("install-banner");
-    const installBtn = document.getElementById("btn-install-now");
-    const installText = document.getElementById("install-text");
-    const closeBtn = document.getElementById("btn-install-close");
 
-    window.showUnifiedInstallBanner = function (platform = "auto") {
-        if (!installBanner) return;
-        const device = platform === "auto" ? (isIOS() ? "ios" : "android") : platform;
-
-        if (device === "ios") {
-            if (installText)
-                installText.innerHTML =
-                    'Tap the <strong>Share</strong> icon then <strong>"Add to Home Screen"</strong>';
-            if (installBtn) installBtn.style.display = "none";
-        } else {
-            if (installText) installText.innerText = "Install App for easy access!";
-            if (installBtn) {
-                installBtn.innerText = "Install App"; // Fixes the "How to Install" text on PC
-                installBtn.style.display = "inline-block";
-            }
-        }
-        installBanner.classList.remove("hidden");
-    };
-    // 1. Android/PC Signal
+    // 1. When the browser says "I'm ready to install"
     window.addEventListener("beforeinstallprompt", (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        window.showUnifiedInstallBanner("android");
+        if (window.showUnifiedInstallBanner) window.showUnifiedInstallBanner("android");
     });
-    // 2. Immediate Check: If NOT already installed, set up the UI state
-    if (!isStandalone) {
-        if (isIOS()) {
-            // Show iOS instructions immediately
-            window.showUnifiedInstallBanner("ios");
-        } else {
-            // On PC/Android, set the button text correctly even before the prompt fires
-            if (installBtn) installBtn.innerText = "Install App";
-            // We don't remove "hidden" here yet; we wait for 'beforeinstallprompt'
-            // OR you can remove 'hidden' here if you want it to always show.
-        }
+
+    // 2. Initial check for iOS (Since there is no event for iOS)
+    const isStandalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (!isStandalone && isIOS) {
+        if (window.showUnifiedInstallBanner) window.showUnifiedInstallBanner("ios");
     }
-    // 3. Button Click Logic
+
+    // 3. Button Click Listeners
+    const installBtn = document.getElementById("btn-install-now");
+    const closeBtn = document.getElementById("btn-install-close");
+
     if (installBtn) {
         installBtn.onclick = async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 await deferredPrompt.userChoice;
                 deferredPrompt = null;
-                installBanner.classList.add("hidden");
-            } else {
-                alert(
-                    "Installation is ready! If the prompt didn't appear, check your browser address bar for the install icon.",
-                );
+                document.getElementById("install-banner")?.classList.add("hidden");
             }
         };
     }
 
     if (closeBtn) {
-        closeBtn.onclick = () => installBanner.classList.add("hidden");
+        closeBtn.onclick = () => {
+            document.getElementById("install-banner")?.classList.add("hidden");
+            // Save to localStorage so it stays hidden today
+            localStorage.setItem("installBannerClosed", new Date().toLocaleDateString());
+        };
     }
 }
 
+
 /*************************************************
- * 5. DATA MANAGEMENT (Import/Export/Clear)
+ * PULL TO REFRESH
  *************************************************/
-// These reference the logic in store.js or local UI
-window.handleExport = async () => {
-    const data = localStorage.getItem("workout-data") || "{}";
-    const blob = new Blob([data], { type: "application/json" });
-    const fileName = `dailygrind-backup-${new Date().toISOString().slice(0, 10)}.json`;
-
-    if (navigator.share) {
-        const file = new File([blob], fileName, { type: "application/json" });
-        try {
-            await navigator.share({ files: [file], title: "DailyGrind Backup" });
-            return;
-        } catch (err) {
-            console.log("Share failed, falling back.");
-        }
-    }
-    // Fallback Download
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
-};
-// Clear local data
-window.handleClearData = () => {
-    if (confirm("⚠️ Are you sure? This will delete all local data and cannot be undone (unless synced to cloud).")) {
-        localStorage.removeItem("workout-data");
-        location.reload(); // Refresh to reset state
-    }
-};
-// Import data
-window.handleImport = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            // Basic validation to ensure it's a DailyGrind file
-            if (typeof importedData === "object") {
-                localStorage.setItem("workout-data", JSON.stringify(importedData));
-                alert("Import successful!");
-                location.reload();
-            }
-        } catch (err) {
-            alert("Error: Invalid backup file.");
-        }
-    };
-    reader.readAsText(file);
-};
-
 function setupPullToRefresh() {
     let startY = 0;
     let isPulling = false;
@@ -589,9 +521,3 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", ()
         window.setTheme("auto");
     }
 });
-
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-if (isIOS && !isStandalone) {
-    window.showUnifiedInstallBanner("ios");
-}

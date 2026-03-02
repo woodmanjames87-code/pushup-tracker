@@ -362,6 +362,115 @@ function computeStats() {
     };
 }
 
+/*************************************************
+ * CLEAR LOCAL DATA - IMPORT - EXPORT
+ *************************************************/
+function clearAllData() {
+
+    if (window.triggerHaptic) window.triggerHaptic("warning");
+    const warning =
+        "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
+
+    if (confirm(warning)) {
+        if (window.triggerHaptic) window.triggerHaptic("warning");
+        // Second layer of protection for a "Nuclear" action
+        const finalCheck = confirm("Final check: Delete everything?");
+
+        if (finalCheck) {
+            localStorage.removeItem("workout-data");
+            alert("Database cleared. Starting fresh!");
+            location.reload(); // Refresh to reset all charts and totals
+        }
+    }
+}
+
+function smartImport(jsonString) {
+    try {
+        const imported = JSON.parse(jsonString);
+        const current = JSON.parse(localStorage.getItem("workout-data") || "{}");
+        let newEntries = 0;
+        let mergedEntries = 0;
+
+        Object.keys(imported).forEach((date) => {
+            let incomingSets = [];
+
+            // Detect Old vs New Format
+            if (typeof imported[date] === "number") {
+                incomingSets = [imported[date]]; // Normalize old format
+            } else if (imported[date].pushups) {
+                incomingSets = imported[date].pushups;
+            }
+
+            if (!current[date]) {
+                // Brand new date
+                current[date] = { pushups: incomingSets };
+                newEntries++;
+            } else {
+                // Date exists - check if data is unique before merging
+                const currentTotal = current[date].pushups.reduce((a, b) => a + b, 0);
+                const importTotal = incomingSets.reduce((a, b) => a + b, 0);
+
+                if (currentTotal !== importTotal) {
+                    // Totals differ, add incoming as new sets
+                    current[date].pushups.push(...incomingSets);
+                    mergedEntries++;
+                }
+            }
+        });
+
+        // Save and Reload
+        localStorage.setItem("workout-data", JSON.stringify(current));
+        alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
+        location.reload();
+    } catch (e) {
+        alert("Invalid file format.");
+        console.error(e);
+    }
+}
+    // Listen for file selection
+    document.getElementById("import-input").addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const content = e.target.result;
+            smartImport(content);
+        };
+        reader.readAsText(file);
+    });
+
+async function exportData() {
+    const data = localStorage.getItem("workout-data") || "{}";
+    const blob = new Blob([data], { type: "application/json" });
+    const fileName = `pushups-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const file = new File([blob], fileName, { type: "application/json" });
+
+    // Check if sharing is supported AND allowed
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: "Push-Up Tracker Backup",
+            });
+            return; // Success!
+        } catch (err) {
+            // If user cancels or permission denied, fall through to download
+            console.log("Share skipped or blocked, falling back to download.");
+        }
+    }
+
+    // FALLBACK: Standard Download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a); // Required for some browsers
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // Expose Data & Logic to the Global Window Object
 window.STORAGE_KEY = STORAGE_KEY;
 window.currentExercise = currentExercise;
@@ -377,3 +486,7 @@ window.getYesterdayId = getYesterdayId;
 window.getWeekId = getWeekId;
 window.getMonthId = getMonthId;
 window.getYearId = getYearId;
+window.clearAllData =  clearAllData;
+window.smartImport = smartImport;
+window.exportData = exportData;
+
