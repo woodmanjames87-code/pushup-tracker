@@ -6,7 +6,7 @@ window.selectedEditDate = "";
 window.appInitialized = false;
 
 // DOM References for the "Conductor"
-let floatingLogBtn, logModal, modalInput, cancelBtn, okBtn;
+let floatingLogBtn, logModal, modalInput, cancelBtn, okBtn, logForm;
 
 function initDOMReferences() {
     floatingLogBtn = document.getElementById("floating-log-btn");
@@ -14,6 +14,7 @@ function initDOMReferences() {
     modalInput = document.getElementById("modal-input");
     cancelBtn = document.getElementById("modal-cancel");
     okBtn = document.getElementById("modal-ok");
+    logForm = document.getElementById("log-form");
 }
 
 const lbFilterContainer = document.getElementById("leaderboard-filter");
@@ -75,7 +76,6 @@ window.addEventListener("hashchange", () => {
 function setupEventListeners() {
     initDOMReferences(); // Ensure we have the elements
 
-
     // --- 1. OPENING THE MODAL ---
     if (floatingLogBtn) {
         floatingLogBtn.onclick = () => {
@@ -98,7 +98,6 @@ function setupEventListeners() {
 
             // Ensure we have the logic function before proceeding
             if (reps > 0 && window.addSetToDate) {
-                
                 // 1. Resolve the Date (Logic)
                 // Use selected date if it exists, otherwise ask the Store for Today
                 let targetDate = window.selectedEditDate;
@@ -109,16 +108,17 @@ function setupEventListeners() {
                 // 2. Perform the Save
                 if (window.addSetToDate) {
                     window.addSetToDate(targetDate, reps);
-                    
+
                     // Trigger the physical feedback
-                    if (window.triggerHaptic) window.triggerHaptic("success");}
+                    if (window.triggerHaptic) window.triggerHaptic("success");
+                }
 
                 // 3. Update the Visuals (UI)
                 if (window.closeLogModal) window.closeLogModal();
                 if (window.updateDisplay) window.updateDisplay();
                 if (window.renderEditList) window.renderEditList();
                 if (window.fetchLeaderboard) window.fetchLeaderboard();
-                
+
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
         };
@@ -141,8 +141,16 @@ function setupEventListeners() {
         }
     });
 
-    // NOTE: The "OK" button doesn't need a listener! 
+    // NOTE: The "OK" button doesn't need a listener!
     // Because it's type="submit", the logForm.onsubmit handles it.
+
+    // --- NAV BUTTONS TRIGGER ---
+    const navButtons = document.querySelectorAll(".nav-item");
+    if (navButtons.length >= 3) {
+        navButtons[0].onclick = () => showPage("tracker");
+        navButtons[1].onclick = () => showPage("leaderboard");
+        navButtons[2].onclick = () => showPage("settings");
+    }
 
     // --- Settings / Accordion Logic ---
     document.querySelectorAll(".accordion-header").forEach((header) => {
@@ -456,7 +464,6 @@ async function initPWAUtils() {
         };
     }
 }
-
 
 /*************************************************
  * PULL TO REFRESH

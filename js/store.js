@@ -366,7 +366,6 @@ function computeStats() {
  * CLEAR LOCAL DATA - IMPORT - EXPORT
  *************************************************/
 function clearAllData() {
-
     if (window.triggerHaptic) window.triggerHaptic("warning");
     const warning =
         "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
@@ -427,18 +426,18 @@ function smartImport(jsonString) {
         console.error(e);
     }
 }
-    // Listen for file selection
-    document.getElementById("import-input").addEventListener("change", function (e) {
-        const file = e.target.files[0];
-        if (!file) return;
+// Listen for file selection
+document.getElementById("import-input").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const content = e.target.result;
-            smartImport(content);
-        };
-        reader.readAsText(file);
-    });
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const content = e.target.result;
+        smartImport(content);
+    };
+    reader.readAsText(file);
+});
 
 async function exportData() {
     const data = localStorage.getItem("workout-data") || "{}";
@@ -486,7 +485,6 @@ window.getYesterdayId = getYesterdayId;
 window.getWeekId = getWeekId;
 window.getMonthId = getMonthId;
 window.getYearId = getYearId;
-window.clearAllData =  clearAllData;
+window.clearAllData = clearAllData;
 window.smartImport = smartImport;
 window.exportData = exportData;
-

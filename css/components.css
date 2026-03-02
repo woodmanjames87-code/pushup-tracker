@@ -127,7 +127,6 @@
     margin-top: 15px;
 }
 
-
 .btn-danger {
     background: transparent;
     color: var(--danger);
@@ -144,7 +143,6 @@
     background: var(--danger);
     color: white;
 }
-
 
 .segmented-control {
     display: flex;
@@ -434,7 +432,7 @@ input:checked + .slider:before {
 /* =================================================
    CHARTS (WEEKLY & MONTHLY)
    ================================================= */
-   .bar-unit {
+.bar-unit {
     width: 20px;
     background: linear-gradient(to bottom, var(--fitness-green), var(--fitness-green-dark));
     border-radius: 4px 4px 1px 1px;

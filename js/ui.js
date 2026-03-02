@@ -209,9 +209,6 @@ function updateDisplay() {
     }
 }
 
-
-
-
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
     const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
