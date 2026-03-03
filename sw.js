@@ -1,4 +1,4 @@
-const VERSION = "v4.7.4.2"; // Increment this to update the app
+const VERSION = "v4.7.4.3"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [

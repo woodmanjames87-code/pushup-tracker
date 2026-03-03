@@ -1,22 +1,56 @@
 /*************************************************
  * NAVIGATION
  *************************************************/
+// Keep track of the current index globally in ui.js
+let currentPageIndex = 0;
+
 function showPage(pageId) {
+    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
+    const newIndex = indexMap[pageId];
+    if (newIndex === currentPageIndex) return; // Don't animate if already here
+
+    const direction = newIndex > currentPageIndex ? "right" : "left";
+    const pageIds = ["tracker", "leaderboard", "settings"];
+    
+    window.scrollTo(0, 0);
     window.location.hash = `${pageId}-page`;
 
-    // 1. Hide all pages (using a loop is cleaner/safer)
-    const pageIds = ["tracker", "settings", "leaderboard"];
     pageIds.forEach((id) => {
         const el = document.getElementById(`${id}-page`);
-        if (el) el.style.display = id === pageId ? "flex" : "none";
+        if (!el) return;
+
+        if (id === pageId) {
+            // --- INCOMING PAGE ---
+            el.style.display = "flex";
+            el.classList.remove("slide-active", "slide-from-left", "slide-from-right", "exit-left", "exit-right");
+            
+            // Start position
+            el.classList.add(direction === "right" ? "slide-from-right" : "slide-from-left");
+
+            void el.offsetWidth; // Force reflow
+
+            el.classList.add("slide-active");
+        } else if (el.classList.contains("slide-active")) {
+            // --- OUTGOING PAGE ---
+            el.classList.remove("slide-active");
+            // Slide out in the opposite direction
+            el.classList.add(direction === "right" ? "exit-left" : "exit-right");
+
+            // Wait for animation to finish before hiding
+            setTimeout(() => {
+                el.style.display = "none";
+                el.classList.remove("exit-left", "exit-right");
+            }, 300); // Matches CSS transition time
+        } else {
+            el.style.display = "none";
+        }
     });
+
+    currentPageIndex = newIndex;
 
     // 2. Update Nav Bar Button Colors
     const navButtons = document.querySelectorAll(".nav-item");
-    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
-
     navButtons.forEach((btn, idx) => {
-        // Only add 'active' if the index matches our map
         btn.classList.toggle("active", idx === indexMap[pageId]);
     });
 
@@ -33,14 +67,12 @@ function showPage(pageId) {
         floatingBtn.style.display = isTrackerOrSocial ? "block" : "none";
     }
 
-    // Refresh stats if on main views
     if (isTrackerOrSocial && window.updateDisplay) {
         window.updateDisplay();
     }
 
     // 5. Settings‑page setup
     if (pageId === "settings") {
-        // Use '&&' to check if the function exists before calling
         if (window.loadCurrentUsername) window.loadCurrentUsername();
         if (window.renderEditList) window.renderEditList();
         if (window.updateGoalUI) window.updateGoalUI();
