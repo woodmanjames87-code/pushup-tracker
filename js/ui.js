@@ -272,7 +272,7 @@ function renderEditList() {
 window.deleteSet = (i) => {
     const data = window.loadData();
     const dateKey = window.selectedEditDate;
-    const exercise = window.currentExercise();
+    const exercise = window.currentExercise;
 
     if (data[dateKey] && data[dateKey][exercise]) {
         // Remove the set from the array
