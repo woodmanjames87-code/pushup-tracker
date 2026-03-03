@@ -1,12 +1,20 @@
-const VERSION = "v4.7.3.6"; // Increment this to update the app
+const VERSION = "v4.7.4.0"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
     "./",
     "index.html",
-    "style.css",
-    "js/app.js",
-    "js/settings.js",
+    // --- CSS Architecture ---
+    "css/variables.css",
+    "css/base.css",
+    "css/layout.css",
+    "css/components.css",
+    // --- JS Architecture --
+    "js/init-firebase.js",
+    "js/store.js",
+    "js/ui.js",
+    "js/main.js",
+    // --- Manifest & Icons ---
     "manifest.json",
     "img/pushup-icon.PNG",
     "img/Google_G_logo.png",
@@ -65,24 +73,26 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             // Start the network fetch
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                // If it's a good response, clone it and save it to cache
-                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
-                }
-                return networkResponse;
-            }).catch(() => {
-                // If network fails and there's no cache, this is where you'd return an offline page
-                return cachedResponse; 
-            });
+            const fetchPromise = fetch(event.request)
+                .then((networkResponse) => {
+                    // If it's a good response, clone it and save it to cache
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // If network fails and there's no cache, this is where you'd return an offline page
+                    return cachedResponse;
+                });
 
-            // Return the cached response immediately if we have it, 
+            // Return the cached response immediately if we have it,
             // otherwise wait for the network fetch
             return cachedResponse || fetchPromise;
-        })
+        }),
     );
 });
 

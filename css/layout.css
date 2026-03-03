@@ -1,0 +1,336 @@
+.app-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 0 20px 120px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0px;
+}
+
+.page-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    margin: 0 -20px 0 -20px;
+    padding: 20px 20px 0 20px;
+    width: calc(100% + 40px);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+#settings-page {
+    display: none; /* Default to hidden */
+}
+#leaderboard-page {
+    display: none; /* Default to hidden */
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+/* =========================
+     Install Banner 
+   ========================= */
+#install-banner {
+    position: fixed;
+    bottom: 150px;
+    left: 20px;
+    right: 20px;
+    background: #ffffff;
+    color: #333;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    animation: slideUp 0.4s ease-out;
+}
+
+#install-banner.hidden {
+    display: none;
+}
+
+.install-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.install-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* ============================== */
+
+.daily-numbers-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 0;
+}
+
+/* =================================================
+   BUTTONS
+   ================================================= */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    padding-bottom: 15px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #1a1a1a;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid #333;
+    z-index: 1000;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.nav-icon {
+    width: 24px;
+    height: 24px;
+    fill: #ffffff; /* white for inactive */
+    transition: 0.2s;
+}
+
+.nav-item.active .nav-icon {
+    fill: var(--fitness-green);
+}
+
+.nav-item small {
+    font-size: 0.7rem;
+    margin-top: 4px;
+}
+
+.leaderboard-nav {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.danger-zone {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--danger);
+    text-align: center;
+}
+
+.input-inline-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    box-sizing: border-box;
+}
+.input-wide {
+    width: 100%;
+}
+.input-compact {
+    width: 120px;
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.trend-footer-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 0px;
+    width: 100%;
+}
+
+.trend-col-left {
+    flex: 1; /* Takes up available space */
+    text-align: left;
+}
+
+.trend-col-right {
+    flex: 1;
+    text-align: right; /* Aligns text to the right edge */
+}
+
+/* =================================================
+   CHARTS (WEEKLY & MONTHLY)
+   ================================================= */
+.chart-with-axis {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 75px;
+    margin-top: 5px;
+}
+
+.bar-chart {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 28px 0 28px;
+}
+
+/* Monthly Specific Logic */
+.monthly-bar-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+/* =================================================
+   TAGS & BADGES
+   ================================================= */
+.streak-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.intensity-legend {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* =================================================
+   LEADERBOARD
+   ================================================= */
+.lb-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.lb-name {
+    flex: 1;
+    margin-left: 10px;
+}
+
+/* =================================================
+   SETTINGS & EDITING
+   ================================================= */
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.date-picker-trigger {
+    position: relative;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    min-width: 140px;
+    height: 40px;
+}
+
+.edit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+/* =================================================
+   MODALS
+   ================================================= */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+/* =================================================
+   Symbols
+   ================================================= */
+/* Pull to Refresh Container */
+#pull-to-refresh {
+    position: fixed;
+    top: -60px; /* Hide off-screen */
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: transform 0.15s ease-out;
+    pointer-events: none; /* Don't block clicks to the header */
+}
