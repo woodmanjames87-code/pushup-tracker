@@ -531,7 +531,7 @@ input:checked + .slider:before {
    LEADERBOARD
    ================================================= */
 .lb-row {
-    padding: 8px, 15px;
+    padding: 8px 15px;
     background: var(--lb-row);
     margin-bottom: 8px;
     border-radius: 12px;
