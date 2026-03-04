@@ -72,6 +72,7 @@
     background: var(--primary-opacity);
     position: fixed;
     bottom: 85px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: 85%;
