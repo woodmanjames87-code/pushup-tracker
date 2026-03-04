@@ -272,7 +272,9 @@ function setupEventListeners() {
     if (goalModeToggle) {
         goalModeToggle.addEventListener("change", (e) => {
             // 1. Get current data
-            const data = window.loadData ? window.loadData() : JSON.parse(localStorage.getItem("workout-data") || "{}");
+            const data = window.loadData
+                ? window.loadData()
+                : JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
             if (!data.settings) data.settings = {};
 
             // 2. Update the setting (Toggle ON = Auto, OFF = Manual)
@@ -282,7 +284,7 @@ function setupEventListeners() {
             if (window.saveData) {
                 window.saveData(data);
             } else {
-                localStorage.setItem("workout-data", JSON.stringify(data));
+                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
             }
 
             // 4. Update the UI visibility immediately

@@ -112,35 +112,41 @@ async function startCloudSync() {
         const userRef = doc(window.db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
-        if (!userSnap.exists()) {
+        const localData = window.loadData();
+        const isLocalEmpty = Object.keys(localData).length === 0 || !localData.history;
+
+        if (userSnap.exists()) {
+            const cloudData = userSnap.data();
+
+            // 🛡️ CRITICAL: If local is empty but cloud has data, PULL instead of pushing
+            if (isLocalEmpty && cloudData.workouts) {
+                console.log("New device detected. Pulling cloud data...");
+                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(cloudData.workouts));
+
+                // Refresh the app state so the UI shows the pulled data
+                if (window.initApp) window.initApp();
+                return; // STOP HERE. Don't sync back up yet.
+            }
+
+            // If not empty, just sync the username
+            if (cloudData.username) {
+                const data = window.loadData();
+                if (!data.settings) data.settings = {};
+                data.settings.username = cloudData.username;
+                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+            }
+        } else {
+            // NEW USER logic
             const alias = prompt("Pick a username:", user.displayName);
             const finalAlias = alias || user.displayName || "Anonymous";
 
-            // Run initial sync with the new profile data
             await syncLocalToCloud(user.uid, {
                 username: finalAlias,
                 createdAt: new Date().toISOString(),
             });
-
-            // Update Local Settings immediately
-            const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
-            if (!data.settings) data.settings = {};
-            data.settings.username = finalAlias;
-            localStorage.setItem("workout-data", JSON.stringify(data));
-
-            alert(`Welcome, ${finalAlias}!`);
-        } else {
-            // Existing user? Pull cloud name down to local storage
-            const existingData = userSnap.data();
-            if (existingData && existingData.username) {
-                const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
-                if (!data.settings) data.settings = {};
-                data.settings.username = existingData.username;
-                localStorage.setItem("workout-data", JSON.stringify(data));
-            }
         }
 
-        // Run general sync for everyone (reps, history, etc.)
+        // Only sync Up if we didn't just perform a critical Pull
         await syncLocalToCloud(user.uid);
     } catch (error) {
         console.error("Login failed:", error);

@@ -15,13 +15,13 @@ const GOALS = {
  * LOAD AND SAVE
  *************************************************/
 function loadData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
 }
 
 // This handles the LOCAL SAVE + triggers the Cloud Push
 async function saveData(data) {
     // Save locally (Immediate)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
 
     // Trigger Cloud Sync (Background)
     const user = window.auth?.currentUser;
@@ -376,7 +376,7 @@ function clearAllData() {
         const finalCheck = confirm("Final check: Delete everything?");
 
         if (finalCheck) {
-            localStorage.removeItem("workout-data");
+            localStorage.removeItem(window.STORAGE_KEY);
             alert("Database cleared. Starting fresh!");
             location.reload(); // Refresh to reset all charts and totals
         }
@@ -386,7 +386,7 @@ function clearAllData() {
 function smartImport(jsonString) {
     try {
         const imported = JSON.parse(jsonString);
-        const current = JSON.parse(localStorage.getItem("workout-data") || "{}");
+        const current = JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
         let newEntries = 0;
         let mergedEntries = 0;
 
@@ -418,7 +418,7 @@ function smartImport(jsonString) {
         });
 
         // Save and Reload
-        localStorage.setItem("workout-data", JSON.stringify(current));
+        localStorage.setItem(window.STORAGE_KEY, JSON.stringify(current));
         alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
         location.reload();
     } catch (e) {
@@ -440,7 +440,7 @@ document.getElementById("import-input").addEventListener("change", function (e) 
 });
 
 async function exportData() {
-    const data = localStorage.getItem("workout-data") || "{}";
+    const data = localStorage.getItem(window.STORAGE_KEY) || "{}";
     const blob = new Blob([data], { type: "application/json" });
     const fileName = `pushups-backup-${new Date().toISOString().slice(0, 10)}.json`;
     const file = new File([blob], fileName, { type: "application/json" });

@@ -11,7 +11,7 @@ function showPage(pageId) {
 
     const direction = newIndex > currentPageIndex ? "right" : "left";
     const pageIds = ["tracker", "leaderboard", "settings"];
-    
+
     window.scrollTo(0, 0);
     window.location.hash = `${pageId}-page`;
 
@@ -23,7 +23,7 @@ function showPage(pageId) {
             // --- INCOMING PAGE ---
             el.style.display = "flex";
             el.classList.remove("slide-active", "slide-from-left", "slide-from-right", "exit-left", "exit-right");
-            
+
             // Start position
             el.classList.add(direction === "right" ? "slide-from-right" : "slide-from-left");
 
@@ -243,7 +243,7 @@ function updateDisplay() {
 
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
-    const data = JSON.parse(localStorage.getItem("workout-data") || "{}");
+    const data = JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
     const toggle = document.getElementById("goal-mode-toggle");
     const manualContainer = document.getElementById("manual-goal-container");
     const manualInput = document.getElementById("manual-goal-input");

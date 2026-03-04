@@ -1,7 +1,9 @@
 :root {
     --bg-color: #0a0a0a;
     --card-bg: #1b1b1d;
+    --card-btn: #3a3a3c;
     --primary: #007aff;
+    --primary-light: #4285f4;
     --primary-dark: #0051a8;
     --fitness-green: #39e639;
     --fitness-green-dark: #2db32d;
@@ -10,11 +12,19 @@
     --danger: #ff3b30;
     --orange: #ff9f0a;
     --track-bg: #39e6391a;
+    --modal-bg: #0000007a;
+    --modal-input-bg: #4343477c;
+    --lb-row: rgba(255, 255, 255, 0.05);
+    --is-me: rgba(66, 133, 244, 0.1);
 }
 
 :root[data-theme="light"] {
     --bg-color: #ffffff;
     --card-bg: #f2f2f7;
-    --text: #000000;
-    --text-muted: #5f6368;
+    --card-btn: #afb1b2;
+    --text: #252525ea;
+    --text-muted: #4c4e52;
+    --modal-bg: #ffffff25;
+    --modal-input-bg: #ffffff1e;
+    --lb-row: rgba(0, 0, 0, 0.05);
 }
