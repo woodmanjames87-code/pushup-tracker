@@ -372,6 +372,11 @@ async function initPWAUtils() {
             .catch((err) => console.log("SW Registration Failed", err));
     }
 
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        // This fires when the new Service Worker successfully skips waiting and becomes active
+        window.location.reload();
+    });
+
     const versionEl = document.getElementById("app-version");
     const updateBtn = document.getElementById("btn-update-app");
 

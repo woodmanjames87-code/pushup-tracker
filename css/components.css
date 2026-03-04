@@ -53,7 +53,9 @@
     letter-spacing: 1px;
 }
 
-/* ============================= */
+/* =========================
+     BUTTONS 
+   ========================= */
 
 .btn-primary {
     background: var(--primary);
@@ -536,14 +538,14 @@ input:checked + .slider:before {
    ================================================= */
 .lb-row {
     padding: 8px 15px;
-    background: var(--lb-row);
+    background: var(--card-bg);
     margin-bottom: 8px;
     border-radius: 12px;
 }
 
 .lb-row.is-me {
     border: 2px solid var(--primary-light);
-    background: var(--is-me);
+    background: var(--card-bg);
 }
 .lb-rank {
     font-weight: bold;
@@ -652,4 +654,26 @@ input:checked + .slider:before {
     to {
         transform: rotate(360deg);
     }
+}
+/* =================================================
+   BACKGROUND IMAGE (FIXED & NON-INTERACTIVE)
+   ================================================= */
+.bg-fixed-img {
+    /* Locks the div to the viewport */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Ensures it stays behind your text */
+    /* Your specific styles */
+    background-image: url("../img/pushup-tile.PNG");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    /* IMPORTANT: Use scroll (default) instead of fixed here */
+    background-attachment: scroll; 
+    /* Optional: Hardware acceleration to keep scrolling smooth on mobile */
+    will-change: transform;
+    opacity: 0.5;
 }
