@@ -1,8 +1,9 @@
 :root {
     --bg-color: #0a0a0a;
-    --card-bg: #1b1b1d;
+    --card-bg: #1b1b1dee;
     --card-btn: #3a3a3c;
     --primary: #007aff;
+    --primary-opacity: #007bff;
     --primary-light: #4285f4;
     --primary-dark: #0051a8;
     --fitness-green: #39e639;
@@ -20,7 +21,7 @@
 
 :root[data-theme="light"] {
     --bg-color: #ffffff;
-    --card-bg: #f2f2f7;
+    --card-bg: #f2f2f2d7;
     --card-btn: #afb1b2;
     --text: #252525ea;
     --text-muted: #4c4e52;

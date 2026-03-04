@@ -24,6 +24,11 @@ body {
         ease;
     width: 100%;
     position: relative;
+    background-image: url("../img/pushup-tile.PNG");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: contain;
 }
 
 h1 {
