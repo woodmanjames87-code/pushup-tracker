@@ -1,4 +1,4 @@
-const VERSION = "v4.7.4.8"; // Increment this to update the app
+const VERSION = "v4.7.4.9"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
@@ -20,6 +20,10 @@ const ASSETS = [
     "img/Google_G_logo.png",
     "img/workout-app-icon.PNG",
     "img/screenshot-mobile.png",
+    "img/pushup-tile.PNG",
+    "img/pullup-tile.PNG",
+    "img/situp-tile.PNG",
+    "img/squat-tile.PNG",
 ];
 
 // 1. Install
