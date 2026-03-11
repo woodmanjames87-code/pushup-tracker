@@ -244,30 +244,100 @@ function updateDisplay() {
 // Function to handle showing/hiding the manual input
 function updateGoalUI() {
     const data = JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
+
+    // --- Goal Mode Logic...
     const toggle = document.getElementById("goal-mode-toggle");
     const manualContainer = document.getElementById("manual-goal-container");
     const manualInput = document.getElementById("manual-goal-input");
     const descriptions = document.querySelectorAll(".goal-description");
 
     const isAuto = data.settings?.goalMode !== "manual";
-    toggle.checked = isAuto;
-    manualInput.value = data.settings?.manualGoal || 60;
+    if (toggle) toggle.checked = isAuto;
+    if (manualInput) manualInput.value = data.settings?.manualGoal || 60;
 
-    // 1. Determine the content based on the state
     const statusText = isAuto ? `Goal: Max(Avg,Median) of 14 active days (Min 60).` : `Manual Goal Setpoint Active.`;
-
-    // 2. Toggle Visibility & Update all descriptions
-    if (isAuto) {
-        manualContainer.style.display = "none";
-    } else {
-        manualContainer.style.display = "flex";
-    }
-
-    // Loop through every instance found and update them together
+    if (manualContainer) manualContainer.style.display = isAuto ? "none" : "flex";
     descriptions.forEach((el) => {
         el.innerHTML = statusText;
     });
+
+    // --- Activity Threshold Mode Logic ---
+    const thresholdToggle = document.getElementById("threshold-mode-toggle");
+    const customContainer = document.getElementById("custom-threshold-container");
+    const onTrackInput = document.getElementById("on-track-input");
+    const thresholdDescriptions = document.querySelectorAll(".threshold-description");
+
+    const isRecommended = data.settings?.thresholdMode !== "custom";
+    if (thresholdToggle) thresholdToggle.checked = isRecommended;
+
+    // Logic: If Recommended, force the display to 4. If Custom, use saved value.
+    const savedOnTrack = isRecommended ? 4 : data.settings?.goals?.onTrackDays || 4;
+
+    if (onTrackInput) {
+        onTrackInput.value = savedOnTrack;
+    }
+
+    // Updated user-facing text
+    const thresholdText = isRecommended
+        ? `Recommended: 4 days/week for a balanced 30-day trend.`
+        : `Custom Target Active. Use the stepper to adjust.`;
+
+    // Toggle the stepper visibility
+    if (customContainer) {
+        customContainer.style.display = isRecommended ? "none" : "flex";
+    }
+
+    thresholdDescriptions.forEach((el) => {
+        el.innerHTML = thresholdText;
+    });
+
+    // Update the live hints (e.g., "On Track at 4, Improving at 5")
+    const onTrackHint = document.getElementById("on-track-display-hint");
+    const improveDisplay = document.getElementById("improve-display");
+
+    if (onTrackHint) onTrackHint.innerText = savedOnTrack;
+    if (improveDisplay) improveDisplay.innerText = Number(savedOnTrack) + 1;
 }
+
+// Update the "Improve" hint when the user changes the number
+document.getElementById("on-track-input")?.addEventListener("input", (e) => {
+    const val = parseInt(e.target.value);
+    const improveDisplay = document.getElementById("improve-display");
+    if (improveDisplay) improveDisplay.innerText = val + 1;
+});
+
+window.adjustOnTrack = function (change) {
+    const input = document.getElementById("on-track-input");
+    const improveDisplay = document.getElementById("improve-display");
+
+    if (!input) return;
+
+    let currentVal = parseInt(input.value) || 4;
+    let newVal = currentVal + change;
+
+    // 1. Check Boundaries (1 to 6 days)
+    if (newVal >= 1 && newVal <= 6) {
+        // SUCCESS: Valid change
+        input.value = newVal;
+        if (improveDisplay) {
+            improveDisplay.innerText = newVal + 1;
+        }
+
+        // Trigger the single short click
+        if (window.triggerHaptic) window.triggerHaptic("success");
+    } else {
+        // WARNING: User hit the limit (0 or 7)
+        // Trigger the double pulse to signify "limit reached"
+        if (window.triggerHaptic) window.triggerHaptic("warning");
+
+        // Visual feedback: Shake the stepper briefly (optional)
+        const stepper = input.closest(".number-stepper");
+        if (stepper) {
+            stepper.classList.add("limit-shake");
+            setTimeout(() => stepper.classList.remove("limit-shake"), 300);
+        }
+    }
+};
 
 function renderEditList() {
     const dateKey = window.selectedEditDate;
@@ -411,6 +481,13 @@ function showUnifiedInstallBanner(platform = "auto") {
 
     banner.classList.remove("hidden");
 }
+
+//-------- DEBOUNCE UTILITY (for inputs like on-track days) --------
+let saveTimeout;
+window.debounceSave = function (callback, delay = 500) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(callback, delay);
+};
 
 //------- HAPTIC FEEDBACK ----------
 function triggerHaptic(type = "success") {

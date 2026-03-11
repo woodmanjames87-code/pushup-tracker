@@ -208,6 +208,75 @@
     color: var(--text-muted);
 }
 
+.number-stepper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.05); /* Subtle contrast */
+    padding: 4px;
+    border-radius: 10px;
+}
+
+.stepper-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: white;
+    color: var(--primary-color, #007aff); /* Uses your app color or default blue */
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stepper-btn:active {
+    transform: scale(0.95);
+    background: #f0f0f0;
+}
+
+#on-track-input {
+    width: 30px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: inherit;
+    /* Hide spin buttons */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+}
+/* Extra safety to hide the "up/down" arrows in Chrome/Safari */
+#on-track-input::-webkit-outer-spin-button,
+#on-track-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+@keyframes shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-4px);
+    }
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+.limit-shake {
+    animation: shake 0.2s ease-in-out 0s 2;
+    border: 1px solid rgba(255, 59, 48, 0.3); /* Subtle red tint */
+}
+
 /* =================================================
    Pill Toggle
    ================================================= */
@@ -673,7 +742,7 @@ input:checked + .slider:before {
     background-position: center center;
     background-size: contain;
     /* IMPORTANT: Use scroll (default) instead of fixed here */
-    background-attachment: scroll; 
+    background-attachment: scroll;
     /* Optional: Hardware acceleration to keep scrolling smooth on mobile */
     will-change: transform;
     opacity: 0.5;

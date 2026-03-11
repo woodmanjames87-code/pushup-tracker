@@ -252,6 +252,38 @@
 
                             <hr class="divider" />
 
+                            <div class="settings-group">
+                                <h3>Activity Thresholds</h3>
+
+                                <div class="setting-row">
+                                    <label for="threshold-mode-toggle">Use Recommended Target:</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="threshold-mode-toggle" checked />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+
+                                <p class="label-tiny threshold-description">
+                                    Recommended: 4 days/week for a balanced 30-day trend.
+                                </p>
+
+                                <div id="custom-threshold-container" class="setting-row" style="display: none">
+                                    <label for="on-track-input">Custom Target:</label>
+                                    <div class="number-stepper">
+                                        <button type="button" id="btn-ontrack-minus" class="stepper-btn">-</button>
+                                        <input type="number" id="on-track-input" readonly value="4" />
+                                        <button type="button" id="btn-ontrack-plus" class="stepper-btn">+</button>
+                                    </div>
+                                </div>
+
+                                <p class="label-tiny">
+                                    Status: <strong>On Track</strong> at <span id="on-track-display-hint">4</span> days.
+                                    <strong>Improving</strong> at <span id="improve-display">5</span>+.
+                                </p>
+                            </div>
+
+                            <hr class="divider" />
+
                             <div class="setting-row">
                                 <label for="theme-selector">Display Mode:</label>
                                 <div class="segmented-control" id="theme-selector">
