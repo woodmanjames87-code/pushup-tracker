@@ -8,6 +8,8 @@
       o	Initialize enabledExercises array from localStorage (default to ['pushups']).
 •	[ ] Refactor loadData() Defaults: Ensure the initial data object includes a nested settings structure: data.settings.goals = {}.
 •	[ ] Run Migration Script: A one-time logic block to check if data.settings.manualGoal exists and move it to data.settings.goals.pushups.manualGoal.
+•     [ ] State Synchronization: Ensure currentExercise is saved to localStorage so that if the user closes the app while looking at "Squats," it reopens on "Squats" instead of defaulting back to "Pushups."
+•     [ ] Schema Future-Proofing: Add a unit string to each entry in EXERCISE_LIB. Ensure all UI labels for "Reps" pull from this property rather than being hardcoded text.
 
 ## Phase 2: Logic Refactoring (The Engine)
 
@@ -19,6 +21,7 @@
 •	[ ] The Firestore Split (syncLocalToCloud):
       o	Logic: Change the reference from doc(db, "users", userId) to doc(db, "users", userId, "exercises", currentExercise).
       o	Function to update: syncLocalToCloud.
+•     [ ] Multi-Exercise Stats (The Breakdown): Update computeStats() to ensure the 30-day trend and "On Track" status are calculated only using data from the currentExercise.
 
 ## Phase 3: The Settings Dashboard (The Controls)
 
@@ -29,6 +32,9 @@
 •	[ ] Update updateGoalUI():
       o	Update: Ensure it pulls the specific goalMode and manualGoal from data.settings.goals[currentExercise].
 •	[ ] Visibility Sync: Add logic to hide/show the manual goal input based on its corresponding toggle state.
+•     [ ] Threshold Per-Exercise: Update data.settings.goals[exerciseId].onTrackDays to store frequency targets independently for each exercise; update getGoals() to pull this value based on currentExercise.
+•     [ ] Global vs. Local Settings: Distinguish between Global Settings (Theme, Username, Data Export) and Exercise Settings (Goal Mode, Thresholds, Manual Rep Goal).
+      o     Implementation: Use a "Settings Context" (e.g., a header that says "Settings for [Current Exercise]") so the user knows they are only changing the goal for the exercise they are currently tracking.
 
 ## Phase 4: The Tracker UI (The Heart)
 
@@ -59,4 +65,5 @@
 •	[ ] Contextual Logging:
       o	Check: Verify the addSet listener (triggered by the FAB "+") grabs the currentExercise variable.
 •	[ ] Safety Catch: Prevent users from disabling all exercises in the settings (must have at least one active).
+
 
