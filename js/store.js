@@ -4,11 +4,28 @@
 const STORAGE_KEY = "workout-data";
 const currentExercise = "pushups";
 
-const GOALS = {
-    DAYS_PER_WEEK: 7,
-    ON_TRACK_DAYS: 4,
-    IMPROVE_DAYS: 5,
-    WINDOW_DAYS: 30,
+// Get goals from localStorage or use defaults
+window.getGoals = function () {
+    const data = window.loadData();
+    const settings = data.settings || {};
+
+    // 1. Check if we are in "Recommended" mode (Default) or "Custom"
+    const isRecommended = settings.thresholdMode !== "custom";
+
+    // 2. Determine the baseline (Force 4 if Recommended, otherwise use saved value)
+    const ON_TRACK = isRecommended ? 4 : settings.goals?.onTrackDays || 4;
+
+    const IMPROVE = ON_TRACK + 1;
+    const DAYS_PER_WEEK = 7;
+
+    return {
+        DAYS_PER_WEEK: DAYS_PER_WEEK, // Ensure this is returned!
+        ON_TRACK_DAYS: ON_TRACK,
+        IMPROVE_DAYS: IMPROVE,
+        WINDOW_DAYS: 30,
+        onTrackRatio: ON_TRACK / DAYS_PER_WEEK,
+        improveRatio: IMPROVE / DAYS_PER_WEEK,
+    };
 };
 
 /*************************************************
@@ -171,9 +188,10 @@ function computeStats() {
         }
     }
 
+    const currentGoals = window.getGoals();
     // 30-Day Windows
-    const thirtyGoal = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK));
-    const thirtyImprov = Math.round(dailyGoal * GOALS.WINDOW_DAYS * (GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK));
+    const thirtyGoal = Math.round(dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.onTrackRatio);
+    const thirtyImprov = Math.round(dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.improveRatio);
 
     let total30 = 0;
     for (let i = 0; i < 30; i++) {
@@ -245,9 +263,9 @@ function computeStats() {
     // Trend
     const trendPct = avg30 / dailyGoal;
     let trend = { label: "Below Target", color: "#ff3b30" };
-    if (trendPct >= GOALS.IMPROVE_DAYS / GOALS.DAYS_PER_WEEK) {
+    if (trendPct >= currentGoals.improveRatio) {
         trend = { label: "Improving", color: "#007aff" };
-    } else if (trendPct >= GOALS.ON_TRACK_DAYS / GOALS.DAYS_PER_WEEK) {
+    } else if (trendPct >= currentGoals.onTrackRatio) {
         trend = { label: "On Track", color: "#34c759" };
     }
 

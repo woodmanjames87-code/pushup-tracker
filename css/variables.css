@@ -15,6 +15,7 @@
     --track-bg: #39e6391a;
     --modal-bg: #0000007a;
     --modal-input-bg: #4343477c;
+    --nav-bg: #1a1a1a;
 }
 
 :root[data-theme="light"] {
@@ -26,4 +27,5 @@
     --modal-bg: #ffffff25;
     --modal-input-bg: #ffffff1e;
     --lb-row: rgba(0, 0, 0, 0.05);
+    --nav-bg: #f2f2f2;
 }

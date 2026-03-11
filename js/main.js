@@ -28,6 +28,8 @@ const updateNameBtn = document.getElementById("btn-update-username");
 const installBanner = document.getElementById("install-banner");
 const installNowBtn = document.getElementById("btn-install-now");
 const installCloseBtn = document.getElementById("btn-install-close");
+const minusBtn = document.getElementById("btn-ontrack-minus");
+const plusBtn = document.getElementById("btn-ontrack-plus");
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -59,6 +61,7 @@ async function initApp() {
         window.loadCurrentUsername();
     }
     if (window.updateDisplay) window.updateDisplay();
+    if (window.updateGoalUI) window.updateGoalUI();
 }
 
 // Lifecycle Listeners
@@ -303,6 +306,78 @@ function setupEventListeners() {
         });
     }
 
+    // --- Save Goal Settings Toggle ---
+    // Toggle logic
+    document.getElementById("threshold-mode-toggle")?.addEventListener("change", (e) => {
+        const data = window.loadData();
+        if (!data.settings) data.settings = {};
+        data.settings.thresholdMode = e.target.checked ? "recommended" : "custom";
+        localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+
+        window.updateGoalUI();
+        window.updateDisplay(); // Refresh dashboard stats immediately
+    });
+
+    window.adjustOnTrack = function (change) {
+        const input = document.getElementById("on-track-input");
+        const stepper = input?.closest(".number-stepper"); // Get the container for the animation
+
+        let currentVal = parseInt(input.value) || 4;
+        let newVal = currentVal + change;
+
+        // 1. SUCCESS: Within boundaries (1-6)
+        if (newVal >= 1 && newVal <= 6) {
+            input.value = newVal; // Immediate UI update
+
+            if (window.triggerHaptic) window.triggerHaptic("success");
+
+            // Update the textual hints instantly
+            const improveDisplay = document.getElementById("improve-display");
+            const onTrackHint = document.getElementById("on-track-display-hint");
+            if (improveDisplay) improveDisplay.innerText = newVal + 1;
+            if (onTrackHint) onTrackHint.innerText = newVal;
+
+            // Debounce the heavy save/re-render
+            window.debounceSave(() => {
+                const data = window.loadData();
+                if (!data.settings) data.settings = {};
+                if (!data.settings.goals) data.settings.goals = {};
+
+                data.settings.goals.onTrackDays = newVal;
+                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+
+                window.updateGoalUI();
+                window.updateDisplay();
+            }, 600);
+        } else {
+            // 2. WARNING: Hit the limit (0 or 7)
+            if (window.triggerHaptic) window.triggerHaptic("warning");
+
+            // RE-ADD THE SHAKE HERE
+            if (stepper) {
+                stepper.classList.add("limit-shake");
+                // Remove the class after the animation (0.2s * 2 cycles = 400ms approx)
+                setTimeout(() => stepper.classList.remove("limit-shake"), 400);
+            }
+        }
+    };
+
+    // Plus and Minus Button Listeners for On Track Days
+    const minusBtn = document.getElementById("btn-ontrack-minus");
+    const plusBtn = document.getElementById("btn-ontrack-plus");
+
+    if (minusBtn) {
+        minusBtn.addEventListener("click", () => {
+            window.adjustOnTrack(-1);
+        });
+    }
+
+    if (plusBtn) {
+        plusBtn.addEventListener("click", () => {
+            window.adjustOnTrack(1);
+        });
+    }
+
     // --- Theme / Display Mode Selector ---
     if (themeContainer) {
         const themeButtons = themeContainer.querySelectorAll(".seg-btn");
@@ -535,3 +610,45 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", ()
         window.setTheme("auto");
     }
 });
+
+// Save On Track Goal Settings (Exposed to window for inline onclick)
+window.saveGoalSettings = function (btn) {
+    const input = document.getElementById("on-track-input");
+    const newOnTrack = parseInt(input.value);
+
+    const data = window.loadData();
+    if (!data.settings) data.settings = {};
+    if (!data.settings.goals) data.settings.goals = {};
+
+    data.settings.goals.onTrackDays = newOnTrack;
+
+    localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+
+    // 🛡️ Success Feedback
+    if (window.triggerHaptic) window.triggerHaptic("success");
+
+    // Sync to cloud since goals changed
+    if (window.auth.currentUser) {
+        window.syncLocalToCloud(window.auth.currentUser.uid);
+    }
+
+    // Visual feedback on the button itself
+    if (btn) {
+        const originalText = btn.innerText;
+        btn.innerText = "Saved! ✓";
+        // Using inline style to override the class temporarily
+        btn.style.backgroundColor = "#34c759";
+        btn.style.borderColor = "#34c759";
+        btn.disabled = true; // Prevent double-clicks during sync
+        btn.style.opacity = "1";
+
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.backgroundColor = "";
+            btn.style.borderColor = "";
+            btn.disabled = false;
+        }, 2000);
+    }
+
+    if (window.updateGoalUI) window.updateGoalUI();
+};
