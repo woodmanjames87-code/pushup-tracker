@@ -299,6 +299,36 @@ function updateGoalUI() {
     if (improveDisplay) improveDisplay.innerText = Number(savedOnTrack) + 1;
 }
 
+// Leaderboard Podium Render
+function renderPodiumUI(winners, type) {
+    const existingPodium = document.getElementById("floating-podium");
+    if (existingPodium) existingPodium.remove();
+
+    if (winners.length === 0) return;
+
+    const label = type === "week" ? "Last Week's" : type === "month" ? "Last Month's" : "Last Year's";
+    
+    const html = `
+        <div id="floating-podium" class="podium-box">
+            <div class="podium-title">🏆 ${label} Top 3</div>
+            <div class="podium-list">
+                ${winners.map((w, i) => `
+                    <div class="podium-item">
+                        <span class="p-rank">${i + 1}</span>
+                        <span class="p-name">${w.userName}</span>
+                        <span class="p-score">${w.score}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    document.getElementById("leaderboard-page").insertAdjacentHTML("beforeend", html);
+}
+
+
+
+
 // Update the "Improve" hint when the user changes the number
 document.getElementById("on-track-input")?.addEventListener("input", (e) => {
     const val = parseInt(e.target.value);

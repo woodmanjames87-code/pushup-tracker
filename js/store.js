@@ -122,6 +122,23 @@ function getYearId(date) {
     return String(new Date(date).getFullYear());
 }
 
+window.getPreviousPeriodId = function(type, currentId) {
+    if (type === "weekly") {
+        // currentId format: "2026-W-3-8" (Sunday)
+        const d = new Date(currentId.split('-W-')[0], currentId.split('-W-')[1] - 1, currentId.split('-W-')[2]);
+        d.setDate(d.getDate() - 7);
+        return window.getWeekId(d);
+    } else if (type === "monthly") {
+        // currentId format: "2026-03"
+        const [year, month] = currentId.split('-').map(Number);
+        const d = new Date(year, month - 2, 1);
+        return window.getMonthId(d);
+    } else {
+        // currentId format: "2026"
+        return String(Number(currentId) - 1);
+    }
+};
+
 function computeStats() {
     const data = loadData();
     const today = new Date();

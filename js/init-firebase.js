@@ -158,7 +158,9 @@ async function syncLocalToCloud(userId, extraData = {}) {
 
     const localData = window.loadData();
     const s = window.computeStats();
+    const exerciseId = window.currentExercise; // 🚀 Pulling your current global
     const { doc, setDoc } = window.firebaseMethods;
+    
     const userRef = doc(window.db, "users", userId);
 
     const payload = {
@@ -166,12 +168,38 @@ async function syncLocalToCloud(userId, extraData = {}) {
         stats: mapStatsToSchema(s),
         workouts: localData,
         lastUpdated: new Date().toISOString(),
-        ...extraData, // Merges in things like 'username' or 'createdAt'
+        ...extraData,
     };
 
     try {
+        // 1. Update the Main User Profile
         await setDoc(userRef, payload, { merge: true });
-        console.log("Cloud sync successful.");
+
+        // 2. Update the Exercise-Specific Standings
+        const periods = [
+            { id: s.weekId, score: s.calendarWeeklyTotal, type: "weekly" },
+            { id: s.monthId, score: s.monthlyTotal, type: "monthly" },
+            { id: s.yearId, score: s.ytdTotal, type: "yearly" }
+        ];
+
+        const historyPromises = periods.map(p => {
+            // Document ID: "2026-W11_pushups_user123"
+            // This prevents different exercises from overwriting each other!
+            const standingId = `${p.id}_${exerciseId}_${userId}`;
+            const standingsRef = doc(window.db, "standings", standingId);
+            
+            return setDoc(standingsRef, {
+                userName: payload.username || "Anonymous",
+                score: p.score,
+                periodId: p.id,
+                exerciseId: exerciseId, // 🚀 Essential for filtering
+                type: p.type,
+                lastUpdated: new Date().toISOString()
+            }, { merge: true });
+        });
+
+        await Promise.all(historyPromises);
+        console.log(`Cloud sync successful for ${exerciseId}.`);
     } catch (err) {
         console.error("Cloud sync failed:", err);
     }
@@ -195,6 +223,23 @@ function mapStatsToSchema(s) {
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
+async function fetchPreviousPodium(type, currentPeriodId) {
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
+    const prevId = window.getPreviousPeriodId(type, currentPeriodId);
+    const exerciseId = window.currentExercise;
+
+    const q = query(
+        collection(window.db, "standings"),
+        where("periodId", "==", prevId),
+        where("exerciseId", "==", exerciseId),
+        orderBy("score", "desc"),
+        limit(3)
+    );
+
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => doc.data());
+}
+
 async function fetchLeaderboard(passedFilter = null) {
     const lbList = document.getElementById("lb-list");
     const rangeText = document.getElementById("lb-date-range-text");
@@ -212,11 +257,11 @@ async function fetchLeaderboard(passedFilter = null) {
     }
 
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
-    const usersRef = collection(window.db, "users");
     const now = new Date();
+    const exerciseId = window.currentExercise || "pushups"; // 🚀 Added context
     let displayLabel = "";
 
-    // 3. Set Display Label (Logic remains the same as your snippet)
+    // 3. Set Display Label (No changes here)
     if (filter === "stats.daily") displayLabel = "Today & Yesterday";
     else if (filter === "stats.week") {
         const sun = new Date(now);
@@ -227,15 +272,16 @@ async function fetchLeaderboard(passedFilter = null) {
     } else if (filter === "stats.year") {
         displayLabel = now.getFullYear();
     }
-
     if (rangeText) rangeText.innerText = displayLabel;
 
     try {
         lbList.innerHTML = '<div class="loader"></div>';
         let leaderboardData = [];
 
-        // 4. Fetch Logic (Keeping your logic for Map-based daily merging)
+        // 4. Fetch Logic
         if (filter === "stats.daily") {
+            // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
+            const usersRef = collection(window.db, "users");
             const qToday = query(usersRef, where("stats.todayId", "==", window.getTodayId()), limit(30));
             const qYest = query(usersRef, where("stats.todayId", "==", window.getYesterdayId()), limit(30));
 
@@ -268,28 +314,43 @@ async function fetchLeaderboard(passedFilter = null) {
 
             leaderboardData = Array.from(userMap.values());
             leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
-        } else {
-            const fieldName = filter.split(".")[1];
-            const idField = `stats.${fieldName}Id`;
 
+        } else {
+            // --- 🚀 NEW HISTORICAL LOGIC (Standings Collection) ---
+            const podiumData = await fetchPreviousPodium(fieldName === "week" ? "weekly" : fieldName === "month" ? "monthly" : "yearly", idValue);
+            renderPodiumUI(podiumData, fieldName);
+            
+            const fieldName = filter.split(".")[1]; // "week", "month", or "year"
+            
+            // Generate the Period ID for "Now"
             let idValue;
             if (fieldName === "week") idValue = getWeekId(now);
             else if (fieldName === "month") idValue = getMonthId(now);
             else idValue = getYearId(now);
 
-            const q = query(usersRef, where(idField, "==", idValue), orderBy(filter, "desc"), limit(20));
+            // Query the 'standings' collection instead of 'users'
+            const standingsRef = collection(window.db, "standings");
+            const q = query(
+                standingsRef, 
+                where("periodId", "==", idValue), 
+                where("exerciseId", "==", exerciseId), // 🚀 Exercise-aware!
+                orderBy("score", "desc"), 
+                limit(20)
+            );
+
             const querySnapshot = await getDocs(q);
 
             querySnapshot.forEach((doc) => {
+                const d = doc.data();
                 leaderboardData.push({
-                    uid: doc.id,
-                    username: doc.data().username || "Anonymous",
-                    score: doc.data().stats[fieldName] || 0,
+                    uid: doc.id.split("_").pop(), // Extract UID from end of doc ID
+                    username: d.userName || "Anonymous",
+                    score: d.score || 0,
                 });
             });
         }
 
-        // 5. Render
+        // 5. Render (No changes here)
         lbList.innerHTML = "";
         if (leaderboardData.length === 0) {
             lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
@@ -314,9 +375,11 @@ async function fetchLeaderboard(passedFilter = null) {
         });
     } catch (err) {
         console.error("Leaderboard failed:", err);
-        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.<br>Sign in to see your rank.</p>`;
+        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
     }
 }
+
+
 // EXPOSE TO WINDOW
 window.syncLocalToCloud = syncLocalToCloud;
 window.fetchLeaderboard = fetchLeaderboard;
