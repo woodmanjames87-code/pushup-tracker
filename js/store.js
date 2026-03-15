@@ -122,21 +122,29 @@ function getYearId(date) {
     return String(new Date(date).getFullYear());
 }
 
-window.getPreviousPeriodId = function(type, currentId) {
-    if (type === "weekly") {
-        // currentId format: "2026-W-3-8" (Sunday)
-        const d = new Date(currentId.split('-W-')[0], currentId.split('-W-')[1] - 1, currentId.split('-W-')[2]);
-        d.setDate(d.getDate() - 7);
-        return window.getWeekId(d);
-    } else if (type === "monthly") {
-        // currentId format: "2026-03"
-        const [year, month] = currentId.split('-').map(Number);
-        const d = new Date(year, month - 2, 1);
-        return window.getMonthId(d);
-    } else {
-        // currentId format: "2026"
-        return String(Number(currentId) - 1);
+window.getPreviousPeriodId = function (type, currentId) {
+    // We create a fresh date object right here to avoid any scope issues
+    const date = new Date();
+
+    // Normalize type to lowercase to avoid "Weekly" vs "weekly" bugs
+    const t = type.toLowerCase();
+
+    if (t.includes("week")) {
+        date.setDate(date.getDate() - 7);
+        return window.getWeekId(date);
     }
+
+    if (t.includes("month")) {
+        date.setMonth(date.getMonth() - 1);
+        return window.getMonthId(date);
+    }
+
+    if (t.includes("year")) {
+        date.setFullYear(date.getFullYear() - 1);
+        return window.getYearId(date);
+    }
+
+    return null;
 };
 
 function computeStats() {
@@ -503,6 +511,24 @@ async function exportData() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Fetch Previous Podium Data for Leaderboard
+async function fetchPreviousPodium(type, currentPeriodId) {
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
+    const prevId = window.getPreviousPeriodId(type, currentPeriodId);
+    const exerciseId = window.currentExercise;
+
+    const q = query(
+        collection(window.db, "standings"),
+        where("periodId", "==", prevId),
+        where("exerciseId", "==", exerciseId),
+        orderBy("score", "desc"),
+        limit(3),
+    );
+
+    const snap = await getDocs(q);
+    return snap.docs.map((doc) => doc.data());
 }
 
 // Expose Data & Logic to the Global Window Object

@@ -300,34 +300,42 @@ function updateGoalUI() {
 }
 
 // Leaderboard Podium Render
-function renderPodiumUI(winners, type) {
-    const existingPodium = document.getElementById("floating-podium");
-    if (existingPodium) existingPodium.remove();
+window.drawPodium = function (winners, filterType) {
+    const overlay = document.getElementById("mini-podium-overlay");
+    const titleEl = document.getElementById("podium-title");
+    const activeFilter = filterType || "stats.week";
 
-    if (winners.length === 0) return;
+    if (!winners || winners.length === 0) {
+        overlay.hidden = true;
+        return;
+    }
 
-    const label = type === "week" ? "Last Week's" : type === "month" ? "Last Month's" : "Last Year's";
-    
-    const html = `
-        <div id="floating-podium" class="podium-box">
-            <div class="podium-title">🏆 ${label} Top 3</div>
-            <div class="podium-list">
-                ${winners.map((w, i) => `
-                    <div class="podium-item">
-                        <span class="p-rank">${i + 1}</span>
-                        <span class="p-name">${w.userName}</span>
-                        <span class="p-score">${w.score}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
+    overlay.hidden = false;
 
-    document.getElementById("leaderboard-page").insertAdjacentHTML("beforeend", html);
-}
+    // 🚀 Update the title based on the filter
+    if (titleEl) {
+        const labels = {
+            "stats.week": "LAST WEEK'S TOP 3",
+            "stats.month": "LAST MONTH'S TOP 3",
+            "stats.year": "LAST YEAR'S TOP 3",
+        };
+        titleEl.textContent = labels[filterType] || "PREVIOUS TOP 3";
+    }
 
-
-
+    const classes = [".rank-1", ".rank-2", ".rank-3"];
+    classes.forEach((selector, index) => {
+        const slot = overlay.querySelector(selector);
+        const data = winners[index];
+        if (data) {
+            slot.querySelector(".p-name").textContent = data.userName;
+            const scoreEl = slot.querySelector(".p-score");
+            if (scoreEl) scoreEl.textContent = data.score;
+            slot.style.display = "flex";
+        } else {
+            slot.style.display = "none";
+        }
+    });
+};
 
 // Update the "Improve" hint when the user changes the number
 document.getElementById("on-track-input")?.addEventListener("input", (e) => {
