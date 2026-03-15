@@ -627,6 +627,111 @@ input:checked + .slider:before {
     color: var(--fitness-green);
 }
 
+/* Base container for the floating overlay */
+.mini-podium {
+    position: absolute;
+    bottom: 90px;
+    left: 20px;
+    right: 20px;
+    height: 110px; /* Give it enough height for the staggering */
+    pointer-events: none;
+    z-index: 10;
+}
+.p-title {
+    position: absolute;
+    top: -25px; /* Sits just above the 1st place crown */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+/* Individual slot styling */
+.podium-slot {
+    position: absolute; /* Crucial for staggering */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+}
+
+/* The Staggering Logic */
+.rank-1 {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-color: gold;
+}
+.rank-2 {
+    top: 35%;
+    left: 0;
+}
+.rank-3 {
+    bottom: 0;
+    right: 0;
+}
+
+.p-rank {
+    font-weight: 900;
+    opacity: 0.6;
+    font-size: 0.8rem;
+}
+.p-name {
+    font-weight: 600;
+    max-width: 70px; /* Keeps names from pushing the box too wide */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.p-score {
+    font-weight: 800;
+    color: #f39c12; /* Gold color */
+    font-size: 0.8rem;
+    padding-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.2); /* Subtle divider */
+}
+.crown {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+/* 1st Place - Gold */
+.rank-1 .p-score {
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+}
+
+/* 2nd Place - Silver */
+.rank-2 .p-score {
+    color: #e8e8e8;
+    text-shadow: 0 0 5px rgba(192, 192, 192, 0.3);
+}
+
+/* 3rd Place - Bronze */
+.rank-3 .p-score {
+    color: #cd7f32;
+    text-shadow: 0 0 5px rgba(205, 127, 50, 0.3);
+}
+
+/* Optional: Make the rank numbers match the metal too */
+.rank-2 .p-rank {
+    color: #c0c0c0;
+    opacity: 0.8;
+}
+.rank-3 .p-rank {
+    color: #cd7f32;
+    opacity: 0.8;
+}
 /* =================================================
    SETTINGS & EDITING
    ================================================= */

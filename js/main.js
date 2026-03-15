@@ -436,6 +436,161 @@ function setupEventListeners() {
 }
 
 /*************************************************
+ * LEADERBOARD LOGIC
+ *************************************************/
+window.fetchLeaderboard = async function (passedFilter = null) {
+    // Hide the staggered podium by default (will be shown if data exists)
+    const podiumOverlay = document.getElementById("mini-podium-overlay");
+    if (podiumOverlay) podiumOverlay.hidden = true;
+
+    const lbList = document.getElementById("lb-list");
+    const rangeText = document.getElementById("lb-date-range-text");
+    if (!lbList) return;
+
+    // 1. Determine Filter
+    const filterContainer = document.getElementById("leaderboard-filter");
+    const activeBtn = filterContainer ? filterContainer.querySelector(".seg-btn.active") : null;
+    const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
+
+    // 2. Safety Guard
+    if (!window.firebaseMethods || !window.db) {
+        lbList.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
+        return;
+    }
+
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
+    const now = new Date();
+    const exerciseId = window.currentExercise || "pushups"; // 🚀 Added context
+    let displayLabel = "";
+
+    // 3. Set Display Label (No changes here)
+    if (filter === "stats.daily") displayLabel = "Today & Yesterday";
+    else if (filter === "stats.week") {
+        const sun = new Date(now);
+        sun.setDate(now.getDate() - now.getDay());
+        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    } else if (filter === "stats.month") {
+        displayLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    } else if (filter === "stats.year") {
+        displayLabel = now.getFullYear();
+    }
+    if (rangeText) rangeText.innerText = displayLabel;
+
+    try {
+        lbList.innerHTML = '<div class="loader"></div>';
+        let leaderboardData = [];
+
+        // 4. Fetch Logic
+        if (filter === "stats.daily") {
+            if (window.drawPodium) window.drawPodium(null);
+            // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
+            const usersRef = collection(window.db, "users");
+            const qToday = query(usersRef, where("stats.todayId", "==", window.getTodayId()), limit(30));
+            const qYest = query(usersRef, where("stats.todayId", "==", window.getYesterdayId()), limit(30));
+
+            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
+            const userMap = new Map();
+
+            snapYest.forEach((doc) => {
+                const s = doc.data().stats;
+                userMap.set(doc.id, {
+                    uid: doc.id,
+                    username: doc.data().username || "Anonymous",
+                    todayScore: 0,
+                    yesterdayScore: s.today || 0,
+                });
+            });
+
+            snapToday.forEach((doc) => {
+                const s = doc.data().stats;
+                if (userMap.has(doc.id)) {
+                    userMap.get(doc.id).todayScore = s.today;
+                } else {
+                    userMap.set(doc.id, {
+                        uid: doc.id,
+                        username: doc.data().username || "Anonymous",
+                        todayScore: s.today,
+                        yesterdayScore: s.yest || 0,
+                    });
+                }
+            });
+
+            leaderboardData = Array.from(userMap.values());
+            leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
+        } else {
+            // --- 🚀 NEW HISTORICAL LOGIC (Standings Collection) ---
+            const fieldName = filter.split(".")[1]; // "week", "month", or "year"
+            const now = new Date();
+
+            let idValue;
+            if (fieldName === "week") idValue = getWeekId(now);
+            else if (fieldName === "month") idValue = getMonthId(now);
+            else idValue = getYearId(now);
+
+            // NOW you can call these
+            // ... inside the else (Historical Logic) block ...
+            const typeKey = fieldName === "week" ? "weekly" : fieldName === "month" ? "monthly" : "yearly";
+
+            // 1. Fetch the data using your existing function
+            const podiumData = await fetchPreviousPodium(typeKey, idValue);
+
+            // 2. Call the DRAW function (make sure this matches the name in your JS)
+            if (window.drawPodium) {
+                window.drawPodium(podiumData, filter);
+            }
+
+            // Query the 'standings' collection instead of 'users'
+            const standingsRef = collection(window.db, "standings");
+            const q = query(
+                standingsRef,
+                where("periodId", "==", idValue),
+                where("exerciseId", "==", exerciseId), // 🚀 Exercise-aware!
+                orderBy("score", "desc"),
+                limit(20),
+            );
+
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const d = doc.data();
+                leaderboardData.push({
+                    uid: doc.id.split("_").pop(), // Extract UID from end of doc ID
+                    username: d.userName || "Anonymous",
+                    score: d.score || 0,
+                });
+            });
+        }
+
+        // 5. Render (No changes here)
+        lbList.innerHTML = "";
+        if (leaderboardData.length === 0) {
+            lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
+            return;
+        }
+
+        leaderboardData.forEach((user, index) => {
+            const isMe = user.uid === window.auth?.currentUser?.uid;
+            const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
+
+            const row = `
+                <div class="lb-row ${isMe ? "is-me" : ""}">
+                    <span class="lb-rank">${index + 1}</span>
+                    <span class="lb-name">${user.username}</span>
+                    <div style="text-align:right">
+                        <span class="lb-score">${displayScore.toLocaleString()}</span>
+                        ${filter === "stats.daily" ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` : ""}
+                    </div>
+                </div>
+            `;
+            lbList.insertAdjacentHTML("beforeend", row);
+        });
+    } catch (err) {
+        console.error("Leaderboard failed:", err);
+        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
+    }
+};
+
+/*************************************************
  *  PWA & SERVICE WORKER UTILS
  *************************************************/
 async function initPWAUtils() {

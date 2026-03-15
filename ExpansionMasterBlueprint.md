@@ -58,6 +58,8 @@
       o	Logic: Query the collection path users/*/exercises/[currentExercise] (using a Collection Group query or specific pathing).
 •	[ ] Dynamic Header:
       o	Update: Change document.getElementById("leaderboard-title").innerText based on EXERCISE_LIB[currentExercise].name.
+•     [ ] Non-Destructive Stats: Update mapStatsToSchema to store totals in a history object keyed by weekId. This prevents Monday morning logs from wiping the previous week's winning data before it can be archived.
+•     [ ] Winner Archiving: Create a leaderboard_history collection. Implement a "Snapshot" logic that saves the Top 3 performers' names and scores at the end of every Week/Month to provide a historical "Hall of Fame" view.
 
 ## Phase 6: Input & Safety (The FAB)
 
