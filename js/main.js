@@ -555,7 +555,7 @@ window.fetchLeaderboard = async function (passedFilter = null) {
                 const d = doc.data();
                 leaderboardData.push({
                     uid: doc.id.split("_").pop(), // Extract UID from end of doc ID
-                    username: d.userName || "Anonymous",
+                    username: d.username || "Anonymous",
                     score: d.score || 0,
                 });
             });
@@ -812,8 +812,7 @@ window.getDisplayUsername = function(extraData = {}) {
     const localData = window.loadData();
     const nameInput = document.getElementById("username-input");
     
-    return extraData.userName || 
-           extraData.username || 
+    return extraData.username || 
            (nameInput && nameInput.value ? nameInput.value : null) || 
            localData.settings?.username || 
            window.auth?.currentUser?.displayName || 

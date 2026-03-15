@@ -631,7 +631,7 @@ input:checked + .slider:before {
 /* The Container: Lift it up! */
 .mini-podium {
     position: fixed;
-    bottom: 120px; /* 🚀 Lifted high enough to clear the Log Set button */
+    bottom: 200px; /* 🚀 Lifted high enough to clear the Log Set button */
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -662,8 +662,7 @@ input:checked + .slider:before {
     white-space: nowrap;
 }
 /* Individual slot styling */
-.podium-slot {
-    position: absolute; /* Crucial for staggering */
+ .podium-slot {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -675,11 +674,12 @@ input:checked + .slider:before {
     gap: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     white-space: nowrap;
-}
+    position: relative;
+} 
 
 .rank-1 {
-    margin-bottom: 15px;
-    margin-top: 10px;
+    margin-bottom: 12px;
+    margin-top: 25px;
     padding: 8px 15px;
     background: rgba(255, 215, 0, 0.1); /* Subtle gold tint */
     border-radius: 12px;
@@ -688,13 +688,17 @@ input:checked + .slider:before {
 /* Side-by-Side wrapper */
 .lower-ranks {
     display: flex;
+    flex-direction: row;
     justify-content: center;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
     width: 100%;
+    margin-top: 5px;
 }
 
 .rank-2, .rank-3 {
     flex: 1; /* Makes them equal width */
+    min-width: 0;
     justify-content: center;
     font-size: 0.85rem;
     padding: 6px;
@@ -722,9 +726,10 @@ input:checked + .slider:before {
 }
 .crown {
     position: absolute;
-    top: -16px;
+    top: -18px;
     left: 50%;
     transform: translateX(-50%);
+    font-size: 1.2rem;
 }
 /* 1st Place - Gold */
 .rank-1 .p-score {
