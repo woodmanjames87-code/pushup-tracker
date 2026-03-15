@@ -191,7 +191,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
             return setDoc(
                 standingsRef,
                 {
-                    userName: payload.username || "Anonymous",
+                    userName: extraData.username || window.loadCurrentUsername || "Anonymous",
                     score: p.score,
                     periodId: p.id,
                     exerciseId: exerciseId, // 🚀 Essential for filtering
