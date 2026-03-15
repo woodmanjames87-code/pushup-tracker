@@ -628,20 +628,32 @@ input:checked + .slider:before {
 }
 
 /* Base container for the floating overlay */
+/* The Container: Lift it up! */
 .mini-podium {
-    position: absolute;
-    bottom: 90px;
-    left: 20px;
-    right: 20px;
-    height: 110px; /* Give it enough height for the staggering */
-    pointer-events: none;
-    z-index: 10;
-}
-.p-title {
-    position: absolute;
-    top: -25px; /* Sits just above the 1st place crown */
+    position: fixed;
+    bottom: 120px; /* 🚀 Lifted high enough to clear the Log Set button */
     left: 50%;
     transform: translateX(-50%);
+    z-index: 10;
+    width: 90%;
+    max-width: 350px;
+}
+
+.podium-frame {
+    background: rgba(30, 30, 35, 0.85); /* Dark glass look */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px 10px 15px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.p-title {
+    position: absolute;
+    top: 8px;
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 1.5px;
@@ -665,20 +677,29 @@ input:checked + .slider:before {
     white-space: nowrap;
 }
 
-/* The Staggering Logic */
 .rank-1 {
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    border-color: gold;
+    margin-bottom: 15px;
+    margin-top: 10px;
+    padding: 8px 15px;
+    background: rgba(255, 215, 0, 0.1); /* Subtle gold tint */
+    border-radius: 12px;
 }
-.rank-2 {
-    top: 35%;
-    left: 0;
+
+/* Side-by-Side wrapper */
+.lower-ranks {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
 }
-.rank-3 {
-    bottom: 0;
-    right: 0;
+
+.rank-2, .rank-3 {
+    flex: 1; /* Makes them equal width */
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
 }
 
 .p-rank {
