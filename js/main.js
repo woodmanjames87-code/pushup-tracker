@@ -807,3 +807,14 @@ window.saveGoalSettings = function (btn) {
 
     if (window.updateGoalUI) window.updateGoalUI();
 };
+
+window.getDisplayUsername = function() {
+    const localData = window.loadData();
+    const nameInput = document.getElementById("username-input");
+    
+    return extraData.userName || 
+           (nameInput ? nameInput.value : null) || 
+           localData.settings?.username || 
+           window.auth?.currentUser?.displayName || 
+           "Anonymous";
+};

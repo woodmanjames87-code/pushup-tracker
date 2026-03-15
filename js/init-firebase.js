@@ -160,7 +160,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
     const s = window.computeStats();
     const exerciseId = window.currentExercise; // 🚀 Pulling your current global
     const { doc, setDoc } = window.firebaseMethods;
-
+ 
     const userRef = doc(window.db, "users", userId);
 
     const payload = {
@@ -191,7 +191,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
             return setDoc(
                 standingsRef,
                 {
-                    userName: extraData.username || window.loadCurrentUsername || "Anonymous",
+                    userName: window.getDisplayUsername(),
                     score: p.score,
                     periodId: p.id,
                     exerciseId: exerciseId, // 🚀 Essential for filtering
