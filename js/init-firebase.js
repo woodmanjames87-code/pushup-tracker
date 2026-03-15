@@ -191,7 +191,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
             return setDoc(
                 standingsRef,
                 {
-                    userName: window.getDisplayUsername(),
+                    userName: window.getDisplayUsername(extraData),
                     score: p.score,
                     periodId: p.id,
                     exerciseId: exerciseId, // 🚀 Essential for filtering

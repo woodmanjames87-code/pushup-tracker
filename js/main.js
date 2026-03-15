@@ -808,12 +808,13 @@ window.saveGoalSettings = function (btn) {
     if (window.updateGoalUI) window.updateGoalUI();
 };
 
-window.getDisplayUsername = function() {
+window.getDisplayUsername = function(extraData = {}) { 
     const localData = window.loadData();
     const nameInput = document.getElementById("username-input");
     
     return extraData.userName || 
-           (nameInput ? nameInput.value : null) || 
+           extraData.username || 
+           (nameInput && nameInput.value ? nameInput.value : null) || 
            localData.settings?.username || 
            window.auth?.currentUser?.displayName || 
            "Anonymous";
