@@ -51,6 +51,7 @@
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
+    background-color: var(--bg-color);
 }
 
 /* =========================
@@ -606,6 +607,10 @@ input:checked + .slider:before {
 /* =================================================
    LEADERBOARD
    ================================================= */
+#lb-list {
+    /* Create a massive buffer at the bottom of the SCROLLABLE area */
+    padding-bottom: 250px !important;
+}
 .lb-row {
     padding: 8px 15px;
     background: var(--card-bg);
@@ -631,18 +636,32 @@ input:checked + .slider:before {
 /* The Container: Lift it up! */
 .mini-podium {
     position: fixed;
-    bottom: 160px; /* 🚀 Lifted high enough to clear the Log Set button */
+    bottom: 155px; /* 🚀 Lifted high enough to clear the Log Set button */
+    bottom: calc(155px + env(safe-area-inset-bottom));
     left: 50%;
-    transform: translateX(-50%);
     z-index: 10;
     width: 90%;
     max-width: 350px;
+    /* 🚀 Initial State: Lowered and invisible */
+    transform: translate(-50%, 300px);
+    opacity: 0;
+    /* 🕒 The Magic: Smooth transition for position and fade */
+    transition:
+        transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        opacity 1s ease-out;
+    pointer-events: none;
+}
+/* 🟢 The "Active" State: Slide up and fade in */
+.mini-podium.active {
+    transform: translate(-50%, 0) !important;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .podium-frame {
-    background: rgba(30, 30, 35, 0.85); /* Dark glass look */
+    background: var(--card-bg); /* Dark glass look */
     -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 10px;
@@ -658,15 +677,15 @@ input:checked + .slider:before {
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 1.5px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     text-transform: uppercase;
     white-space: nowrap;
 }
 /* Individual slot styling */
- .podium-slot {
-    background: rgba(255, 255, 255, 0.1);
+.podium-slot {
+    background: var(--card-btn);
     -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 6px 12px;
     border-radius: 12px;
@@ -676,7 +695,7 @@ input:checked + .slider:before {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     white-space: nowrap;
     position: relative;
-} 
+}
 
 .rank-1 {
     margin-bottom: 6px;
@@ -697,7 +716,8 @@ input:checked + .slider:before {
     margin-top: 5px;
 }
 
-.rank-2, .rank-3 {
+.rank-2,
+.rank-3 {
     flex: 1; /* Makes them equal width */
     min-width: 0;
     justify-content: center;
@@ -734,13 +754,13 @@ input:checked + .slider:before {
 }
 /* 1st Place - Gold */
 .rank-1 .p-score {
-    color: #ffd700;
+    color: var(--podium-gold);
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
 }
 
 /* 2nd Place - Silver */
 .rank-2 .p-score {
-    color: #e8e8e8;
+    color: var(--podium-rank-2);
     text-shadow: 0 0 5px rgba(192, 192, 192, 0.3);
 }
 
@@ -752,7 +772,7 @@ input:checked + .slider:before {
 
 /* Optional: Make the rank numbers match the metal too */
 .rank-2 .p-rank {
-    color: #c0c0c0;
+    color: var(--podium-rank-2);
     opacity: 0.8;
 }
 .rank-3 .p-rank {

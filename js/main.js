@@ -37,31 +37,50 @@ const plusBtn = document.getElementById("btn-ontrack-plus");
 async function initApp() {
     if (document.visibilityState === "hidden") return;
 
-    // Set initial date if not set
+    // 1. Set initial date if not set
     if (!window.selectedEditDate && window.getDateKey) {
         window.selectedEditDate = window.getDateKey();
         if (datePicker) datePicker.value = window.selectedEditDate;
     }
 
-    // Theme & Initial Navigation
+    // 2. Theme & Initial Navigation
     const savedTheme = localStorage.getItem("user-theme") || "auto";
     if (window.setTheme) window.setTheme(savedTheme);
 
     const hash = window.location.hash.substring(1);
     window.showPage(hash ? hash.replace("-page", "") : "tracker");
 
-    // Only run one-time setups once
+    // 3. Only run one-time setups once
     if (!window.appInitialized) {
         setupEventListeners();
         initPWAUtils(); // Version checking & Service Worker
         window.appInitialized = true;
     }
 
-    if (window.loadCurrentUsername) {
-        window.loadCurrentUsername();
-    }
+    // 4. Immediate UI Refresh (Local Data)
+    if (window.loadCurrentUsername) window.loadCurrentUsername();
     if (window.updateDisplay) window.updateDisplay();
     if (window.updateGoalUI) window.updateGoalUI();
+
+    // 5. 🚀 Background Reconciliation (Silent)
+    // Runs every time the app is focused or loaded
+    if (window.auth?.currentUser && window.reconcileData) {
+        window
+            .reconcileData()
+            .then(() => {
+                console.log("☁️ Background sync check complete.");
+
+                // Re-render display in case new sets were pulled from cloud
+                if (window.updateDisplay) window.updateDisplay();
+
+                // If user is currently looking at the leaderboard, refresh it silently
+                const pageId = window.location.hash.substring(1).replace("-page", "");
+                if (pageId === "leaderboard" && window.fetchLeaderboard) {
+                    window.fetchLeaderboard();
+                }
+            })
+            .catch((err) => console.error("Sync Error:", err));
+    }
 }
 
 // Lifecycle Listeners
@@ -710,7 +729,7 @@ function setupPullToRefresh() {
     let isPulling = false;
     const ptr = document.getElementById("pull-to-refresh");
 
-    if (!ptr) return; // Guard clause
+    if (!ptr) return;
 
     window.addEventListener(
         "touchstart",
@@ -736,22 +755,28 @@ function setupPullToRefresh() {
         { passive: true },
     );
 
-    window.addEventListener("touchend", (e) => {
+    window.addEventListener("touchend", async (e) => {
         if (!isPulling) return;
         const diff = e.changedTouches[0].pageY - startY;
 
         if (diff > 70) {
             ptr.style.transform = "translateY(60px)";
+            ptr.classList.add("refreshing"); // 🔄 Optional: add a spin animation in CSS
 
-            // --- Save current page state ---
-            const pages = document.querySelectorAll(".page");
-            let activePageId = "tracker-page";
-            pages.forEach((page) => {
-                if (page.style.display !== "none") activePageId = page.id;
-            });
-            window.location.hash = activePageId;
+            // 🚀 SMART SYNC
+            await reconcileData();
 
-            location.reload();
+            // 🏆 REFRESH LEADERBOARD (if visible)
+            const pageId = window.location.hash.substring(1).replace("-page", "");
+            if (pageId === "leaderboard" && window.fetchLeaderboard) {
+                await window.fetchLeaderboard();
+            }
+
+            // Snap back
+            setTimeout(() => {
+                ptr.style.transform = "translateY(0)";
+                ptr.classList.remove("refreshing");
+            }, 300);
         } else {
             ptr.style.transform = "translateY(0)";
         }
@@ -808,13 +833,78 @@ window.saveGoalSettings = function (btn) {
     if (window.updateGoalUI) window.updateGoalUI();
 };
 
-window.getDisplayUsername = function(extraData = {}) { 
+window.getDisplayUsername = function (extraData = {}) {
     const localData = window.loadData();
     const nameInput = document.getElementById("username-input");
-    
-    return extraData.username || 
-           (nameInput && nameInput.value ? nameInput.value : null) || 
-           localData.settings?.username || 
-           window.auth?.currentUser?.displayName || 
-           "Anonymous";
+
+    return (
+        extraData.username ||
+        (nameInput && nameInput.value ? nameInput.value : null) ||
+        localData.settings?.username ||
+        window.auth?.currentUser?.displayName ||
+        "Anonymous"
+    );
+};
+
+let isReconciling = false;
+
+window.reconcileData = async function reconcileData() {
+    if (isReconciling) return;
+    isReconciling = true;
+    window.isReconciling = true;
+
+    const user = window.auth?.currentUser;
+    if (!user || !window.firebaseMethods) return;
+
+    const { doc, getDoc } = window.firebaseMethods;
+    const userRef = doc(window.db, "users", user.uid);
+    const exerciseId = window.currentExercise || "pushups";
+
+    try {
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+            window.isReconciling = false; // Release lock
+            await window.syncLocalToCloud(user.uid);
+            return;
+        }
+
+        const cloudData = snap.data();
+        const cloudWorkouts = cloudData.workouts || {};
+        const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY)) || {};
+
+        const sortedDates = Object.keys(cloudWorkouts).sort((a, b) => b.localeCompare(a));
+        let localUpdated = false;
+
+        for (const dateKey of sortedDates) {
+            const cloudSets = cloudWorkouts[dateKey]?.[exerciseId] || [];
+            const localSets = localData[dateKey]?.[exerciseId] || [];
+
+            const isMatch =
+                cloudSets.length === localSets.length && cloudSets.every((val, index) => val === localSets[index]);
+
+            if (isMatch) break;
+
+            if (cloudSets.length > localSets.length) {
+                if (!localData[dateKey]) localData[dateKey] = {};
+                localData[dateKey][exerciseId] = cloudSets;
+                localUpdated = true;
+            }
+        }
+
+        if (localUpdated) {
+            console.log(`✅ Synced ${exerciseId} from cloud.`);
+            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(localData));
+            if (window.updateDisplay) window.updateDisplay();
+        }
+
+        // --- 🚀 THE FIX IS HERE ---
+        // Release the lock NOW so the following sync call is allowed to run
+        window.isReconciling = false;
+
+        // 3. Update Standings/Stats (This call will now pass the 'if' check in syncLocalToCloud)
+        await window.syncLocalToCloud(user.uid);
+    } catch (err) {
+        console.error("Reconciliation failed:", err);
+        window.isReconciling = false; // Always release on error to prevent locking the app
+    }
 };

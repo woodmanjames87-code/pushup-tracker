@@ -16,6 +16,9 @@
     --modal-bg: #0000007a;
     --modal-input-bg: #4343477c;
     --nav-bg: #1a1a1a;
+    --podium-rank-bg: rgba(255, 255, 255, 0.05);
+    --podium-rank-2: #e8e8e8;
+    --podium-gold: #ffd700;
 }
 
 :root[data-theme="light"] {
@@ -28,4 +31,7 @@
     --modal-input-bg: #ffffff1e;
     --lb-row: rgba(0, 0, 0, 0.05);
     --nav-bg: #f2f2f2;
+    --podium-rank-bg: rgba(0, 0, 0, 0.05);
+    --podium-rank-2: #6d6d6d;
+    --podium-gold: #ac9518;
 }

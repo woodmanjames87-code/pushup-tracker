@@ -112,31 +112,8 @@ async function startCloudSync() {
         const userRef = doc(window.db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
-        const localData = window.loadData();
-        const isLocalEmpty = Object.keys(localData).length === 0 || !localData.history;
-
-        if (userSnap.exists()) {
-            const cloudData = userSnap.data();
-
-            // 🛡️ CRITICAL: If local is empty but cloud has data, PULL instead of pushing
-            if (isLocalEmpty && cloudData.workouts) {
-                console.log("New device detected. Pulling cloud data...");
-                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(cloudData.workouts));
-
-                // Refresh the app state so the UI shows the pulled data
-                if (window.initApp) window.initApp();
-                return; // STOP HERE. Don't sync back up yet.
-            }
-
-            // If not empty, just sync the username
-            if (cloudData.username) {
-                const data = window.loadData();
-                if (!data.settings) data.settings = {};
-                data.settings.username = cloudData.username;
-                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
-            }
-        } else {
-            // NEW USER logic
+        if (!userSnap.exists()) {
+            // NEW USER: Setup Profile
             const alias = prompt("Pick a username:", user.displayName);
             const finalAlias = alias || user.displayName || "Anonymous";
 
@@ -146,21 +123,28 @@ async function startCloudSync() {
             });
         }
 
-        // Only sync Up if we didn't just perform a critical Pull
-        await syncLocalToCloud(user.uid);
+        // 🚀 Hand off to the Smart Merge
+        await reconcileData();
+
+        // Refresh UI
+        if (window.initApp) window.initApp();
     } catch (error) {
         console.error("Login failed:", error);
     }
 }
 
 async function syncLocalToCloud(userId, extraData = {}) {
+    if (window.isReconciling) {
+        console.warn("🛡️ Sync blocked: App is currently merging data from cloud.");
+        return;
+    }
     if (!userId || !window.firebaseMethods) return;
 
     const localData = window.loadData();
     const s = window.computeStats();
     const exerciseId = window.currentExercise; // 🚀 Pulling your current global
     const { doc, setDoc } = window.firebaseMethods;
- 
+
     const userRef = doc(window.db, "users", userId);
 
     const payload = {

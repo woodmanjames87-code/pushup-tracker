@@ -77,6 +77,18 @@ function showPage(pageId) {
         if (window.renderEditList) window.renderEditList();
         if (window.updateGoalUI) window.updateGoalUI();
     }
+
+    // 6. Podium Cleanup: Hide immediately if we aren't on Leaderboard
+    const podium = document.getElementById("mini-podium-overlay");
+    if (podium && pageId !== "leaderboard") {
+        podium.classList.remove("active");
+        // We use a timeout to hide it completely so the slide-down animation can finish
+        setTimeout(() => {
+            if (!podium.classList.contains("active")) {
+                podium.hidden = true;
+            }
+        }, 1000); // Adjust to match your CSS transition time
+    }
 }
 
 function openLogModal() {
@@ -303,16 +315,22 @@ function updateGoalUI() {
 window.drawPodium = function (winners, filterType) {
     const overlay = document.getElementById("mini-podium-overlay");
     const titleEl = document.getElementById("podium-title");
-    const activeFilter = filterType || "stats.week";
 
+    // 1. If no winners, slide down and hide
     if (!winners || winners.length === 0) {
-        overlay.hidden = true;
+        overlay.classList.remove("active");
+        setTimeout(() => {
+            if (!overlay.classList.contains("active")) overlay.hidden = true;
+        }, 1000); // Matches CSS transition time
         return;
     }
 
+    // 2. Prepare for entrance
     overlay.hidden = false;
+    // Tiny delay ensures the browser sees 'hidden=false' before adding 'active'
+    setTimeout(() => overlay.classList.add("active"), 10);
 
-    // 🚀 Update the title based on the filter
+    // 3. Update Title
     if (titleEl) {
         const labels = {
             "stats.week": "LAST WEEK'S TOP 3",
@@ -322,12 +340,16 @@ window.drawPodium = function (winners, filterType) {
         titleEl.textContent = labels[filterType] || "PREVIOUS TOP 3";
     }
 
+    // 4. Update Slots
     const classes = [".rank-1", ".rank-2", ".rank-3"];
     classes.forEach((selector, index) => {
         const slot = overlay.querySelector(selector);
         const data = winners[index];
+
         if (data) {
-            slot.querySelector(".p-name").textContent = data.userName;
+            // 🚀 Logic Fix: Check both cases just to be safe during the transition
+            slot.querySelector(".p-name").textContent = data.username || data.userName || "---";
+
             const scoreEl = slot.querySelector(".p-score");
             if (scoreEl) scoreEl.textContent = data.score;
             slot.style.display = "flex";
