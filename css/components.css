@@ -1,6 +1,6 @@
 .page-header .divider {
     border: 0;
-    border-top: 1px solid #3a3a3c;
+    border-top: var(--glass-border);
     margin: 15px 0 0 0;
     width: 100%;
 }
@@ -51,7 +51,7 @@
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    background-color: var(--bg-color);
+    background-color: var(--layer-0);
 }
 
 /* =========================
@@ -82,7 +82,7 @@
     box-shadow:
         inset 0px -4px 8px rgb(0 0 0 / 34%),
         0 8px 4px rgba(0, 0, 0, 0.34);
-    border: 1px solid var(--card-bg);
+    border: var(--glass-border);
 }
 
 .btn-icon {
@@ -118,7 +118,7 @@
 }
 
 .btn-secondary {
-    background: var(--card-btn);
+    background: var(--layer-3);
     color: var(--text);
 }
 .btn-secondary:disabled {
@@ -180,7 +180,7 @@
 }
 
 #theme-selector .seg-btn.active {
-    background: var(--bg-color); /* Match the current theme for a more integrated look */
+    background: var(--layer-0); /* Match the current theme for a more integrated look */
 }
 
 .input-inline-group input {
@@ -188,9 +188,9 @@
     min-width: 0;
     padding: 10px;
     border-radius: 8px;
-    border: 1px solid var(--text);
-    background: var(--bg-color);
-    color: var(--text-color);
+    border: var(--glass-border);
+    background: var(--layer-0);
+    color: var(--text);
     font-size: 1rem;
     text-align: center;
 }
@@ -231,7 +231,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-1);
 }
 
 .stepper-btn:active {
@@ -309,7 +309,7 @@
     border-radius: 999px;
     border: 1px solid var(--text-muted);
     box-sizing: border-box;
-    background-color: var(--card-btn);
+    background-color: var(--layer-1);
 }
 
 /* The white circle/knob */
@@ -323,8 +323,8 @@
     background-color: var(--text);
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 999px;
-    border: black 1px solid;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: var(--glass-border);
+    box-shadow: var(--shadow-1);
 }
 
 /* Track color when "on" (checked) */
@@ -353,7 +353,7 @@ input:checked + .slider:before {
     border-radius: 20px;
     border: 1px solid #dadce0;
     background-color: white;
-    box-shadow: 0 2px 8px rgba(2, 2, 2, 0.1); /* Adds a little "lift" */
+    box-shadow: var(--shadow-2);
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
@@ -377,14 +377,14 @@ input:checked + .slider:before {
    5. WIDGET CARDS (BENTO BOXES)
    ================================================= */
 .widget-card {
-    background: var(--card-bg);
+    background: var(--layer-1);
     box-sizing: border-box;
     width: 100%;
     padding: 12px;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-1);
 }
 
 /* Hide card by default */
@@ -478,7 +478,7 @@ input:checked + .slider:before {
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    background: var(--card-bg);
+    background: var(--layer-1);
     margin: 8px 0;
 }
 
@@ -613,14 +613,14 @@ input:checked + .slider:before {
 }
 .lb-row {
     padding: 8px 15px;
-    background: var(--card-bg);
+    background: var(--layer-1);
     margin-bottom: 8px;
     border-radius: 12px;
 }
 
 .lb-row.is-me {
     border: 2px solid var(--primary-light);
-    background: var(--card-bg);
+    background: var(--layer-1);
 }
 .lb-rank {
     font-weight: bold;
@@ -659,16 +659,16 @@ input:checked + .slider:before {
 }
 
 .podium-frame {
-    background: var(--card-bg); /* Dark glass look */
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--layer-3); /* Dark glass look */
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
     border-radius: 16px;
     padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-3);
 }
 
 .p-title {
@@ -683,16 +683,16 @@ input:checked + .slider:before {
 }
 /* Individual slot styling */
 .podium-slot {
-    background: var(--card-btn);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--layer-4);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
     padding: 6px 12px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-4);
     white-space: nowrap;
     position: relative;
 }
@@ -783,8 +783,8 @@ input:checked + .slider:before {
    SETTINGS & EDITING
    ================================================= */
 .date-picker-trigger {
-    background: var(--card-btn);
-    border: 1px solid var(--card-btn);
+    background: var(--layer-3);
+    border: var(--glass-border);
     border-radius: 10px;
 }
 
@@ -822,8 +822,8 @@ input:checked + .slider:before {
 }
 
 .edit-item {
-    background: var(--card-bg);
-    border: var(--card-btn) 1px solid;
+    background: var(--layer-1);
+    border: var(--glass-border);
     border-radius: 12px;
 }
 
@@ -831,17 +831,17 @@ input:checked + .slider:before {
    MODALS
    ================================================= */
 .modal-overlay {
-    background: rgba(53, 53, 53, 0.233);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    background: var(--layer-3);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
 }
 
 .modal-content {
-    background: var(--modal-bg);
+    background: var(--layer-4);
     padding: 30px;
     border-radius: 28px;
-    box-shadow: #0000001f 0px 4px 30px;
-    border: 1px solid var(--card-bg);
+    box-shadow: var(--shadow-4);
+    border: var(--glass-border);
     width: 90%;
     max-width: 320px;
     text-align: center;
@@ -849,8 +849,8 @@ input:checked + .slider:before {
 
 #modal-input {
     width: 100%;
-    background: var(--modal-input-bg);
-    border: 2px solid var(--text-muted);
+    background: var(--layer-2);
+    border: var(--glass-border);
     color: var(--text);
     font-size: 3rem;
     padding: 10px;

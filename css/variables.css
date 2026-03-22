@@ -1,36 +1,64 @@
+/* DARK MODE (Default) */
 :root {
-    --bg-color: #0a0a0a;
-    --card-bg: #1b1b1dee;
-    --card-btn: #3a3a3c;
+  color-scheme: dark;
+
+  /* Surfaces: Higher = Lighter + More Opaque */
+  --layer-0: #121212; /* Background */
+  --layer-1: rgba(30, 30, 30, 0.65);  /* Cards */
+  --layer-2: rgba(42, 42, 42, 0.75);  /* Dropdowns */
+  --layer-3: rgba(54, 54, 54, 0.85);  /* Tooltips/Popovers */
+  --layer-4: rgba(66, 66, 66, 0.95);  /* Modals */
+
+  /* Glass/Blur */
+  --glass-blur: blur(12px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Shadow Ramp: Growing size + Growing "Rim Light" (1px border) */
+  --shadow-1: 0 2px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-2: 0 4px 8px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+  --shadow-3: 0 8px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12);
+  --shadow-4: 0 16px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+
+  --text: #ffffff;
+  --text-muted: #adadad;
+
     --primary: #007aff;
     --primary-opacity: #007bff;
     --primary-light: #4285f4;
     --primary-dark: #0051a8;
     --fitness-green: #39e639;
     --fitness-green-dark: #2db32d;
-    --text: #ffffff;
-    --text-muted: #adadad;
+    --track-bg: #39e6391a;
     --danger: #ff3b30;
     --orange: #ff9f0a;
-    --track-bg: #39e6391a;
-    --modal-bg: #0000007a;
-    --modal-input-bg: #4343477c;
-    --nav-bg: #1a1a1a;
+    
     --podium-rank-bg: rgba(255, 255, 255, 0.05);
     --podium-rank-2: #e8e8e8;
     --podium-gold: #ffd700;
 }
 
+/* LIGHT MODE OVERRIDE */
 :root[data-theme="light"] {
-    --bg-color: #ffffff;
-    --card-bg: #f2f2f2d7;
-    --card-btn: #afb1b2;
-    --text: #252525ea;
-    --text-muted: #4c4e52;
-    --modal-bg: #ffffff25;
-    --modal-input-bg: #ffffff1e;
-    --lb-row: rgba(0, 0, 0, 0.05);
-    --nav-bg: #f2f2f2;
+  color-scheme: light;
+
+  --layer-0: #f4f7f9; /* Background */
+  --layer-1: rgba(255, 255, 255, 0.6);
+  --layer-2: rgba(255, 255, 255, 0.7);
+  --layer-3: rgba(255, 255, 255, 0.8);
+  --layer-4: rgba(255, 255, 255, 0.95);
+
+  --glass-blur: blur(10px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+
+  /* Shadow Ramp: Purely shadow-based depth */
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-2: 0 4px 8px rgba(0,0,0,0.08);
+  --shadow-3: 0 10px 20px rgba(0,0,0,0.1);
+  --shadow-4: 0 20px 40px rgba(0,0,0,0.15);
+
+  --text: #1a1a1a;
+  --text-muted: #4c4e52;
+    
     --podium-rank-bg: rgba(0, 0, 0, 0.05);
     --podium-rank-2: #6d6d6d;
     --podium-gold: #ac9518;
