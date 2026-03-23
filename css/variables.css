@@ -5,7 +5,7 @@
     /* Surfaces: Higher = Lighter + More Opaque */
     --layer-0: #121212; /* Background */
     --layer-1: rgba(30, 30, 30, 0.65); /* Cards */
-    --layer-2: rgba(42, 42, 42, 0.75); /* Dropdowns */
+    --layer-2: rgba(42, 42, 42, 0.75); /* Dropdowns/Headers/Nav */
     --layer-3: rgba(54, 54, 54, 0.85); /* Tooltips/Popovers */
     --layer-4: rgba(66, 66, 66, 0.95); /* Modals */
     --secondary-bg: rgba(255, 255, 255, 0.05); /* Inputs */

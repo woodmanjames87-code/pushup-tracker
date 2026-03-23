@@ -3,8 +3,8 @@
     "short_name": "DailyGrind",
     "start_url": "index.html",
     "display": "standalone",
-    "background_color": "#121212",
-    "theme_color": "#121212",
+    "background_color": "rgba(42, 42, 42, 0.75)",
+    "theme_color": "rgba(42, 42, 42, 0.75)",
     "description": "Log your daily reps, compete on the leaderboard, and build your fitness legacy.",
     "orientation": "portrait-primary",
     "icons": [
