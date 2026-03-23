@@ -34,7 +34,13 @@ const plusBtn = document.getElementById("btn-ontrack-plus");
 /*************************************************
  * 2. initApp (The Entry Point)
  *************************************************/
+let lastInitTime = 0;
+
 async function initApp() {
+    const now = Date.now();
+    // If it's been less than 10 seconds, just refresh the UI, don't re-sync
+    const isQuickRefresh = (now - lastInitTime < 10000);
+
     if (document.visibilityState === "hidden") return;
 
     // 1. Set initial date if not set
@@ -63,15 +69,11 @@ async function initApp() {
     if (window.updateGoalUI) window.updateGoalUI();
 
     // 5. 🚀 Background Reconciliation (Silent)
-    // Runs every time the app is focused or loaded
-    if (window.auth?.currentUser && window.reconcileData) {
-        window
-            .reconcileData()
-            .then(() => {
-                console.log("☁️ Background sync check complete.");
-
-                // Re-render display in case new sets were pulled from cloud
-                if (window.updateDisplay) window.updateDisplay();
+    // Check if we are already syncing or if the lock is active
+    if (!isQuickRefresh && window.auth?.currentUser && window.reconcileData) {
+        lastInitTime = now;
+        window.reconcileData().then(() => {
+             console.log("☁️ Background sync check complete.");
 
                 // If user is currently looking at the leaderboard, refresh it silently
                 const pageId = window.location.hash.substring(1).replace("-page", "");
@@ -847,8 +849,16 @@ window.getDisplayUsername = function (extraData = {}) {
 };
 
 let isReconciling = false;
+let lastReconcileTime = 0;
 
 window.reconcileData = async function reconcileData() {
+    // 🛡️ NEW GATE: If we synced in the last 30 seconds, don't do it again.
+    const now = Date.now();
+    if (now - lastReconcileTime < 30000) {
+        console.log("⏭️ Skipping redundant background sync (throttled).");
+        return;
+    }
+
     if (isReconciling) return;
     isReconciling = true;
     window.isReconciling = true;
@@ -862,9 +872,15 @@ window.reconcileData = async function reconcileData() {
 
     try {
         const snap = await getDoc(userRef);
+
+        // 🛡️ SAFETY 1: If cloud doesn't exist, don't just sync 0.
+        // Only sync if there is actually local data worth saving.
         if (!snap.exists()) {
-            window.isReconciling = false; // Release lock
-            await window.syncLocalToCloud(user.uid);
+            window.isReconciling = false;
+            const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY));
+            if (localData && Object.keys(localData).length > 0) {
+                await window.syncLocalToCloud(user.uid);
+            }
             return;
         }
 
@@ -872,32 +888,19 @@ window.reconcileData = async function reconcileData() {
         const cloudWorkouts = cloudData.workouts || {};
         const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY)) || {};
 
-        const sortedDates = Object.keys(cloudWorkouts).sort((a, b) => b.localeCompare(a));
-        let localUpdated = false;
+        // 🛡️ SAFETY 2: If local is empty, but cloud has data, FORCE a pull.
+        const localIsEmpty = Object.keys(localData).length === 0;
+        const cloudHasData = Object.keys(cloudWorkouts).length > 0;
 
-        for (const dateKey of sortedDates) {
-            const cloudSets = cloudWorkouts[dateKey]?.[exerciseId] || [];
-            const localSets = localData[dateKey]?.[exerciseId] || [];
-
-            const isMatch =
-                cloudSets.length === localSets.length && cloudSets.every((val, index) => val === localSets[index]);
-
-            if (isMatch) break;
-
-            if (cloudSets.length > localSets.length) {
-                if (!localData[dateKey]) localData[dateKey] = {};
-                localData[dateKey][exerciseId] = cloudSets;
-                localUpdated = true;
-            }
-        }
-
-        if (localUpdated) {
-            console.log(`✅ Synced ${exerciseId} from cloud.`);
-            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(localData));
+        if (localIsEmpty && cloudHasData) {
+            console.log("Empty local detected. Performing mandatory cloud pull.");
+            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(cloudWorkouts));
+            window.isReconciling = false;
             if (window.updateDisplay) window.updateDisplay();
+            // 🛑 STOP HERE. Don't sync back to cloud yet; we just got the data.
+            return;
         }
 
-        // --- 🚀 THE FIX IS HERE ---
         // Release the lock NOW so the following sync call is allowed to run
         window.isReconciling = false;
 
