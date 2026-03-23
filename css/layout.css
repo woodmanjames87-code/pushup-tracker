@@ -71,12 +71,17 @@ header {
     position: sticky;
     top: 0;
     z-index: 10;
-    background-color: var(--bg-color);
+    background-color: var(--layer-2);
+    border-bottom: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-1);
     display: flex;
     flex-direction: column;
     margin: 0 -20px 0 -20px;
     padding: 20px 20px 0 20px;
     width: calc(100% + 40px);
+    min-height: 70px;
 }
 
 .header-content {
@@ -154,11 +159,14 @@ header {
     padding-top: 5px;
     padding-bottom: 15px;
     padding-bottom: env(safe-area-inset-bottom);
-    background: var(--nav-bg);
+    background-color: var(--layer-2);
+    border-top: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-4);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    border-top: 1px solid #333;
     z-index: 10;
 }
 
@@ -177,12 +185,12 @@ header {
 .nav-icon {
     width: 24px;
     height: 24px;
-    fill: var(--text); /* for inactive */
+    fill: var(--text-muted); /* for inactive */
     transition: 0.2s;
 }
 
 .nav-item.active .nav-icon {
-    fill: var(--fitness-green);
+    fill: var(--fitness-green); /* for active */
 }
 
 .nav-item small {
@@ -191,9 +199,18 @@ header {
 
 .leaderboard-nav {
     position: sticky;
-    top: 90px;
-    margin-top: 20px;
+    top: 80px;
     margin-bottom: 20px;
+    padding: 5px 20px;
+    align-self: center;
+    width: calc(100% + 20px);
+    border-radius: 12px;
+    background: var(--layer-2);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-2);
+    border: var(--glass-border);
+    z-index: 5;
 }
 
 .danger-zone {
@@ -260,7 +277,7 @@ header {
     justify-content: space-between;
     align-items: flex-end;
     height: 100%;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: var(--glass-border);
 }
 
 .bar-labels {

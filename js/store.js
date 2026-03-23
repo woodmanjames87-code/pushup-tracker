@@ -104,7 +104,7 @@ function getYesterdayId() {
 }
 
 function getWeekId(date) {
-    const d = new Date(date);
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     // Find the Sunday of this week
     d.setDate(d.getDate() - d.getDay());
     const year = d.getFullYear();
@@ -149,7 +149,8 @@ window.getPreviousPeriodId = function (type, currentId) {
 
 function computeStats() {
     const data = loadData();
-    const today = new Date();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const currentYearStr = today.getFullYear().toString();
 
     // Basic Totals
@@ -171,14 +172,13 @@ function computeStats() {
 
     // Calendar Week Total
     const diffToSunday = today.getDay();
-
     const sunday = new Date(today);
     sunday.setDate(today.getDate() - diffToSunday);
-    sunday.setHours(0, 0, 0, 0); // Start of Sunday morning
+    sunday.setHours(0, 0, 0, 0);
 
     let calendarWeeklyTotal = 0;
 
-    // Loop from Sunday until Today
+    // Now this loop will correctly run from 0 to 6 on Saturday night
     for (let i = 0; i <= diffToSunday; i++) {
         const d = new Date(sunday);
         d.setDate(sunday.getDate() + i);
@@ -409,20 +409,27 @@ function computeStats() {
  * CLEAR LOCAL DATA - IMPORT - EXPORT
  *************************************************/
 function clearAllData() {
-    if (window.triggerHaptic) window.triggerHaptic("warning");
-    const warning =
-        "⚠️ WARNING: This will permanently delete ALL your push-up sets, streaks, and history. This cannot be undone.\n\nAre you absolutely sure?";
+    // 1. Check if the user is logged in
+    const user = window.auth?.currentUser;
+
+    if (user) {
+        if (window.triggerHaptic) window.triggerHaptic("error");
+        alert("🔒 Action Blocked: You must sign out before clearing local data to prevent an automatic cloud sync.");
+        return;
+    }
+
+    // 2. Standard warning for logged-out users
+    const warning = "⚠️ This will delete all local workout history on this device. Are you sure?";
 
     if (confirm(warning)) {
         if (window.triggerHaptic) window.triggerHaptic("warning");
-        // Second layer of protection for a "Nuclear" action
-        const finalCheck = confirm("Final check: Delete everything?");
 
-        if (finalCheck) {
-            localStorage.removeItem(window.STORAGE_KEY);
-            alert("Database cleared. Starting fresh!");
-            location.reload(); // Refresh to reset all charts and totals
-        }
+        // 3. Simple Wipe
+        localStorage.clear();
+        sessionStorage.clear();
+
+        alert("Local database cleared.");
+        location.reload();
     }
 }
 

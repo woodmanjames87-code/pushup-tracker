@@ -87,7 +87,12 @@ async function initAuthListener() {
                     }
                 }
                 // Call initApp from main.js
-                if (window.initApp) window.initApp();
+                if (window.initApp) {
+                    window.initApp();
+                } else {
+                    // If main.js isn't loaded yet, it will call initApp itself when it loads
+                    console.log("Waiting for main.js to initialize...");
+                }
             } else {
                 btn.classList.remove("logged-in");
                 btn.style.backgroundImage = "none";
@@ -103,7 +108,7 @@ async function initAuthListener() {
     }
 }
 
-async function startCloudSync() {
+window.startCloudSync = async function startCloudSync() {
     const { signInWithPopup, getDoc, doc } = window.firebaseMethods;
 
     try {
@@ -131,9 +136,9 @@ async function startCloudSync() {
     } catch (error) {
         console.error("Login failed:", error);
     }
-}
+};
 
-async function syncLocalToCloud(userId, extraData = {}) {
+window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}) {
     if (window.isReconciling) {
         console.warn("🛡️ Sync blocked: App is currently merging data from cloud.");
         return;
@@ -142,7 +147,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
 
     const localData = window.loadData();
     const s = window.computeStats();
-    const exerciseId = window.currentExercise; // 🚀 Pulling your current global
+    const exerciseId = window.currentExercise || "pushups";
     const { doc, setDoc } = window.firebaseMethods;
 
     const userRef = doc(window.db, "users", userId);
@@ -191,7 +196,7 @@ async function syncLocalToCloud(userId, extraData = {}) {
     } catch (err) {
         console.error("Cloud sync failed:", err);
     }
-}
+};
 
 function mapStatsToSchema(s) {
     return {
@@ -208,9 +213,80 @@ function mapStatsToSchema(s) {
     };
 }
 
-// EXPOSE TO WINDOW
-window.syncLocalToCloud = syncLocalToCloud;
-window.startCloudSync = startCloudSync;
+window.isReconciling = false;
+window.lastReconcileTime = 0;
+
+window.reconcileData = async function reconcileData() {
+    const now = Date.now();
+
+    // Check global timer
+    if (now - (window.lastReconcileTime || 0) < 30000) {
+        console.log("⏭️ Skipping redundant background sync (throttled).");
+        return;
+    }
+
+    // Check global lock
+    if (window.isReconciling) return;
+    window.isReconciling = true;
+
+    // 2. Auth & Path Check
+    const user = window.auth?.currentUser;
+
+    if (!user || !window.firebaseMethods) {
+        window.isReconciling = false; // MUST release lock if we exit early
+        return;
+    }
+
+    const { doc, getDoc } = window.firebaseMethods;
+    const userRef = doc(window.db, "users", user.uid);
+
+    // 3. Variable Check: exerciseId
+    const exerciseId = window.currentExercise || "pushups";
+
+    try {
+        const snap = await getDoc(userRef);
+
+        // Safety 1: Cloud Missing
+        if (!snap.exists()) {
+            window.isReconciling = false;
+            const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY));
+            if (localData && Object.keys(localData).length > 0) {
+                await window.syncLocalToCloud(user.uid);
+            }
+            window.lastReconcileTime = Date.now(); // Mark success
+            return;
+        }
+
+        const cloudData = snap.data();
+        const cloudWorkouts = cloudData.workouts || {};
+        const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY)) || {};
+
+        // Safety 2: PC Overwrite Protection
+        const localIsEmpty = Object.keys(localData).length === 0;
+        const cloudHasData = Object.keys(cloudWorkouts).length > 0;
+
+        if (localIsEmpty && cloudHasData) {
+            console.log("Empty local detected. Performing mandatory cloud pull.");
+
+            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(cloudWorkouts));
+
+            window.isReconciling = false;
+            window.lastReconcileTime = Date.now(); // Mark success
+
+            if (window.updateDisplay) window.updateDisplay();
+            return;
+        }
+
+        // 4. Final Sync
+        window.isReconciling = false; // Release before calling next function
+        await window.syncLocalToCloud(user.uid);
+
+        window.lastReconcileTime = Date.now(); // ✅ CRITICAL: Update the timer here
+    } catch (err) {
+        console.error("Reconciliation failed:", err);
+        window.isReconciling = false;
+    }
+};
 
 // KICKSTART THE LISTENER
 initAuthListener();

@@ -34,7 +34,13 @@ const plusBtn = document.getElementById("btn-ontrack-plus");
 /*************************************************
  * 2. initApp (The Entry Point)
  *************************************************/
+let lastInitTime = 0;
+
 async function initApp() {
+    const now = Date.now();
+    // If it's been less than 10 seconds, just refresh the UI, don't re-sync
+    const isQuickRefresh = (now - lastInitTime < 10000);
+
     if (document.visibilityState === "hidden") return;
 
     // 1. Set initial date if not set
@@ -63,15 +69,11 @@ async function initApp() {
     if (window.updateGoalUI) window.updateGoalUI();
 
     // 5. 🚀 Background Reconciliation (Silent)
-    // Runs every time the app is focused or loaded
-    if (window.auth?.currentUser && window.reconcileData) {
-        window
-            .reconcileData()
-            .then(() => {
-                console.log("☁️ Background sync check complete.");
-
-                // Re-render display in case new sets were pulled from cloud
-                if (window.updateDisplay) window.updateDisplay();
+    // Check if we are already syncing or if the lock is active
+    if (!isQuickRefresh && window.auth?.currentUser && window.reconcileData) {
+        lastInitTime = now;
+        window.reconcileData().then(() => {
+             console.log("☁️ Background sync check complete.");
 
                 // If user is currently looking at the leaderboard, refresh it silently
                 const pageId = window.location.hash.substring(1).replace("-page", "");
@@ -846,65 +848,3 @@ window.getDisplayUsername = function (extraData = {}) {
     );
 };
 
-let isReconciling = false;
-
-window.reconcileData = async function reconcileData() {
-    if (isReconciling) return;
-    isReconciling = true;
-    window.isReconciling = true;
-
-    const user = window.auth?.currentUser;
-    if (!user || !window.firebaseMethods) return;
-
-    const { doc, getDoc } = window.firebaseMethods;
-    const userRef = doc(window.db, "users", user.uid);
-    const exerciseId = window.currentExercise || "pushups";
-
-    try {
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) {
-            window.isReconciling = false; // Release lock
-            await window.syncLocalToCloud(user.uid);
-            return;
-        }
-
-        const cloudData = snap.data();
-        const cloudWorkouts = cloudData.workouts || {};
-        const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY)) || {};
-
-        const sortedDates = Object.keys(cloudWorkouts).sort((a, b) => b.localeCompare(a));
-        let localUpdated = false;
-
-        for (const dateKey of sortedDates) {
-            const cloudSets = cloudWorkouts[dateKey]?.[exerciseId] || [];
-            const localSets = localData[dateKey]?.[exerciseId] || [];
-
-            const isMatch =
-                cloudSets.length === localSets.length && cloudSets.every((val, index) => val === localSets[index]);
-
-            if (isMatch) break;
-
-            if (cloudSets.length > localSets.length) {
-                if (!localData[dateKey]) localData[dateKey] = {};
-                localData[dateKey][exerciseId] = cloudSets;
-                localUpdated = true;
-            }
-        }
-
-        if (localUpdated) {
-            console.log(`✅ Synced ${exerciseId} from cloud.`);
-            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(localData));
-            if (window.updateDisplay) window.updateDisplay();
-        }
-
-        // --- 🚀 THE FIX IS HERE ---
-        // Release the lock NOW so the following sync call is allowed to run
-        window.isReconciling = false;
-
-        // 3. Update Standings/Stats (This call will now pass the 'if' check in syncLocalToCloud)
-        await window.syncLocalToCloud(user.uid);
-    } catch (err) {
-        console.error("Reconciliation failed:", err);
-        window.isReconciling = false; // Always release on error to prevent locking the app
-    }
-};
