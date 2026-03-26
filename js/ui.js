@@ -60,11 +60,10 @@ function showPage(pageId) {
     }
 
     // 4. Floating log button logic
-    const floatingBtn = document.getElementById("floating-log-btn");
     const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
 
-    if (floatingBtn) {
-        floatingBtn.style.display = isTrackerOrSocial ? "block" : "none";
+    if (floatingLogBtn) {
+        floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
     }
 
     if (isTrackerOrSocial && window.updateDisplay) {
@@ -79,21 +78,18 @@ function showPage(pageId) {
     }
 
     // 6. Podium Cleanup: Hide immediately if we aren't on Leaderboard
-    const podium = document.getElementById("mini-podium-overlay");
-    if (podium && pageId !== "leaderboard") {
-        podium.classList.remove("active");
+    if (podiumOverlay && pageId !== "leaderboard") {
+        podiumOverlay.classList.remove("active");
         // We use a timeout to hide it completely so the slide-down animation can finish
         setTimeout(() => {
-            if (!podium.classList.contains("active")) {
-                podium.hidden = true;
+            if (!podiumOverlay.classList.contains("active")) {
+                podiumOverlay.hidden = true;
             }
         }, 1000); // Adjust to match your CSS transition time
     }
 }
 
 function openLogModal() {
-    const logModal = document.getElementById("log-modal");
-    const modalInput = document.getElementById("modal-input");
     if (logModal) {
         logModal.style.display = "flex";
         if (modalInput) {
@@ -104,8 +100,6 @@ function openLogModal() {
 }
 
 function closeLogModal() {
-    const logModal = document.getElementById("log-modal");
-    const modalInput = document.getElementById("modal-input");
     if (logModal) {
         logModal.style.display = "none";
         if (modalInput) modalInput.value = "";
@@ -115,33 +109,27 @@ function closeLogModal() {
  * UI RENDERING
  *************************************************/
 function updateDisplay() {
-    // 1. Get the data from the 'Brain'
-    // We check if the function exists first to prevent startup errors
     const s = window.computeStats ? window.computeStats() : null;
     if (!s) return;
 
-    // --- 1. DAILY STATS & PROGRESS ---
+    // Optimized Helper: No more document.getElementById!
     const updateText = (id, val) => {
-        const el = document.getElementById(id);
+        const el = window.uiStats[id];
         if (el) el.innerText = val;
     };
 
+    // --- 1. DAILY STATS & PROGRESS ---
     updateText("today-val", s.todayTotal);
     updateText("yest-val", s.yesterdayTotal);
     updateText("goal-text", `Goal: ${s.dailyGoal}`);
     updateText("streak-val", s.streak);
     updateText("rest-val", s.rest14);
 
-    // Progress Bars
     const pct = s.todayTotal / s.dailyGoal;
-    const greenBar = document.getElementById("progress-bar-green");
-    const blueBar = document.getElementById("progress-bar-blue");
-    if (greenBar) greenBar.style.width = Math.min(pct, 1) * 100 + "%";
-    if (blueBar) blueBar.style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
+    if (window.greenBar) greenBar.style.width = Math.min(pct, 1) * 100 + "%";
+    if (window.blueBar) blueBar.style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
 
-    // Rest Streak Tag
-    const restStreakTag = document.getElementById("rest-streak-tag");
-    if (restStreakTag) {
+    if (window.restStreakTag) {
         if (s.restStreak > 0) {
             restStreakTag.style.display = "inline-flex";
             updateText("rest-streak-val", s.restStreak);
@@ -157,21 +145,16 @@ function updateDisplay() {
     updateText("thirty-goal-val", s.thirtyGoal);
     updateText("thirty-improv-val", s.thirtyImprov);
 
-    const trendFill = document.getElementById("trend-fill");
-    const trendLabel = document.getElementById("trend-label");
-    if (trendFill) trendFill.style.width = Math.min((s.total30 / s.thirtyImprov) * 100, 100) + "%";
-    if (trendLabel) {
+    if (window.trendFill) trendFill.style.width = Math.min((s.total30 / s.thirtyImprov) * 100, 100) + "%";
+    if (window.trendLabel) {
         trendLabel.innerText = s.trend.label;
         trendLabel.style.color = s.trend.color;
     }
 
     // --- 3. WEEKLY CHART ---
-    const chart = document.getElementById("bar-chart");
-    const labelContainer = document.getElementById("bar-labels");
-
-    if (chart && labelContainer) {
-        chart.innerHTML = "";
-        labelContainer.innerHTML = "";
+    if (window.barChart && window.barLabels) {
+        barChart.innerHTML = "";
+        barLabels.innerHTML = "";
         const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
         const maxVal = Math.max(...s.weeklyData, 1);
         const midVal = Math.round(maxVal / 2);
@@ -183,19 +166,18 @@ function updateDisplay() {
 
         s.weeklyData.forEach((v, i) => {
             const hPercentage = (v / maxVal) * 100;
-            chart.insertAdjacentHTML(
+            barChart.insertAdjacentHTML(
                 "beforeend",
                 `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`,
             );
             const d = new Date();
             d.setDate(d.getDate() - (6 - i));
-            labelContainer.insertAdjacentHTML("beforeend", `<span class="day-label">${days[d.getDay()]}</span>`);
+            barLabels.insertAdjacentHTML("beforeend", `<span class="day-label">${days[d.getDay()]}</span>`);
         });
         updateText("weekly-title", `Total: ${s.weeklyTotal}`);
     }
 
     // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
-    const legacySection = document.getElementById("legacy-section"); // Assuming you have a wrapper
     if (s.allTimeTotal > 0) {
         updateText("legacy-projected", `${s.currentYearStr} PROJECTION: ${s.projectedYearly.toLocaleString()}`);
         updateText("legacy-since", `STARTED ${s.firstDateStr}`);
@@ -206,26 +188,18 @@ function updateDisplay() {
         updateText("stat-century", s.centuryDays);
         updateText("stat-avg", `${s.lifetimeAvg}/day`);
 
-        // Milestone Progress
         updateText("label-next-milestone", `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`);
-        const milestoneFill = document.getElementById("milestone-fill");
-        if (milestoneFill) {
+        if (window.milestoneFill) {
             const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
             milestoneFill.style.width = Math.min(milestonePct, 100) + "%";
         }
 
-        // Intensity Pill
         const total = s.allTimeTotal || 1;
-        const pillElite = document.getElementById("pill-elite");
-        const pillSolid = document.getElementById("pill-solid");
-        const pillLight = document.getElementById("pill-light");
-        if (pillElite) pillElite.style.width = (s.eliteVol / total) * 100 + "%";
-        if (pillSolid) pillSolid.style.width = (s.solidVol / total) * 100 + "%";
-        if (pillLight) pillLight.style.width = (s.lightVol / total) * 100 + "%";
+        if (window.pillElite) pillElite.style.width = (s.eliteVol / total) * 100 + "%";
+        if (window.pillSolid) pillSolid.style.width = (s.solidVol / total) * 100 + "%";
+        if (window.pillLight) pillLight.style.width = (s.lightVol / total) * 100 + "%";
 
-        // Monthly Chart
-        const monthlyChart = document.getElementById("monthly-chart");
-        if (monthlyChart) {
+        if (window.monthlyChart) {
             monthlyChart.innerHTML = "";
             const monthEntries = Object.entries(s.monthlyData);
             const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
@@ -258,29 +232,19 @@ function updateGoalUI() {
     const data = JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
 
     // --- Goal Mode Logic...
-    const toggle = document.getElementById("goal-mode-toggle");
-    const manualContainer = document.getElementById("manual-goal-container");
-    const manualInput = document.getElementById("manual-goal-input");
-    const descriptions = document.querySelectorAll(".goal-description");
-
     const isAuto = data.settings?.goalMode !== "manual";
-    if (toggle) toggle.checked = isAuto;
-    if (manualInput) manualInput.value = data.settings?.manualGoal || 60;
+    if (goalModeToggle) goalModeToggle.checked = isAuto;
+    if (manualGoalInput) manualGoalInput.value = data.settings?.manualGoal || 60;
 
     const statusText = isAuto ? `Goal: Max(Avg,Median) of 14 active days (Min 60).` : `Manual Goal Setpoint Active.`;
-    if (manualContainer) manualContainer.style.display = isAuto ? "none" : "flex";
-    descriptions.forEach((el) => {
+    if (manualGoalContainer) manualGoalContainer.style.display = isAuto ? "none" : "flex";
+    goalDescriptions.forEach((el) => {
         el.innerHTML = statusText;
     });
 
     // --- Activity Threshold Mode Logic ---
-    const thresholdToggle = document.getElementById("threshold-mode-toggle");
-    const customContainer = document.getElementById("custom-threshold-container");
-    const onTrackInput = document.getElementById("on-track-input");
-    const thresholdDescriptions = document.querySelectorAll(".threshold-description");
-
     const isRecommended = data.settings?.thresholdMode !== "custom";
-    if (thresholdToggle) thresholdToggle.checked = isRecommended;
+    if (thresholdModeToggle) thresholdModeToggle.checked = isRecommended;
 
     // Logic: If Recommended, force the display to 4. If Custom, use saved value.
     const savedOnTrack = isRecommended ? 4 : data.settings?.goals?.onTrackDays || 4;
@@ -295,8 +259,8 @@ function updateGoalUI() {
         : `Custom Target Active. Use the stepper to adjust.`;
 
     // Toggle the stepper visibility
-    if (customContainer) {
-        customContainer.style.display = isRecommended ? "none" : "flex";
+    if (customThresholdContainer) {
+        customThresholdContainer.style.display = isRecommended ? "none" : "flex";
     }
 
     thresholdDescriptions.forEach((el) => {
@@ -304,54 +268,51 @@ function updateGoalUI() {
     });
 
     // Update the live hints (e.g., "On Track at 4, Improving at 5")
-    const onTrackHint = document.getElementById("on-track-display-hint");
-    const improveDisplay = document.getElementById("improve-display");
-
     if (onTrackHint) onTrackHint.innerText = savedOnTrack;
     if (improveDisplay) improveDisplay.innerText = Number(savedOnTrack) + 1;
 }
 
 // Leaderboard Podium Render
 window.drawPodium = function (winners, filterType) {
-    const overlay = document.getElementById("mini-podium-overlay");
-    const titleEl = document.getElementById("podium-title");
-
     // 1. If no winners, slide down and hide
     if (!winners || winners.length === 0) {
-        overlay.classList.remove("active");
+        podiumOverlay.classList.remove("active");
         setTimeout(() => {
-            if (!overlay.classList.contains("active")) overlay.hidden = true;
+            if (!podiumOverlay.classList.contains("active")) podiumOverlay.hidden = true;
         }, 1000); // Matches CSS transition time
         return;
     }
 
     // 2. Prepare for entrance
-    overlay.hidden = false;
+    podiumOverlay.hidden = false;
     // Tiny delay ensures the browser sees 'hidden=false' before adding 'active'
-    setTimeout(() => overlay.classList.add("active"), 10);
+    setTimeout(() => podiumOverlay.classList.add("active"), 10);
 
     // 3. Update Title
-    if (titleEl) {
+    if (podiumTitle) {
         const labels = {
             "stats.week": "LAST WEEK'S TOP 3",
             "stats.month": "LAST MONTH'S TOP 3",
             "stats.year": "LAST YEAR'S TOP 3",
         };
-        titleEl.textContent = labels[filterType] || "PREVIOUS TOP 3";
+        podiumTitle.textContent = labels[filterType] || "PREVIOUS TOP 3";
     }
 
     // 4. Update Slots
-    const classes = [".rank-1", ".rank-2", ".rank-3"];
-    classes.forEach((selector, index) => {
-        const slot = overlay.querySelector(selector);
+    window.podiumSlots.forEach((slot, index) => {
+        if (!slot) return;
+
         const data = winners[index];
 
         if (data) {
-            // 🚀 Logic Fix: Check both cases just to be safe during the transition
-            slot.querySelector(".p-name").textContent = data.username || data.userName || "---";
+            // 🚀 Using our pre-linked shortcuts
+            if (slot._name) {
+                slot._name.textContent = data.username || data.userName || "---";
+            }
+            if (slot._score) {
+                slot._score.textContent = data.score;
+            }
 
-            const scoreEl = slot.querySelector(".p-score");
-            if (scoreEl) scoreEl.textContent = data.score;
             slot.style.display = "flex";
         } else {
             slot.style.display = "none";
@@ -359,26 +320,60 @@ window.drawPodium = function (winners, filterType) {
     });
 };
 
-// Update the "Improve" hint when the user changes the number
-document.getElementById("on-track-input")?.addEventListener("input", (e) => {
-    const val = parseInt(e.target.value);
-    const improveDisplay = document.getElementById("improve-display");
-    if (improveDisplay) improveDisplay.innerText = val + 1;
-});
-
-window.adjustOnTrack = function (change) {
-    const input = document.getElementById("on-track-input");
-    const improveDisplay = document.getElementById("improve-display");
-
+// Save On Track Goal Settings
+window.saveGoalSettings = function (btn) {
+    const input = window.onTrackInput;
     if (!input) return;
 
-    let currentVal = parseInt(input.value) || 4;
+    const newOnTrack = parseInt(input.value) || 0;
+
+    const data = window.loadData();
+    if (!data.settings) data.settings = {};
+    if (!data.settings.goals) data.settings.goals = {};
+
+    data.settings.goals.onTrackDays = newOnTrack;
+
+    localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+
+    // 🛡️ Success Feedback
+    if (window.triggerHaptic) window.triggerHaptic("success");
+
+    // Sync to cloud since goals changed
+    if (window.auth.currentUser) {
+        window.syncLocalToCloud(window.auth.currentUser.uid);
+    }
+
+    // Visual feedback on the button itself
+    if (btn) {
+        const originalText = btn.innerText;
+        btn.innerText = "Saved! ✓";
+        // Using inline style to override the class temporarily
+        btn.style.backgroundColor = "#34c759";
+        btn.style.borderColor = "#34c759";
+        btn.disabled = true; // Prevent double-clicks during sync
+        btn.style.opacity = "1";
+
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.backgroundColor = "";
+            btn.style.borderColor = "";
+            btn.disabled = false;
+        }, 2000);
+    }
+
+    if (window.updateGoalUI) window.updateGoalUI();
+};
+
+window.adjustOnTrack = function (change) {
+    if (!onTrackInput) return;
+
+    let currentVal = parseInt(onTrackInput.value) || 4;
     let newVal = currentVal + change;
 
     // 1. Check Boundaries (1 to 6 days)
     if (newVal >= 1 && newVal <= 6) {
         // SUCCESS: Valid change
-        input.value = newVal;
+        onTrackInput.value = newVal;
         if (improveDisplay) {
             improveDisplay.innerText = newVal + 1;
         }
@@ -391,7 +386,7 @@ window.adjustOnTrack = function (change) {
         if (window.triggerHaptic) window.triggerHaptic("warning");
 
         // Visual feedback: Shake the stepper briefly (optional)
-        const stepper = input.closest(".number-stepper");
+        const stepper = onTrackInput.closest(".number-stepper");
         if (stepper) {
             stepper.classList.add("limit-shake");
             setTimeout(() => stepper.classList.remove("limit-shake"), 300);
@@ -399,27 +394,26 @@ window.adjustOnTrack = function (change) {
     }
 };
 
-function renderEditList() {
+window.renderEditList = function () {
     const dateKey = window.selectedEditDate;
     const exercise = window.currentExercise;
-    const listEl = document.getElementById("edit-sets-list");
 
-    if (!listEl) return;
+    if (!editSetsList) return;
     updateDateLabel(dateKey);
 
     const data = window.loadData();
     // Instead of todayKey, we use the date from the picker
     const sets = data[dateKey]?.[exercise] || [];
 
-    listEl.innerHTML = "";
+    editSetsList.innerHTML = "";
 
     if (sets.length === 0) {
-        listEl.innerHTML = '<p class="h3" style="text-align:center;">No sets for this date.</p>';
+        editSetsList.innerHTML = '<p class="h3" style="text-align:center;">No sets for this date.</p>';
         return;
     }
 
     sets.forEach((reps, i) => {
-        listEl.insertAdjacentHTML(
+        editSetsList.insertAdjacentHTML(
             "beforeend",
             `
             <div class="edit-item">
@@ -429,7 +423,7 @@ function renderEditList() {
         `,
         );
     });
-}
+};
 
 window.deleteSet = (i) => {
     const data = window.loadData();
@@ -449,46 +443,47 @@ window.deleteSet = (i) => {
     }
 };
 
-function loadCurrentUsername() {
-    const data = window.loadData();
-    const nameInput = document.getElementById("username-input");
-    if (!nameInput) return;
+window.loadCurrentUsername = function () {
+    if (window.nameInput) {
+        // Use the 'Getter' to fill the 'Setter'
+        window.nameInput.value = window.getDisplayUsername();
+    }
+};
 
-    // Use an interval to wait for Firebase Auth to "wake up"
-    const checkAuth = setInterval(() => {
-        const user = window.auth?.currentUser;
-        const customName = data.settings?.username;
-        const firebaseName = user?.displayName;
+window.getDisplayUsername = function (extraData = {}) {
+    const localData = window.loadData();
+    // 1. Explicitly passed data (like from a prompt)
+    if (extraData.username) return extraData.username;
+    // 2. The "Truth": Saved settings in LocalStorage
+    if (localData.settings?.username) return localData.settings.username;
+    // 3. Fallback to Auth Profile
+    if (window.auth?.currentUser?.displayName) return window.auth.currentUser.displayName;
+    // 4. Fallback to current UI value ONLY if it isn't the default
+    if (window.nameInput?.value && window.nameInput.value !== "Lazybones") {
+        return window.nameInput.value;
+    }
+    // 5. Hard Default
+    return "Lazybones";
+};
 
-        if (customName || firebaseName) {
-            nameInput.value = customName || firebaseName;
-            clearInterval(checkAuth);
-        }
-    }, 100);
-
-    // Stop looking after 2 seconds
-    setTimeout(() => clearInterval(checkAuth), 2000);
-}
-
-function updateDateLabel(dateKey) {
-    const label = document.getElementById("display-date-label");
-    if (!label) return;
+window.updateDateLabel = function (dateKey) {
+    if (!displayDateLabel) return;
 
     // Use whatever name you gave it in store.js
     const todayKey = window.getTodayId ? window.getTodayId() : window.getDateKey();
 
     if (dateKey === todayKey) {
-        label.innerText = "Today";
+        displayDateLabel.innerText = "Today";
     } else {
         // T00:00:00 prevents timezone shifts
         const dateObj = new Date(dateKey + "T00:00:00");
-        label.innerText = dateObj.toLocaleDateString(undefined, {
+        displayDateLabel.innerText = dateObj.toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",
             year: "numeric",
         });
     }
-}
+};
 /***********************
  * THEME MANAGEMENT
  ***********************/
@@ -515,10 +510,7 @@ function setTheme(theme) {
  * PWA INSTALL BANNER
  *************************/
 function showUnifiedInstallBanner(platform = "auto") {
-    const banner = document.getElementById("install-banner");
-    const textEl = document.getElementById("install-text");
-    const installBtn = document.getElementById("btn-install-now");
-    if (!banner) return;
+    if (!installBanner) return;
 
     // 1. Check if user closed it today (Logic/Storage check)
     if (localStorage.getItem("installBannerClosed") === new Date().toLocaleDateString()) return;
@@ -529,18 +521,42 @@ function showUnifiedInstallBanner(platform = "auto") {
 
     // 3. Update the Visuals
     if (device === "ios") {
-        if (textEl) textEl.innerHTML = 'Tap the <strong>Share</strong> icon then <strong>"Add to Home Screen"</strong>';
-        if (installBtn) installBtn.style.display = "none";
+        if (installText)
+            installText.innerHTML = 'Tap the <strong>Share</strong> icon then <strong>"Add to Home Screen"</strong>';
+        if (installNowBtn) installNowBtn.style.display = "none";
     } else {
-        if (textEl) textEl.innerText = "Install App for easy access!";
-        if (installBtn) {
-            installBtn.innerText = "Install App";
-            installBtn.style.display = "inline-block";
+        if (installText) installText.innerText = "Install App for easy access!";
+        if (installNowBtn) {
+            installNowBtn.innerText = "Install App";
+            installNowBtn.style.display = "inline-block";
         }
     }
 
-    banner.classList.remove("hidden");
+    installBanner.classList.remove("hidden");
 }
+
+// Show Toast Utility
+window.showToast = function (message, duration = 3000) {
+    console.log("Toast triggered with message:", message); // Debug line
+    const toast = document.createElement("div");
+
+    toast.className = "toast";
+    toast.textContent = message;
+
+    toastContainer.appendChild(toast);
+
+    // Remove the toast after the duration
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.5s ease";
+        setTimeout(() => toast.remove(), 500);
+    }, duration);
+
+    if (!toastContainer) {
+        console.error("Toast container not found in the DOM!");
+        return;
+    }
+};
 
 //-------- DEBOUNCE UTILITY (for inputs like on-track days) --------
 let saveTimeout;
@@ -563,12 +579,9 @@ function triggerHaptic(type = "success") {
 // EXPOSE TO WINDOW
 window.showPage = showPage;
 window.updateDisplay = updateDisplay;
-window.renderEditList = renderEditList;
-window.updateDateLabel = updateDateLabel;
 window.openLogModal = openLogModal;
 window.closeLogModal = closeLogModal;
 window.updateGoalUI = updateGoalUI;
-window.loadCurrentUsername = loadCurrentUsername;
 window.setTheme = setTheme;
 window.showUnifiedInstallBanner = showUnifiedInstallBanner;
 window.triggerHaptic = triggerHaptic;

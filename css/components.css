@@ -60,7 +60,7 @@
 .btn-primary {
     background: var(--primary);
     box-shadow: var(--shadow-4);
-    border: none;
+    border: var(--glass-border);
     color: white;
     padding: 15px;
     border-radius: 12px;
@@ -357,7 +357,7 @@ input:checked + .slider:before {
    ================================================= */
 .btn-login-pill {
     position: fixed; /* Pins it to the screen */
-    top: 20px;
+    top: 15px;
     right: 20px;
     z-index: 200; /* Higher than everything else */
     display: flex;
@@ -366,7 +366,7 @@ input:checked + .slider:before {
     height: 40px;
     padding: 0 0 0 10px;
     border-radius: 20px;
-    border: 1px solid #dadce0;
+    border: var(--glass-border);
     background-color: white;
     box-shadow: var(--shadow-2);
     cursor: pointer;
@@ -933,4 +933,39 @@ input:checked + .slider:before {
     /* Optional: Hardware acceleration to keep scrolling smooth on mobile */
     will-change: transform;
     opacity: 0.5;
+}
+
+/* =================================================
+   TOAST NOTIFICATIONS
+   ================================================= */
+#toast-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+}
+
+.toast {
+    background: var(--layer-4);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    color: var(--text);
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-4);
+    border: var(--glass-border);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }

@@ -48,3 +48,6 @@
 
     console.log("✅ Mock users added. Scroll down to check the podium overlap!");
 })();
+
+initDOMReferences();
+console.table(Object.keys(window).filter((key) => key.includes("Btn") || key.includes("Modal")));

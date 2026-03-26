@@ -5,31 +5,123 @@ window.currentExercise = "pushups";
 window.selectedEditDate = "";
 window.appInitialized = false;
 
-// DOM References for the "Conductor"
-let floatingLogBtn, logModal, modalInput, cancelBtn, okBtn, logForm;
-
+// DOM References (Initialized in initApp)
 function initDOMReferences() {
-    floatingLogBtn = document.getElementById("floating-log-btn");
-    logModal = document.getElementById("log-modal");
-    modalInput = document.getElementById("modal-input");
-    cancelBtn = document.getElementById("modal-cancel");
-    okBtn = document.getElementById("modal-ok");
-    logForm = document.getElementById("log-form");
+    window.navButtons = document.querySelectorAll(".nav-item");
+    // Modal Elements
+    window.floatingLogBtn = document.getElementById("floating-log-btn");
+    window.logModal = document.getElementById("log-modal");
+    window.modalInput = document.getElementById("modal-input");
+    window.modalCancelBtn = document.getElementById("modal-cancel");
+    window.logForm = document.getElementById("log-form");
+    window.toastContainer = document.getElementById("toast-container");
+    // Install Banner Elements
+    window.installBanner = document.getElementById("install-banner");
+    window.installNowBtn = document.getElementById("btn-install-now");
+    window.installCloseBtn = document.getElementById("btn-install-close");
+    window.installText = document.getElementById("install-text");
+    // Leaderboard Elements
+    window.lbFilterContainer = document.getElementById("leaderboard-filter");
+    if (window.lbFilterContainer) {
+        window.lbFilterButtons = window.lbFilterContainer.querySelectorAll(".seg-btn");
+    }
+    window.lbList = document.getElementById("lb-list");
+    window.lbRangeText = document.getElementById("lb-date-range-text");
+    window.podiumOverlay = document.getElementById("mini-podium-overlay");
+    window.podiumTitle = document.getElementById("podium-title");
+    window.podiumSlots = [
+        document.querySelector(".rank-1"),
+        document.querySelector(".rank-2"),
+        document.querySelector(".rank-3"),
+    ];
+    window.podiumSlots.forEach((slot) => {
+        if (slot) {
+            slot._name = slot.querySelector(".p-name");
+            slot._score = slot.querySelector(".p-score");
+        }
+    });
+    // Settings Page Elements
+    window.accordionHeaders = document.querySelectorAll(".accordion-header");
+    window.accordionItems = document.querySelectorAll(".accordion-item");
+    window.accordionItems.forEach((item) => {
+        item._card = item.querySelector(".widget-card");
+    });
+    window.nameInput = document.getElementById("username-input");
+    window.updateNameBtn = document.getElementById("btn-update-username");
+    window.onTrackInput = document.getElementById("on-track-input");
+    window.onTrackHint = document.getElementById("on-track-display-hint");
+    window.ontrackMinusBtn = document.getElementById("btn-ontrack-minus");
+    window.ontrackPlusBtn = document.getElementById("btn-ontrack-plus");
+    window.improveDisplay = document.getElementById("improve-display");
+    window.editSetsList = document.getElementById("edit-sets-list");
+    window.displayDateLabel = document.getElementById("display-date-label");
+    window.goalModeToggle = document.getElementById("goal-mode-toggle");
+    window.manualGoalContainer = document.getElementById("manual-goal-container");
+    window.manualGoalInput = document.getElementById("manual-goal-input");
+    window.thresholdModeToggle = document.getElementById("threshold-mode-toggle");
+    window.customThresholdContainer = document.getElementById("custom-threshold-container");
+    window.addPastBtn = document.getElementById("btn-add-past");
+    window.editDatePicker = document.getElementById("edit-date-picker");
+    window.versionEl = document.getElementById("app-version");
+    window.updateAppBtn = document.getElementById("btn-update-app");
+    window.importInput = document.getElementById("import-input");
+    window.themeContainer = document.getElementById("theme-selector");
+    if (window.themeContainer) {
+        window.themeButtons = window.themeContainer.querySelectorAll(".seg-btn");
+    }
+    // UI.js Elements
+    window.authBtn = document.getElementById("auth-button");
+    window.ptr = document.getElementById("pull-to-refresh");
+    window.greenBar = document.getElementById("progress-bar-green");
+    window.blueBar = document.getElementById("progress-bar-blue");
+    window.trendFill = document.getElementById("trend-fill");
+    window.trendLabel = document.getElementById("trend-label");
+    window.barChart = document.getElementById("bar-chart");
+    window.barLabels = document.getElementById("bar-labels");
+    window.restStreakTag = document.getElementById("rest-streak-tag");
+    window.milestoneFill = document.getElementById("milestone-fill");
+    window.pillElite = document.getElementById("pill-elite");
+    window.pillSolid = document.getElementById("pill-solid");
+    window.pillLight = document.getElementById("pill-light");
+    window.monthlyChart = document.getElementById("monthly-chart");
+    window.goalDescriptions = document.querySelectorAll(".goal-description");
+    window.thresholdDescriptions = document.querySelectorAll(".threshold-description");
+    // The "Stat Map" for updateDisplay
+    window.uiStats = {};
+    const statIds = [
+        "today-val",
+        "yest-val",
+        "goal-text",
+        "streak-val",
+        "rest-val",
+        "rest-streak-val",
+        "total-30-val",
+        "active-30-val",
+        "avg-30",
+        "thirty-goal-val",
+        "thirty-improv-val",
+        "axis-max-l",
+        "axis-max-r",
+        "axis-mid-l",
+        "axis-mid-r",
+        "weekly-title",
+        "legacy-projected",
+        "legacy-since",
+        "legacy-active-days",
+        "stat-all-time",
+        "stat-pb",
+        "stat-ytd",
+        "stat-century",
+        "stat-avg",
+        "label-next-milestone",
+    ];
+    statIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) console.warn(`⚠️ Missing DOM element: #${id}`);
+        window.uiStats[id] = el;
+    });
+    console.log("🎯 DOM references and Stat Map initialized");
 }
-
-const lbFilterContainer = document.getElementById("leaderboard-filter");
-const goalModeToggle = document.getElementById("goal-mode-toggle");
-const manualGoalInput = document.getElementById("manual-goal-input");
-const datePicker = document.getElementById("edit-date-picker");
-const themeContainer = document.getElementById("theme-selector");
-const addPastBtn = document.getElementById("btn-add-past");
-const editDatePicker = document.getElementById("edit-date-picker");
-const updateNameBtn = document.getElementById("btn-update-username");
-const installBanner = document.getElementById("install-banner");
-const installNowBtn = document.getElementById("btn-install-now");
-const installCloseBtn = document.getElementById("btn-install-close");
-const minusBtn = document.getElementById("btn-ontrack-minus");
-const plusBtn = document.getElementById("btn-ontrack-plus");
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -38,44 +130,52 @@ let lastInitTime = 0;
 
 async function initApp() {
     const now = Date.now();
-    // If it's been less than 10 seconds, just refresh the UI, don't re-sync
-    const isQuickRefresh = (now - lastInitTime < 10000);
+    const isQuickRefresh = now - lastInitTime < 10000;
 
     if (document.visibilityState === "hidden") return;
 
-    // 1. Set initial date if not set
-    if (!window.selectedEditDate && window.getDateKey) {
-        window.selectedEditDate = window.getDateKey();
-        if (datePicker) datePicker.value = window.selectedEditDate;
+    // --- 1. CORE ENGINE SETUP (Run Once) ---
+    if (!window.appInitialized) {
+        initDOMReferences(); // Find the buttons/inputs first!
+        setupEventListeners(); // Attach the clicks
+
+        if (window.initAuthListener) {
+            window.initAuthListener();
+        }
+
+        initPWAUtils(); // Service Worker & Updates
+        window.appInitialized = true;
     }
 
-    // 2. Theme & Initial Navigation
+    // --- 2. INITIAL STATE (Logic & UI) ---
+    // Now we use editDatePicker (cached in initDOMReferences) instead of getElementById
+    if (!window.selectedEditDate && window.getDateKey) {
+        window.selectedEditDate = window.getDateKey();
+        if (window.editDatePicker) {
+            editDatePicker.value = window.selectedEditDate;
+        }
+    }
+
+    // --- 3. THEME & NAVIGATION ---
     const savedTheme = localStorage.getItem("user-theme") || "auto";
     if (window.setTheme) window.setTheme(savedTheme);
 
     const hash = window.location.hash.substring(1);
     window.showPage(hash ? hash.replace("-page", "") : "tracker");
 
-    // 3. Only run one-time setups once
-    if (!window.appInitialized) {
-        setupEventListeners();
-        initPWAUtils(); // Version checking & Service Worker
-        window.appInitialized = true;
-    }
-
-    // 4. Immediate UI Refresh (Local Data)
+    // --- 4. DATA REFRESH (Local) ---
     if (window.loadCurrentUsername) window.loadCurrentUsername();
     if (window.updateDisplay) window.updateDisplay();
     if (window.updateGoalUI) window.updateGoalUI();
 
-    // 5. 🚀 Background Reconciliation (Silent)
-    // Check if we are already syncing or if the lock is active
+    // --- 5. CLOUD SYNC (Background) ---
     if (!isQuickRefresh && window.auth?.currentUser && window.reconcileData) {
         lastInitTime = now;
-        window.reconcileData().then(() => {
-             console.log("☁️ Background sync check complete.");
-
-                // If user is currently looking at the leaderboard, refresh it silently
+        window
+            .reconcileData()
+            .then(() => {
+                console.log("☁️ Background sync complete.");
+                // Silent Leaderboard refresh if active
                 const pageId = window.location.hash.substring(1).replace("-page", "");
                 if (pageId === "leaderboard" && window.fetchLeaderboard) {
                     window.fetchLeaderboard();
@@ -85,21 +185,10 @@ async function initApp() {
     }
 }
 
-// Lifecycle Listeners
-window.addEventListener("DOMContentLoaded", initApp);
-document.addEventListener("visibilitychange", initApp);
-window.addEventListener("focus", initApp);
-window.addEventListener("hashchange", () => {
-    const pageId = window.location.hash.substring(1).replace("-page", "");
-    if (pageId) window.showPage(pageId);
-});
-
 /*************************************************
  * 3. EVENT LISTENERS SETUP
  *************************************************/
 function setupEventListeners() {
-    initDOMReferences(); // Ensure we have the elements
-
     // --- 1. OPENING THE MODAL ---
     if (floatingLogBtn) {
         floatingLogBtn.onclick = () => {
@@ -148,8 +237,8 @@ function setupEventListeners() {
         };
     }
     // --- 3. CANCEL BUTTON (The Dismissal) ---
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
+    if (modalCancelBtn) {
+        modalCancelBtn.onclick = () => {
             if (window.closeLogModal) {
                 window.closeLogModal();
             }
@@ -159,7 +248,6 @@ function setupEventListeners() {
     // --- 4. OUTSIDE CLICK (The "Quick Exit") ---
     // This closes the modal if the user clicks the dark overlay area
     window.addEventListener("click", (e) => {
-        const logModal = document.getElementById("log-modal");
         if (e.target === logModal && window.closeLogModal) {
             window.closeLogModal();
         }
@@ -169,7 +257,6 @@ function setupEventListeners() {
     // Because it's type="submit", the logForm.onsubmit handles it.
 
     // --- NAV BUTTONS TRIGGER ---
-    const navButtons = document.querySelectorAll(".nav-item");
     if (navButtons.length >= 3) {
         navButtons[0].onclick = () => showPage("tracker");
         navButtons[1].onclick = () => showPage("leaderboard");
@@ -177,76 +264,72 @@ function setupEventListeners() {
     }
 
     // --- Settings / Accordion Logic ---
-    document.querySelectorAll(".accordion-header").forEach((header) => {
+    window.accordionHeaders.forEach((header) => {
         header.addEventListener("click", () => {
             const currentItem = header.parentElement;
-            const currentCard = currentItem.querySelector(".widget-card");
             const isAlreadyOpen = currentItem.classList.contains("active");
 
             // Close others
-            document.querySelectorAll(".accordion-item").forEach((item) => {
+            window.accordionItems.forEach((item) => {
                 if (item !== currentItem) {
                     item.classList.remove("active");
-                    const card = item.querySelector(".widget-card");
-                    if (card) {
-                        card.classList.replace("expanded", "collapsed");
+                    // 🚀 Instant access via the shortcut
+                    if (item._card) {
+                        item._card.classList.replace("expanded", "collapsed");
                     }
                 }
             });
 
-            // Toggle Clicked
-            currentItem.classList.toggle("active", !isAlreadyOpen);
-            if (currentCard) {
-                currentCard.classList.toggle("expanded", !isAlreadyOpen);
-                currentCard.classList.toggle("collapsed", isAlreadyOpen);
+            // Toggle the clicked one
+            if (!isAlreadyOpen) {
+                currentItem.classList.add("active");
+                if (currentItem._card) currentItem._card.classList.replace("collapsed", "expanded");
+            } else {
+                currentItem.classList.remove("active");
+                if (currentItem._card) currentItem._card.classList.replace("expanded", "collapsed");
             }
         });
     });
 
     // --- Leaderboard Filter Toggle ---
-    if (lbFilterContainer) {
-        const filterButtons = lbFilterContainer.querySelectorAll(".seg-btn");
+    window.lbFilterButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            // 1. Visual Active Toggle
+            window.lbFilterButtons.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
 
-        filterButtons.forEach((btn) => {
-            btn.addEventListener("click", () => {
-                // 1. Visual Active Toggle
-                filterButtons.forEach((b) => b.classList.remove("active"));
-                btn.classList.add("active");
+            // 2. Show Loader immediately so user knows it's working
+            if (lbList) lbList.innerHTML = '<div class="loader"></div>';
 
-                // 2. Show Loader immediately so user knows it's working
-                const lbList = document.getElementById("lb-list");
-                if (lbList) lbList.innerHTML = '<div class="loader"></div>';
+            // 3. Update Label instantly
+            if (lbRangeText) {
+                const label = btn.innerText;
+                lbRangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
+            }
 
-                // 3. Update Label instantly
-                const rangeText = document.getElementById("lb-date-range-text");
-                if (rangeText) {
-                    const label = btn.innerText;
-                    rangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
-                }
-
-                // 4. Trigger Fetch with the specific filter
-                const filterValue = btn.getAttribute("data-filter");
-                if (window.fetchLeaderboard) {
-                    window.fetchLeaderboard(filterValue);
-                }
-            });
+            // 4. Trigger Fetch with the specific filter
+            const filterValue = btn.getAttribute("data-filter");
+            if (window.fetchLeaderboard) {
+                window.fetchLeaderboard(filterValue);
+            }
         });
-    }
+    });
 
-    // --- Update Leaderboard Display Name ---
+    // --- Update Display Name ---
     if (updateNameBtn) {
         updateNameBtn.onclick = async () => {
-            const nameInput = document.getElementById("username-input");
             const newName = nameInput.value.trim();
             const user = window.auth?.currentUser;
 
             // Validation
             if (!user) {
-                alert("Please log in to change your name.");
+                window.triggerHaptic?.("warning");
+                window.showToast("Please log in to change your name.");
                 return;
             }
             if (newName.length < 2) {
-                alert("Name is too short!");
+                window.triggerHaptic?.("warning");
+                window.showToast("Name is too short!");
                 return;
             }
 
@@ -273,10 +356,12 @@ function setupEventListeners() {
                     await updateProfile(user, { displayName: newName });
                 }
 
-                alert("Username updated!");
+                window.triggerHaptic?.("success");
+                window.showToast("Username updated!");
             } catch (err) {
                 console.error("Update failed:", err);
-                alert("Failed to update name.");
+                window.triggerHaptic?.("warning");
+                window.showToast("Failed to update name.");
             } finally {
                 updateNameBtn.innerText = "Update";
                 updateNameBtn.disabled = false;
@@ -285,8 +370,8 @@ function setupEventListeners() {
     }
 
     // --- Date Picker ---
-    if (datePicker) {
-        datePicker.addEventListener("change", (e) => {
+    if (editDatePicker) {
+        editDatePicker.addEventListener("change", (e) => {
             window.selectedEditDate = e.target.value;
             if (window.renderEditList) window.renderEditList();
         });
@@ -329,7 +414,7 @@ function setupEventListeners() {
 
     // --- Save Goal Settings Toggle ---
     // Toggle logic
-    document.getElementById("threshold-mode-toggle")?.addEventListener("change", (e) => {
+    thresholdModeToggle?.addEventListener("change", (e) => {
         const data = window.loadData();
         if (!data.settings) data.settings = {};
         data.settings.thresholdMode = e.target.checked ? "recommended" : "custom";
@@ -340,21 +425,18 @@ function setupEventListeners() {
     });
 
     window.adjustOnTrack = function (change) {
-        const input = document.getElementById("on-track-input");
-        const stepper = input?.closest(".number-stepper"); // Get the container for the animation
+        const stepper = onTrackInput?.closest(".number-stepper"); // Get the container for the animation
 
-        let currentVal = parseInt(input.value) || 4;
+        let currentVal = parseInt(onTrackInput.value) || 4;
         let newVal = currentVal + change;
 
         // 1. SUCCESS: Within boundaries (1-6)
         if (newVal >= 1 && newVal <= 6) {
-            input.value = newVal; // Immediate UI update
+            onTrackInput.value = newVal; // Immediate UI update
 
             if (window.triggerHaptic) window.triggerHaptic("success");
 
             // Update the textual hints instantly
-            const improveDisplay = document.getElementById("improve-display");
-            const onTrackHint = document.getElementById("on-track-display-hint");
             if (improveDisplay) improveDisplay.innerText = newVal + 1;
             if (onTrackHint) onTrackHint.innerText = newVal;
 
@@ -384,50 +466,37 @@ function setupEventListeners() {
     };
 
     // Plus and Minus Button Listeners for On Track Days
-    const minusBtn = document.getElementById("btn-ontrack-minus");
-    const plusBtn = document.getElementById("btn-ontrack-plus");
-
-    if (minusBtn) {
-        minusBtn.addEventListener("click", () => {
+    if (ontrackMinusBtn) {
+        ontrackMinusBtn.addEventListener("click", () => {
             window.adjustOnTrack(-1);
         });
     }
 
-    if (plusBtn) {
-        plusBtn.addEventListener("click", () => {
+    if (ontrackPlusBtn) {
+        ontrackPlusBtn.addEventListener("click", () => {
             window.adjustOnTrack(1);
         });
     }
 
     // --- Theme / Display Mode Selector ---
-    if (themeContainer) {
-        const themeButtons = themeContainer.querySelectorAll(".seg-btn");
+    window.themeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const selectedTheme = btn.getAttribute("data-theme");
 
-        themeButtons.forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const selectedTheme = btn.getAttribute("data-theme");
+            // 1. Call the Painter to change the actual CSS colors
+            if (window.setTheme) {
+                window.setTheme(selectedTheme);
+            }
 
-                // 1. Call the Painter to change the actual CSS colors
-                if (window.setTheme) {
-                    window.setTheme(selectedTheme);
-                }
-
-                // 2. Update visual button states
-                themeButtons.forEach((b) => b.classList.remove("active"));
-                btn.classList.add("active");
-            });
+            // 2. Update visual button states
+            themeButtons.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
         });
-    }
+    });
 
     // --- Add Set to Past Date (Settings Page) ---
-    const addPastBtn = document.getElementById("btn-add-past");
-
     if (addPastBtn) {
         addPastBtn.onclick = () => {
-            const editDatePicker = document.getElementById("edit-date-picker");
-            const logModal = document.getElementById("log-modal");
-            const modalInput = document.getElementById("modal-input");
-
             // 1. Get the date (Local time check)
             const selectedDate =
                 editDatePicker && editDatePicker.value
@@ -452,6 +521,27 @@ function setupEventListeners() {
         console.warn("Could not find button with ID: btn-add-past");
     }
 
+    // Listen for file selection
+    if (window.importInput) {
+        importInput.onchange = function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const content = e.target.result;
+                smartImport(content);
+            };
+            reader.readAsText(file);
+        };
+    }
+
+    // Update the "Improve" hint when the user changes the number
+    onTrackInput?.addEventListener("input", (e) => {
+        const val = parseInt(e.target.value);
+        if (improveDisplay) improveDisplay.innerText = val + 1;
+    });
+
     // --- Pull to Refresh (Leaderboard) ---
     setupPullToRefresh();
 }
@@ -461,16 +551,12 @@ function setupEventListeners() {
  *************************************************/
 window.fetchLeaderboard = async function (passedFilter = null) {
     // Hide the staggered podium by default (will be shown if data exists)
-    const podiumOverlay = document.getElementById("mini-podium-overlay");
     if (podiumOverlay) podiumOverlay.hidden = true;
 
-    const lbList = document.getElementById("lb-list");
-    const rangeText = document.getElementById("lb-date-range-text");
     if (!lbList) return;
 
     // 1. Determine Filter
-    const filterContainer = document.getElementById("leaderboard-filter");
-    const activeBtn = filterContainer ? filterContainer.querySelector(".seg-btn.active") : null;
+    const activeBtn = Array.from(window.lbFilterButtons || []).find((btn) => btn.classList.contains("active"));
     const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
 
     // 2. Safety Guard
@@ -495,7 +581,7 @@ window.fetchLeaderboard = async function (passedFilter = null) {
     } else if (filter === "stats.year") {
         displayLabel = now.getFullYear();
     }
-    if (rangeText) rangeText.innerText = displayLabel;
+    if (lbRangeText) lbRangeText.innerText = displayLabel;
 
     try {
         lbList.innerHTML = '<div class="loader"></div>';
@@ -628,9 +714,6 @@ async function initPWAUtils() {
         window.location.reload();
     });
 
-    const versionEl = document.getElementById("app-version");
-    const updateBtn = document.getElementById("btn-update-app");
-
     if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         // Get Version
         const msgChan = new MessageChannel();
@@ -640,10 +723,10 @@ async function initPWAUtils() {
         navigator.serviceWorker.controller.postMessage({ type: "GET_VERSION" }, [msgChan.port2]);
 
         // Update App Logic
-        if (updateBtn) {
-            updateBtn.onclick = async () => {
-                updateBtn.innerText = "Checking...";
-                updateBtn.disabled = true;
+        if (updateAppBtn) {
+            updateAppBtn.onclick = async () => {
+                updateAppBtn.innerText = "Checking...";
+                updateAppBtn.disabled = true;
 
                 const reg = await navigator.serviceWorker.getRegistration();
 
@@ -653,7 +736,7 @@ async function initPWAUtils() {
                         const newWorker = reg.installing;
                         newWorker.onstatechange = () => {
                             if (newWorker.state === "installed") {
-                                updateBtn.innerText = "Update Found! Reloading...";
+                                updateAppBtn.innerText = "Update Found! Reloading...";
                                 newWorker.postMessage({ type: "SKIP_WAITING" });
                             }
                         };
@@ -664,15 +747,15 @@ async function initPWAUtils() {
 
                     // If there was ALREADY a worker waiting (common!)
                     if (reg.waiting) {
-                        updateBtn.innerText = "Updating...";
+                        updateAppBtn.innerText = "Updating...";
                         reg.waiting.postMessage({ type: "SKIP_WAITING" });
                     } else {
                         // If no update was found after 2 seconds, reset button
                         setTimeout(() => {
-                            if (updateBtn.innerText === "Checking...") {
-                                updateBtn.innerText = "App is up to date!";
-                                updateBtn.disabled = false;
-                                setTimeout(() => (updateBtn.innerText = "Check for Updates"), 5000);
+                            if (updateAppBtn.innerText === "Checking...") {
+                                updateAppBtn.innerText = "App is up to date!";
+                                updateAppBtn.disabled = false;
+                                setTimeout(() => (updateAppBtn.innerText = "Check for Updates"), 5000);
                             }
                         }, 2000);
                     }
@@ -700,23 +783,20 @@ async function initPWAUtils() {
     }
 
     // 3. Button Click Listeners
-    const installBtn = document.getElementById("btn-install-now");
-    const closeBtn = document.getElementById("btn-install-close");
-
-    if (installBtn) {
-        installBtn.onclick = async () => {
+    if (installNowBtn) {
+        installNowBtn.onclick = async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 await deferredPrompt.userChoice;
                 deferredPrompt = null;
-                document.getElementById("install-banner")?.classList.add("hidden");
+                installBanner?.classList.add("hidden");
             }
         };
     }
 
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            document.getElementById("install-banner")?.classList.add("hidden");
+    if (installCloseBtn) {
+        installCloseBtn.onclick = () => {
+            installBanner?.classList.add("hidden");
             // Save to localStorage so it stays hidden today
             localStorage.setItem("installBannerClosed", new Date().toLocaleDateString());
         };
@@ -729,7 +809,6 @@ async function initPWAUtils() {
 function setupPullToRefresh() {
     let startY = 0;
     let isPulling = false;
-    const ptr = document.getElementById("pull-to-refresh");
 
     if (!ptr) return;
 
@@ -786,65 +865,20 @@ function setupPullToRefresh() {
     });
 }
 
-// Watch for system theme changes if set to auto
-window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-    if (localStorage.getItem("user-theme") === "auto") {
-        window.setTheme("auto");
+// --- THE IGNITION & OBSERVERS ---
+window.addEventListener("DOMContentLoaded", initApp);
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") initApp();
+});
+window.addEventListener("focus", initApp);
+window.addEventListener("hashchange", () => {
+    const pageId = window.location.hash.substring(1).replace("-page", "");
+    if (pageId && typeof window.showPage === "function") {
+        window.showPage(pageId);
     }
 });
-
-// Save On Track Goal Settings (Exposed to window for inline onclick)
-window.saveGoalSettings = function (btn) {
-    const input = document.getElementById("on-track-input");
-    const newOnTrack = parseInt(input.value);
-
-    const data = window.loadData();
-    if (!data.settings) data.settings = {};
-    if (!data.settings.goals) data.settings.goals = {};
-
-    data.settings.goals.onTrackDays = newOnTrack;
-
-    localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
-
-    // 🛡️ Success Feedback
-    if (window.triggerHaptic) window.triggerHaptic("success");
-
-    // Sync to cloud since goals changed
-    if (window.auth.currentUser) {
-        window.syncLocalToCloud(window.auth.currentUser.uid);
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+    if ((localStorage.getItem("user-theme") || "auto") === "auto") {
+        window.setTheme?.("auto");
     }
-
-    // Visual feedback on the button itself
-    if (btn) {
-        const originalText = btn.innerText;
-        btn.innerText = "Saved! ✓";
-        // Using inline style to override the class temporarily
-        btn.style.backgroundColor = "#34c759";
-        btn.style.borderColor = "#34c759";
-        btn.disabled = true; // Prevent double-clicks during sync
-        btn.style.opacity = "1";
-
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.style.backgroundColor = "";
-            btn.style.borderColor = "";
-            btn.disabled = false;
-        }, 2000);
-    }
-
-    if (window.updateGoalUI) window.updateGoalUI();
-};
-
-window.getDisplayUsername = function (extraData = {}) {
-    const localData = window.loadData();
-    const nameInput = document.getElementById("username-input");
-
-    return (
-        extraData.username ||
-        (nameInput && nameInput.value ? nameInput.value : null) ||
-        localData.settings?.username ||
-        window.auth?.currentUser?.displayName ||
-        "Anonymous"
-    );
-};
-
+});

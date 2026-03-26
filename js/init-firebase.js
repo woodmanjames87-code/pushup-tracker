@@ -60,17 +60,16 @@ console.log("Firebase initialized and methods attached to window.");
  * DATA & CLOUD SYNC
  *************************************************/
 
-async function initAuthListener() {
+window.initAuthListener = async function initAuthListener() {
     // Wait for the Firebase SDK to be injected into the window
     if (window.firebaseMethods?.onAuthStateChanged) {
         window.firebaseMethods.onAuthStateChanged(window.auth, async (user) => {
-            const btn = document.getElementById("auth-button");
-            if (!btn) return;
+            if (!window.authBtn) return;
 
             if (user) {
-                btn.classList.add("logged-in");
-                btn.style.backgroundImage = `url('${user.photoURL}')`;
-                btn.onclick = () => {
+                window.authBtn.classList.add("logged-in");
+                window.authBtn.style.backgroundImage = `url('${user.photoURL}')`;
+                window.authBtn.onclick = () => {
                     if (confirm("Sign out?")) window.auth.signOut();
                 };
 
@@ -94,9 +93,9 @@ async function initAuthListener() {
                     console.log("Waiting for main.js to initialize...");
                 }
             } else {
-                btn.classList.remove("logged-in");
-                btn.style.backgroundImage = "none";
-                btn.onclick = startCloudSync;
+                window.authBtn.classList.remove("logged-in");
+                window.authBtn.style.backgroundImage = "none";
+                window.authBtn.onclick = startCloudSync;
 
                 // Call UI refreshes from ui.js
                 if (window.updateDisplay) window.updateDisplay();
@@ -106,7 +105,7 @@ async function initAuthListener() {
     } else {
         setTimeout(initAuthListener, 100);
     }
-}
+};
 
 window.startCloudSync = async function startCloudSync() {
     const { signInWithPopup, getDoc, doc } = window.firebaseMethods;
@@ -143,12 +142,22 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
         console.warn("🛡️ Sync blocked: App is currently merging data from cloud.");
         return;
     }
+    const localData = window.loadData();
+
+    // 🛡️ THE SAFETY VALVE:
+    // If there is no lastUpdated timestamp, it means this is a "Fresh" session
+    // (like after a cache clear). We MUST NOT push local defaults to the cloud.
+    if (!localData.lastUpdated && !extraData.isInitialSetup) {
+        console.warn("⚠️ Blocked sync: Local data is empty. Waiting for Cloud Heal...");
+        return;
+    }
+
     if (!userId || !window.firebaseMethods) return;
 
-    const localData = window.loadData();
     const s = window.computeStats();
     const exerciseId = window.currentExercise || "pushups";
     const { doc, setDoc } = window.firebaseMethods;
+    const confirmedUsername = localData.settings?.username || window.getDisplayUsername(extraData);
 
     const userRef = doc(window.db, "users", userId);
 
@@ -156,7 +165,7 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
         uid: userId,
         stats: mapStatsToSchema(s),
         workouts: localData,
-        lastUpdated: new Date().toISOString(),
+        lastUpdated: localData.lastUpdated || new Date().toISOString(),
         ...extraData,
     };
 
@@ -180,7 +189,7 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
             return setDoc(
                 standingsRef,
                 {
-                    username: window.getDisplayUsername(extraData),
+                    username: confirmedUsername,
                     score: p.score,
                     periodId: p.id,
                     exerciseId: exerciseId, // 🚀 Essential for filtering
@@ -218,75 +227,88 @@ window.lastReconcileTime = 0;
 
 window.reconcileData = async function reconcileData() {
     const now = Date.now();
+    if (now - (window.lastReconcileTime || 0) < 30000 || window.isReconciling) return;
 
-    // Check global timer
-    if (now - (window.lastReconcileTime || 0) < 30000) {
-        console.log("⏭️ Skipping redundant background sync (throttled).");
-        return;
-    }
-
-    // Check global lock
-    if (window.isReconciling) return;
     window.isReconciling = true;
-
-    // 2. Auth & Path Check
     const user = window.auth?.currentUser;
-
     if (!user || !window.firebaseMethods) {
-        window.isReconciling = false; // MUST release lock if we exit early
+        window.isReconciling = false;
         return;
     }
 
     const { doc, getDoc } = window.firebaseMethods;
     const userRef = doc(window.db, "users", user.uid);
 
-    // 3. Variable Check: exerciseId
-    const exerciseId = window.currentExercise || "pushups";
-
     try {
         const snap = await getDoc(userRef);
-
-        // Safety 1: Cloud Missing
-        if (!snap.exists()) {
-            window.isReconciling = false;
-            const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY));
-            if (localData && Object.keys(localData).length > 0) {
-                await window.syncLocalToCloud(user.uid);
-            }
-            window.lastReconcileTime = Date.now(); // Mark success
-            return;
-        }
-
-        const cloudData = snap.data();
-        const cloudWorkouts = cloudData.workouts || {};
         const localData = JSON.parse(localStorage.getItem(window.STORAGE_KEY)) || {};
 
-        // Safety 2: PC Overwrite Protection
-        const localIsEmpty = Object.keys(localData).length === 0;
-        const cloudHasData = Object.keys(cloudWorkouts).length > 0;
+        if (snap.exists()) {
+            const cloudData = snap.data();
 
-        if (localIsEmpty && cloudHasData) {
-            console.log("Empty local detected. Performing mandatory cloud pull.");
+            // 🚀 THE SMART MERGE: Combine both truths
+            const finalData = deepMerge(localData, cloudData.workouts || cloudData);
 
-            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(cloudWorkouts));
+            // Save the "Healed" version locally
+            localStorage.setItem(window.STORAGE_KEY, JSON.stringify(finalData));
 
-            window.isReconciling = false;
-            window.lastReconcileTime = Date.now(); // Mark success
-
+            // UI Refresh now that data is merged
+            if (window.loadCurrentUsername) window.loadCurrentUsername();
             if (window.updateDisplay) window.updateDisplay();
-            return;
         }
 
-        // 4. Final Sync
-        window.isReconciling = false; // Release before calling next function
+        // 🚀 THE DISTRIBUTION: Now that local is "whole", push it back
+        window.isReconciling = false;
         await window.syncLocalToCloud(user.uid);
 
-        window.lastReconcileTime = Date.now(); // ✅ CRITICAL: Update the timer here
+        window.lastReconcileTime = Date.now();
     } catch (err) {
         console.error("Reconciliation failed:", err);
         window.isReconciling = false;
     }
 };
 
-// KICKSTART THE LISTENER
-initAuthListener();
+function deepMerge(local, cloud) {
+    // Start with a clone of local
+    const merged = JSON.parse(JSON.stringify(local || {}));
+
+    // 1. Merge Workouts (Date by Date)
+    const cloudWorkouts = cloud.workouts || cloud; // Handle varied schema nesting
+    Object.keys(cloudWorkouts).forEach((date) => {
+        if (date === "settings" || date === "lastUpdated") return;
+
+        if (!merged[date]) {
+            // Local doesn't have this day at all? Take the cloud's day.
+            merged[date] = cloudWorkouts[date];
+        } else {
+            // Both have this day. Merge the exercises (pushups, pullups, etc.)
+            Object.keys(cloudWorkouts[date]).forEach((ex) => {
+                const localSets = merged[date][ex] || [];
+                const cloudSets = cloudWorkouts[date][ex] || [];
+
+                // Combine sets and remove duplicates (simple value check)
+                // This ensures if you did [20, 20] on one and [20] on another, you keep the [20, 20]
+                if (cloudSets.length > localSets.length) {
+                    merged[date][ex] = cloudSets;
+                }
+            });
+        }
+    });
+
+    // 2. Merge Settings based on lastUpdated
+    const localTime = new Date(local.lastUpdated || 0).getTime();
+    const cloudSettings = cloud.settings || (cloud.username ? { username: cloud.username } : {});
+    const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
+
+    // If Cloud is newer OR Local is brand new (time is 0), take Cloud settings
+    if (cloudTime > localTime || localTime === 0) {
+        console.log("💎 Healing Settings from Cloud...");
+        merged.settings = {
+            ...(merged.settings || {}),
+            ...cloudSettings,
+        };
+        merged.lastUpdated = cloud.lastUpdated || new Date().toISOString();
+    }
+
+    return merged;
+}

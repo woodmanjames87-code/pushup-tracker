@@ -37,13 +37,17 @@ function loadData() {
 
 // This handles the LOCAL SAVE + triggers the Cloud Push
 async function saveData(data) {
-    // Save locally (Immediate)
+    // 1. Mark the data with the current time
+    data.lastUpdated = new Date().toISOString();
+
+    // 2. Save locally (Immediate)
     localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
 
-    // Trigger Cloud Sync (Background)
+    // 3. Trigger Cloud Sync (Background)
     const user = window.auth?.currentUser;
     if (user) {
-        await syncLocalToCloud(user.uid);
+        // We pass the userId to sync
+        await window.syncLocalToCloud(user.uid);
     }
 }
 
@@ -428,8 +432,9 @@ function clearAllData() {
         localStorage.clear();
         sessionStorage.clear();
 
-        alert("Local database cleared.");
-        location.reload();
+        // Show toast notification and refresh
+        window.showToast("Local database cleared.");
+        // location.reload();
     }
 }
 
@@ -476,18 +481,6 @@ function smartImport(jsonString) {
         console.error(e);
     }
 }
-// Listen for file selection
-document.getElementById("import-input").addEventListener("change", function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const content = e.target.result;
-        smartImport(content);
-    };
-    reader.readAsText(file);
-});
 
 async function exportData() {
     const data = localStorage.getItem(window.STORAGE_KEY) || "{}";
