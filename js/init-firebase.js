@@ -144,9 +144,7 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
     }
     const localData = window.loadData();
 
-    // 🛡️ THE SAFETY VALVE:
-    // If there is no lastUpdated timestamp, it means this is a "Fresh" session
-    // (like after a cache clear). We MUST NOT push local defaults to the cloud.
+    // 🛡️ THE SAFETY VALVE
     if (!localData.lastUpdated && !extraData.isInitialSetup) {
         console.warn("⚠️ Blocked sync: Local data is empty. Waiting for Cloud Heal...");
         return;
@@ -154,17 +152,22 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
 
     if (!userId || !window.firebaseMethods) return;
 
-    const s = window.computeStats();
-    const exerciseId = window.currentExercise || "pushups";
+    // 1. Contextual Data Gathering
+    const exerciseId = window.currentExercise || "pushups"; // Get active exercise
+    const s = window.computeStats(exerciseId); // Compute stats for THIS exercise
     const { doc, setDoc } = window.firebaseMethods;
     const confirmedUsername = localData.settings?.username || window.getDisplayUsername(extraData);
 
+    // 2. The User Profile Payload
     const userRef = doc(window.db, "users", userId);
 
     const payload = {
         uid: userId,
-        stats: mapStatsToSchema(s),
-        workouts: localData,
+        stats: {
+            ...localData.stats, // Keep existing stats for other exercises
+            [exerciseId]: mapStatsToSchema(s),
+        },
+        workouts: localData, // Contains the full nested data object
         lastUpdated: localData.lastUpdated || new Date().toISOString(),
         ...extraData,
     };
@@ -192,9 +195,10 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
                     username: confirmedUsername,
                     score: p.score,
                     periodId: p.id,
-                    exerciseId: exerciseId, // 🚀 Essential for filtering
+                    exerciseId: exerciseId,
                     type: p.type,
                     lastUpdated: new Date().toISOString(),
+                    unit: window.EXERCISE_LIB[exerciseId]?.unit || "reps", // 🚀 New: Save units for display
                 },
                 { merge: true },
             );
@@ -269,25 +273,41 @@ window.reconcileData = async function reconcileData() {
 };
 
 function deepMerge(local, cloud) {
-    // Start with a clone of local
+    // Start with a clean clone of local
     const merged = JSON.parse(JSON.stringify(local || {}));
 
-    // 1. Merge Workouts (Date by Date)
-    const cloudWorkouts = cloud.workouts || cloud; // Handle varied schema nesting
+    // 1. Normalize Cloud Structure
+    const cloudWorkouts = cloud.workouts || cloud;
+
     Object.keys(cloudWorkouts).forEach((date) => {
-        if (date === "settings" || date === "lastUpdated") return;
+        // Skip metadata keys
+        if (date === "settings" || date === "lastUpdated" || date === "username") return;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return; // Only process date keys
 
+        let incomingDay = cloudWorkouts[date];
+
+        // --- STEP A: NORMALIZE CLOUD DAY (Array -> Object) ---
+        if (Array.isArray(incomingDay)) {
+            incomingDay = { pushups: incomingDay };
+        }
+
+        // --- STEP B: MERGE ---
         if (!merged[date]) {
-            // Local doesn't have this day at all? Take the cloud's day.
-            merged[date] = cloudWorkouts[date];
+            // Local is missing this date, take normalized cloud version
+            merged[date] = incomingDay;
         } else {
-            // Both have this day. Merge the exercises (pushups, pullups, etc.)
-            Object.keys(cloudWorkouts[date]).forEach((ex) => {
-                const localSets = merged[date][ex] || [];
-                const cloudSets = cloudWorkouts[date][ex] || [];
+            // Local has this date. Ensure LOCAL is also normalized (Object)
+            if (Array.isArray(merged[date])) {
+                merged[date] = { pushups: merged[date] };
+            }
 
-                // Combine sets and remove duplicates (simple value check)
-                // This ensures if you did [20, 20] on one and [20] on another, you keep the [20, 20]
+            // Merge exercises one by one
+            Object.keys(incomingDay).forEach((ex) => {
+                const localSets = merged[date][ex] || [];
+                const cloudSets = incomingDay[ex] || [];
+
+                // Standard "Higher Volume Wins" logic per exercise
+                // This preserves the most complete set history for that specific activity
                 if (cloudSets.length > localSets.length) {
                     merged[date][ex] = cloudSets;
                 }
@@ -295,18 +315,21 @@ function deepMerge(local, cloud) {
         }
     });
 
-    // 2. Merge Settings based on lastUpdated
+    // 2. Merge Settings (Clock-based 'Last Updated' logic)
     const localTime = new Date(local.lastUpdated || 0).getTime();
-    const cloudSettings = cloud.settings || (cloud.username ? { username: cloud.username } : {});
     const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
+    const cloudSettings = cloud.settings || (cloud.username ? { username: cloud.username } : {});
 
-    // If Cloud is newer OR Local is brand new (time is 0), take Cloud settings
     if (cloudTime > localTime || localTime === 0) {
         console.log("💎 Healing Settings from Cloud...");
         merged.settings = {
             ...(merged.settings || {}),
             ...cloudSettings,
         };
+        // Don't forget to sync the username if it lives in settings now
+        if (cloud.username && !merged.settings.username) {
+            merged.settings.username = cloud.username;
+        }
         merged.lastUpdated = cloud.lastUpdated || new Date().toISOString();
     }
 

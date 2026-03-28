@@ -67,6 +67,23 @@ header {
     margin-bottom: 0px;
 }
 
+.main-header {
+    display: grid;
+    grid-template-columns: 45px 1fr 120px;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    padding: 0 1px;
+    background: var(--layer-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: var(--glass-border);
+    z-index: 100;
+}
+
 .page-header {
     position: sticky;
     top: 0;

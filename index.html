@@ -18,15 +18,59 @@
         <link rel="stylesheet" href="css/components.css" />
     </head>
     <body>
+        <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+            <symbol id="icon-pushups" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 11V7l-5-4-5 4v4m10 4v4l-5 4-5-4v-4" />
+                <path d="M7 11h10M7 15h10" />
+            </symbol>
+
+            <symbol id="icon-squats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 3v18M17 3v18M7 12h10M7 18h10M7 6h10" />
+            </symbol>
+
+            <symbol id="icon-pullups" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 3v18M20 3v18M4 7h16M7 7v4a5 5 0 0 0 10 0V7" />
+            </symbol>
+
+            <symbol id="icon-lunges" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 21l3-4m0 0l3-6m-3 6l-3-2M11 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+                <path d="M14 11l5 2m-5-2l-2 5 6 3" />
+            </symbol>
+
+            <symbol id="icon-dips" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 4v10a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V4" />
+                <path d="M4 4h4m8 0h4M9 17v3m6-3v3" />
+            </symbol>
+
+            <symbol id="icon-plank" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+                <path d="M7 12h10" />
+            </symbol>
+        </svg>
+
         <div id="pull-to-refresh">
             <div class="spinner"></div>
         </div>
 
-        <!-- LOGIN BUTTON -->
-        <button id="auth-button" class="btn-login-pill">
-            <span class="login-text">Login to &nbsp;</span>
-            <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
-        </button>
+        <!-- APP HEADER -->
+        <header class="main-header">
+            <nav class="exercise-dropdown-container">
+                <button class="menu-trigger">☰</button>
+                <div class="exercise-menu-list" id="menu-items"></div>
+            </nav>
+
+            <div class="exercise-wheel-scene">
+                <div id="exercise-wheel-hitbox">
+                    <div class="exercise-wheel-track" id="wheel"></div>
+                </div>
+            </div>
+
+            <button id="auth-button" class="btn-login-pill">
+                <span class="login-text">Login to &nbsp;</span>
+                <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
+            </button>
+        </header>
 
         <div class="bg-fixed-img"></div>
 
@@ -212,7 +256,7 @@
                 <section class="settings-section">
                     <div class="accordion-item">
                         <div class="accordion-header">
-                            <h3>USER SETTINGS</h3>
+                            <h3>GLOBAL USER SETTINGS</h3>
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
@@ -224,6 +268,33 @@
 
                             <hr class="divider" />
 
+                            <div class="settings-group">
+                                <h3>Enabled Exercises</h3>
+                                <p class="label-tiny">Toggle the exercises you want to track on the main wheel.</p>
+                                <div id="exercise-checkbox-list" class="checkbox-grid"></div>
+                            </div>
+
+                            <hr class="divider" />
+
+                            <div class="setting-row">
+                                <label for="theme-selector">Display Mode:</label>
+                                <div class="segmented-control" id="theme-selector">
+                                    <button class="seg-btn" data-theme="light">Light</button>
+                                    <button class="seg-btn" data-theme="auto">System</button>
+                                    <button class="seg-btn" data-theme="dark">Dark</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="divider" />
+
+                    <div class="accordion-item">
+                        <div class="accordion-header exercise-header">
+                            <h3><span id="settings-exercise-name">CURRENT EXERCISE</span> GOALS</h3>
+                            <span class="chevron">&#10095;</span>
+                        </div>
+                        <div class="widget-card collapsed">
                             <div class="setting-row">
                                 <label for="goal-mode-toggle">Auto Calculate Goal:</label>
                                 <label class="switch">
@@ -231,9 +302,10 @@
                                     <span class="slider round"></span>
                                 </label>
                             </div>
-                            <p class="label-tiny goal-description">
-                                Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
+                            <p class="label-tiny goal-description" id="goal-description-text">
+                                Calculated Goal: Max(Avg,Median) of 14 active days.
                             </p>
+
                             <div id="manual-goal-container" class="setting-row" style="display: none">
                                 <label for="manual-goal-input">Daily Target:</label>
                                 <div class="input-inline-group input-compact">
@@ -252,21 +324,16 @@
 
                             <div class="settings-group">
                                 <h3>Activity Thresholds</h3>
-
                                 <div class="setting-row">
-                                    <label for="threshold-mode-toggle">Use Recommended Target:</label>
+                                    <label for="threshold-mode-toggle">Use Recommended (4 days):</label>
                                     <label class="switch">
                                         <input type="checkbox" id="threshold-mode-toggle" checked />
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
 
-                                <p class="label-tiny threshold-description">
-                                    Recommended: 4 days/week for a balanced 30-day trend.
-                                </p>
-
                                 <div id="custom-threshold-container" class="setting-row" style="display: none">
-                                    <label for="on-track-input">Custom Target:</label>
+                                    <label for="on-track-input">Custom Weekly Target:</label>
                                     <div class="number-stepper">
                                         <button type="button" id="btn-ontrack-minus" class="stepper-btn">-</button>
                                         <input type="number" id="on-track-input" readonly value="4" />
@@ -279,19 +346,9 @@
                                     <strong>Improving</strong> at <span id="improve-display">5</span>+.
                                 </p>
                             </div>
-
-                            <hr class="divider" />
-
-                            <div class="setting-row">
-                                <label for="theme-selector">Display Mode:</label>
-                                <div class="segmented-control" id="theme-selector">
-                                    <button class="seg-btn" data-theme="light">Light</button>
-                                    <button class="seg-btn" data-theme="auto">System</button>
-                                    <button class="seg-btn" data-theme="dark">Dark</button>
-                                </div>
-                            </div>
                         </div>
                     </div>
+
                     <hr class="divider" />
 
                     <div class="accordion-item">
@@ -362,7 +419,7 @@
                     <button class="seg-btn" data-filter="stats.month">Month</button>
                     <button class="seg-btn" data-filter="stats.year">Year</button>
                 </div>
-                
+
                 <div class="lb-context-label">
                     <span id="lb-date-range-text">This Week</span>
                 </div>
@@ -371,14 +428,13 @@
             <div id="lb-list" class="leaderboard-list">
                 <p class="h3" style="text-align: center; opacity: 0.5; margin-top: 40px">Loading ranks...</p>
             </div>
-
         </section>
 
         <!-- MINI PODIUM OVERLAY -->
         <div id="mini-podium-overlay" class="mini-podium" hidden>
             <div class="podium-frame">
                 <div class="p-title" id="podium-title">PREVIOUS TOP 3</div>
-                
+
                 <div class="podium-slot rank-1">
                     <div class="crown">👑</div>
                     <span class="p-name">--</span>
@@ -403,8 +459,8 @@
         <!-- LOG MODAL -->
         <div id="log-modal" class="modal-overlay">
             <div class="modal-content" role="dialog" aria-modal="true">
-                <h3>Log Push-ups</h3>
-                <p>How many reps did you do?</p>
+                <h3 id="modal-title">Log Push-ups</h3>
+                <p id="modal-prompt">How many reps did you do?</p>
 
                 <form id="log-form" action="#">
                     <input

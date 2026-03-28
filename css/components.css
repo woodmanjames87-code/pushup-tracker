@@ -12,6 +12,204 @@
 }
 
 /* =========================
+    Exercise Wheel and Dropdown
+    ========================= */
+.exercise-wheel-scene {
+    grid-column: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 800px;
+    perspective-origin: 50% 50%;
+}
+
+/* The Radial Gradient Overlay (The "Look") */
+.exercise-wheel-scene::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 45px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(0, 0, 0, 0) 60%,
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    pointer-events: none;
+    border-radius: 10px;
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 5px rgba(249, 249, 249, 0.2);
+}
+
+#exercise-wheel-hitbox {
+    position: absolute;
+    width: 200px;
+    height: 65px;
+    z-index: 100;
+    cursor: grab;
+    touch-action: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.exercise-wheel-track {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    will-change: transform;
+}
+
+.wheel-face {
+    position: absolute;
+    width: var(--panel-width);
+    height: var(--panel-height);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: #1a1919;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transition:
+        opacity 0.4s,
+        filter 0.4s;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: none;
+    transform-origin: center;
+}
+
+/* ==== Dropdown Menu ==== */
+.exercise-dropdown-container {
+    position: relative;
+    z-index: 1001;
+}
+.menu-trigger {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 28px; /* Adjust size to match your header scale */
+    width: 45px;
+    height: 70px; /* Match header height for a larger hit-box */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.menu-trigger:active {
+    opacity: 0.5;
+}
+
+.exercise-menu-list {
+    position: absolute;
+    top: 60px; /* Pulls it below the header */
+    left: 0;
+    display: none !important; /* Hide by default */
+    min-width: 180px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 12px;
+    padding: 8px;
+    background: var(--layer-4);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    box-shadow: var(--shadow-2);
+}
+.exercise-menu-list.show {
+    display: flex !important;
+}
+.menu-svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+.exercise-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.exercise-menu-item:active {
+    background: var(--layer-1);
+    box-shadow: inset var(--shadow-4);
+}
+
+.exercise-menu-item.active {
+    background: var(--secondary-bg);
+    border: var(--glass-border);
+    box-shadow: var(--shadow-2);
+    color: var(--fitness-green);
+    font-weight: 600;
+}
+
+.menu-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+/* =================================================
+    GOOGLE LOGIN BUTTON
+   ================================================= */
+.btn-login-pill {
+    z-index: 1002; /* Higher than everything else */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 0 0 10px;
+    border-radius: 20px;
+    border: var(--glass-border);
+    background-color: white;
+    box-shadow: var(--shadow-2);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #000;
+}
+
+/* logged-in state */
+.btn-login-pill.logged-in {
+    padding: 0;
+    width: 40px;
+    border-radius: 50%;
+    background-size: cover;
+}
+
+.btn-login-pill.logged-in .login-text,
+.btn-login-pill.logged-in .google-icon {
+    display: none;
+}
+/* =========================
      Install Banner 
    ========================= */
 #install-text {
@@ -911,6 +1109,23 @@ input:checked + .slider:before {
     to {
         transform: rotate(360deg);
     }
+}
+
+.icon-svg {
+    width: 24px;
+    height: 24px;
+    fill: none; /* Usually SVGs use stroke for this 'outline' look */
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+}
+
+/* When the tab is active, make the icon pop */
+.nav-item.active .icon-svg {
+    filter: drop-shadow(0 0 8px var(--accent-color));
+    transform: scale(1.1);
 }
 /* =================================================
    BACKGROUND IMAGE (FIXED & NON-INTERACTIVE)

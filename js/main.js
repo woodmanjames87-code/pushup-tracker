@@ -1,7 +1,6 @@
 /*************************************************
  * 1. GLOBAL STATE & DOM REFERENCES
  *************************************************/
-window.currentExercise = "pushups";
 window.selectedEditDate = "";
 window.appInitialized = false;
 
@@ -11,6 +10,8 @@ function initDOMReferences() {
     // Modal Elements
     window.floatingLogBtn = document.getElementById("floating-log-btn");
     window.logModal = document.getElementById("log-modal");
+    window.modalTitle = document.getElementById("modal-title");
+    window.modalPrompt = document.getElementById("modal-prompt");
     window.modalInput = document.getElementById("modal-input");
     window.modalCancelBtn = document.getElementById("modal-cancel");
     window.logForm = document.getElementById("log-form");
@@ -86,6 +87,7 @@ function initDOMReferences() {
     window.monthlyChart = document.getElementById("monthly-chart");
     window.goalDescriptions = document.querySelectorAll(".goal-description");
     window.thresholdDescriptions = document.querySelectorAll(".threshold-description");
+    window.unitLabels = document.querySelectorAll(".unit-label"); // For any text that says 'reps'
     // The "Stat Map" for updateDisplay
     window.uiStats = {};
     const statIds = [
@@ -145,6 +147,8 @@ async function initApp() {
 
         initPWAUtils(); // Service Worker & Updates
         window.appInitialized = true;
+
+        window.migrateToMultiExercise(); // Handle any old data structures from single-exercise version
     }
 
     // --- 2. INITIAL STATE (Logic & UI) ---
@@ -163,10 +167,19 @@ async function initApp() {
     const hash = window.location.hash.substring(1);
     window.showPage(hash ? hash.replace("-page", "") : "tracker");
 
+    // Ensure this runs BEFORE window.renderExerciseSwitcher()
+    const savedExercise = localStorage.getItem("lastExercise");
+
+    // Check if the saved ID actually exists in our library, otherwise default to 'pushups'
+    window.currentExercise =
+        savedExercise && window.EXERCISE_LIB[savedExercise] ? savedExercise : Object.keys(window.EXERCISE_LIB)[0];
+
     // --- 4. DATA REFRESH (Local) ---
     if (window.loadCurrentUsername) window.loadCurrentUsername();
     if (window.updateDisplay) window.updateDisplay();
     if (window.updateGoalUI) window.updateGoalUI();
+    if (window.renderExerciseSwitcher) window.renderExerciseSwitcher();
+    if (window.renderEnabledSelector) window.renderEnabledSelector();
 
     // --- 5. CLOUD SYNC (Background) ---
     if (!isQuickRefresh && window.auth?.currentUser && window.reconcileData) {
@@ -377,89 +390,91 @@ function setupEventListeners() {
         });
     }
 
-    // --- Goal Mode Toggle ---
+    // --- Goal Mode Toggle (Exercise Specific) ---
     if (goalModeToggle) {
         goalModeToggle.addEventListener("change", (e) => {
-            // 1. Get current data
-            const data = window.loadData
-                ? window.loadData()
-                : JSON.parse(localStorage.getItem(window.STORAGE_KEY) || "{}");
+            const data = window.loadData();
+            const exId = window.currentExercise; // The active exercise
+
             if (!data.settings) data.settings = {};
+            if (!data.settings.goals) data.settings.goals = {};
+            if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
 
-            // 2. Update the setting (Toggle ON = Auto, OFF = Manual)
-            data.settings.goalMode = e.target.checked ? "auto" : "manual";
+            // Update the specific exercise setting
+            data.settings.goals[exId].goalMode = e.target.checked ? "auto" : "manual";
 
-            // 3. Save it
-            if (window.saveData) {
-                window.saveData(data);
-            } else {
-                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
-            }
+            window.saveData(data);
 
-            // 4. Update the UI visibility immediately
-            if (window.updateGoalUI) window.updateGoalUI();
-            if (window.updateDisplay) window.updateDisplay();
+            // Update UI visibility and stats
+            if (window.renderExerciseSettings) window.renderExerciseSettings();
         });
     }
 
+    // --- Manual Goal Input (Exercise Specific) ---
     if (manualGoalInput) {
         manualGoalInput.addEventListener("change", (e) => {
+            const exId = window.currentExercise;
+            let val = parseInt(e.target.value);
+
+            // If they leave it blank or type gibberish, then we fall back to minGoal
+            if (isNaN(val)) {
+                const config = window.EXERCISE_LIB[exId] || { minGoal: 1 };
+                val = config.minGoal;
+                e.target.value = val;
+            }
+
             const data = window.loadData();
-            if (!data.settings) data.settings = {};
-            data.settings.manualGoal = parseInt(e.target.value) || 60;
+            if (!data.settings.goals) data.settings.goals = {};
+            if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
+
+            data.settings.goals[exId].manualGoal = val;
+
             window.saveData(data);
-            window.updateDisplay();
         });
     }
 
-    // --- Save Goal Settings Toggle ---
-    // Toggle logic
+    // --- Threshold Mode (Global Setting) ---
+    // Note: Keeping this global as requested, but updating display
     thresholdModeToggle?.addEventListener("change", (e) => {
         const data = window.loadData();
         if (!data.settings) data.settings = {};
-        data.settings.thresholdMode = e.target.checked ? "recommended" : "custom";
-        localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
 
-        window.updateGoalUI();
-        window.updateDisplay(); // Refresh dashboard stats immediately
+        data.settings.thresholdMode = e.target.checked ? "recommended" : "custom";
+
+        window.saveData(data);
+        if (window.renderExerciseSettings) window.renderExerciseSettings();
     });
 
+    // --- Custom Threshold Stepper (Exercise Specific) ---
     window.adjustOnTrack = function (change) {
-        const stepper = onTrackInput?.closest(".number-stepper"); // Get the container for the animation
-
+        const stepper = onTrackInput?.closest(".number-stepper");
         let currentVal = parseInt(onTrackInput.value) || 4;
         let newVal = currentVal + change;
 
-        // 1. SUCCESS: Within boundaries (1-6)
         if (newVal >= 1 && newVal <= 6) {
-            onTrackInput.value = newVal; // Immediate UI update
-
+            onTrackInput.value = newVal;
             if (window.triggerHaptic) window.triggerHaptic("success");
 
-            // Update the textual hints instantly
+            // UI Hints
             if (improveDisplay) improveDisplay.innerText = newVal + 1;
             if (onTrackHint) onTrackHint.innerText = newVal;
 
-            // Debounce the heavy save/re-render
             window.debounceSave(() => {
                 const data = window.loadData();
-                if (!data.settings) data.settings = {};
+                const exId = window.currentExercise;
+
                 if (!data.settings.goals) data.settings.goals = {};
+                if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
 
-                data.settings.goals.onTrackDays = newVal;
-                localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+                data.settings.goals[exId].onTrackDays = newVal;
 
-                window.updateGoalUI();
-                window.updateDisplay();
+                window.saveData(data);
+                if (window.updateDisplay) window.updateDisplay();
             }, 600);
         } else {
-            // 2. WARNING: Hit the limit (0 or 7)
             if (window.triggerHaptic) window.triggerHaptic("warning");
-
-            // RE-ADD THE SHAKE HERE
             if (stepper) {
                 stepper.classList.add("limit-shake");
-                // Remove the class after the animation (0.2s * 2 cycles = 400ms approx)
                 setTimeout(() => stepper.classList.remove("limit-shake"), 400);
             }
         }
@@ -544,6 +559,64 @@ function setupEventListeners() {
 
     // --- Pull to Refresh (Leaderboard) ---
     setupPullToRefresh();
+}
+function setupPullToRefresh() {
+    let startY = 0;
+    let isPulling = false;
+
+    if (!ptr) return;
+
+    window.addEventListener(
+        "touchstart",
+        (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].pageY;
+                isPulling = true;
+            }
+        },
+        { passive: true },
+    );
+
+    window.addEventListener(
+        "touchmove",
+        (e) => {
+            if (!isPulling) return;
+            const diff = e.touches[0].pageY - startY;
+            if (diff > 0) {
+                const y = Math.pow(diff, 0.85);
+                ptr.style.transform = `translateY(${y}px)`;
+            }
+        },
+        { passive: true },
+    );
+
+    window.addEventListener("touchend", async (e) => {
+        if (!isPulling) return;
+        const diff = e.changedTouches[0].pageY - startY;
+
+        if (diff > 70) {
+            ptr.style.transform = "translateY(60px)";
+            ptr.classList.add("refreshing"); // 🔄 Optional: add a spin animation in CSS
+
+            // 🚀 SMART SYNC
+            await reconcileData();
+
+            // 🏆 REFRESH LEADERBOARD (if visible)
+            const pageId = window.location.hash.substring(1).replace("-page", "");
+            if (pageId === "leaderboard" && window.fetchLeaderboard) {
+                await window.fetchLeaderboard();
+            }
+
+            // Snap back
+            setTimeout(() => {
+                ptr.style.transform = "translateY(0)";
+                ptr.classList.remove("refreshing");
+            }, 300);
+        } else {
+            ptr.style.transform = "translateY(0)";
+        }
+        isPulling = false;
+    });
 }
 
 /*************************************************
@@ -801,68 +874,6 @@ async function initPWAUtils() {
             localStorage.setItem("installBannerClosed", new Date().toLocaleDateString());
         };
     }
-}
-
-/*************************************************
- * PULL TO REFRESH
- *************************************************/
-function setupPullToRefresh() {
-    let startY = 0;
-    let isPulling = false;
-
-    if (!ptr) return;
-
-    window.addEventListener(
-        "touchstart",
-        (e) => {
-            if (window.scrollY === 0) {
-                startY = e.touches[0].pageY;
-                isPulling = true;
-            }
-        },
-        { passive: true },
-    );
-
-    window.addEventListener(
-        "touchmove",
-        (e) => {
-            if (!isPulling) return;
-            const diff = e.touches[0].pageY - startY;
-            if (diff > 0) {
-                const y = Math.pow(diff, 0.85);
-                ptr.style.transform = `translateY(${y}px)`;
-            }
-        },
-        { passive: true },
-    );
-
-    window.addEventListener("touchend", async (e) => {
-        if (!isPulling) return;
-        const diff = e.changedTouches[0].pageY - startY;
-
-        if (diff > 70) {
-            ptr.style.transform = "translateY(60px)";
-            ptr.classList.add("refreshing"); // 🔄 Optional: add a spin animation in CSS
-
-            // 🚀 SMART SYNC
-            await reconcileData();
-
-            // 🏆 REFRESH LEADERBOARD (if visible)
-            const pageId = window.location.hash.substring(1).replace("-page", "");
-            if (pageId === "leaderboard" && window.fetchLeaderboard) {
-                await window.fetchLeaderboard();
-            }
-
-            // Snap back
-            setTimeout(() => {
-                ptr.style.transform = "translateY(0)";
-                ptr.classList.remove("refreshing");
-            }, 300);
-        } else {
-            ptr.style.transform = "translateY(0)";
-        }
-        isPulling = false;
-    });
 }
 
 // --- THE IGNITION & OBSERVERS ---

@@ -35,6 +35,10 @@
     --podium-rank-bg: rgba(255, 255, 255, 0.05);
     --podium-rank-2: #e8e8e8;
     --podium-gold: #ffd700;
+
+    /* Horizontal Scroll Wheel */
+    --panel-width: 80px;
+    --panel-height: 35px;
 }
 
 /* LIGHT MODE OVERRIDE */
