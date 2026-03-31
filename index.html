@@ -20,11 +20,14 @@
     <body>
         <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
             <symbol id="icon-pushups" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 11V7l-5-4-5 4v4m10 4v4l-5 4-5-4v-4" />
-                <path d="M7 11h10M7 15h10" />
+                <path d="M21.6 7.5c-1.1 0-2 1.2-2 2.5v.6L8.9 14.4l-3.7 2.3-4.6 1.5-.2.3q0 .3.3.2l4.6-1.5L9 14.9l9.3-3.3-2.1 2.9v3.9l.1.3.2-.3v-3.7l2.5-3.4.7-.2q.5 1.4 1.9 1.5c1.1 0 2-1.2 2-2.6 0-1.3-.9-2.5-2-2.5m0 .5c1 0 1.7 1 1.7 2q-.2 1.9-1.7 2-1.6-.1-1.7-2c0-1 .8-2 1.7-2" overflow="visible"/>
             </symbol>
-
+            
             <symbol id="icon-squats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 3v18M17 3v18M7 12h10M7 18h10M7 6h10" />
+            </symbol>
+            
+            <symbol id="icon-situps" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M7 3v18M17 3v18M7 12h10M7 18h10M7 6h10" />
             </symbol>
 
@@ -270,7 +273,7 @@
 
                             <div class="settings-group">
                                 <h3>Enabled Exercises</h3>
-                                <p class="label-tiny">Toggle the exercises you want to track on the main wheel.</p>
+                                <p class="label-tiny">Toggle the exercises you want to track.</p>
                                 <div id="exercise-checkbox-list" class="checkbox-grid"></div>
                             </div>
 
@@ -287,11 +290,11 @@
                         </div>
                     </div>
 
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div class="accordion-item">
                         <div class="accordion-header exercise-header">
-                            <h3><span id="settings-exercise-name">CURRENT EXERCISE</span> GOALS</h3>
+                            <h3><span class="settings-exercise-name">CURRENT EXERCISE</span> GOALS</h3>
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
@@ -323,9 +326,9 @@
                             <hr class="divider" />
 
                             <div class="settings-group">
-                                <h3>Activity Thresholds</h3>
+                                <h3>Activity Thresholds <span class="label-mini">(for 30-day trend)</span></h3>
                                 <div class="setting-row">
-                                    <label for="threshold-mode-toggle">Use Recommended (4 days):</label>
+                                    <label for="threshold-mode-toggle">Use Recommended:</label>
                                     <label class="switch">
                                         <input type="checkbox" id="threshold-mode-toggle" checked />
                                         <span class="slider round"></span>
@@ -342,18 +345,19 @@
                                 </div>
 
                                 <p class="label-tiny">
-                                    Status: <strong>On Track</strong> at <span id="on-track-display-hint">4</span> days.
-                                    <strong>Improving</strong> at <span id="improve-display">5</span>+.
+                                    Status: <strong>On Track</strong> at
+                                    <span id="on-track-display-hint">4</span> days/week. <strong>Improving</strong> at
+                                    <span id="improve-display">5</span>+.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div class="accordion-item">
                         <div class="accordion-header">
-                            <h3>EDIT ENTRIES</h3>
+                            <h3>EDIT <span class="settings-exercise-name">CURRENT EXERCISE</span> ENTRIES</h3>
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
@@ -370,7 +374,7 @@
                             </button>
                         </div>
                     </div>
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div class="accordion-item">
                         <div class="accordion-header">
@@ -385,12 +389,16 @@
                                 </button>
                                 <input type="file" id="import-input" hidden accept=".json" />
                             </div>
-                            <div class="danger-zone" style="margin-top: 20px">
+                            <div class="danger-zone">
                                 <button onclick="clearAllData()" class="btn-danger">Clear All Local Data</button>
+                                <button onclick="window.nukeCloudData()" class="btn-danger">
+                                    🧨 NUKE CLOUD + LOCAL DATA <br>
+                                    DELETE EVERYTHING
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee">
                         <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px">
@@ -399,7 +407,18 @@
                         <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5">Version --</div>
                     </div>
 
-                    <h3 style="text-align: center">More workout types to come!</h3>
+                    <div id="debug-menu" class="widget-card hidden">
+                        <h3 style="color: #ff4444; margin-top: 0">🛠️ Debug Operations</h3>
+                        <p class="label-tiny">Current User: <span id="debug-uid"></span></p>
+                        <div class="danger-zone">
+                                <button onclick="injectMockLeaderboard()" class="btn-secondary">
+                                    Mock Leaderboard
+                                </button>
+                                <button onclick="seedTestData()" class="btn-secondary">Seed Pushup Data</button>
+                                <button onclick="location.reload()" class="btn-secondary">Force Reload</button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </main>
         </section>
@@ -481,7 +500,9 @@
         </div>
 
         <!-- FLOATING LOG BUTTON-->
-        <button id="floating-log-btn" class="btn-primary floating-btn">+ LOG SET</button>
+        <button id="floating-log-btn" class="btn-primary floating-btn">
+            + LOG <span id="log-btn-exercise-name">SET</span>
+        </button>
 
         <!--BOTTOM NAVIGATION-->
         <nav class="bottom-nav">

@@ -73,7 +73,6 @@ window.showPage = function (pageId) {
     // 5. Settings‑page setup
     if (pageId === "settings") {
         if (window.loadCurrentUsername) window.loadCurrentUsername();
-        if (window.renderExerciseSettings) window.renderExerciseSettings();
         if (window.renderEditList) window.renderEditList();
         if (window.renderEnabledSelector) window.renderEnabledSelector();
     }
@@ -87,6 +86,18 @@ window.showPage = function (pageId) {
                 podiumOverlay.hidden = true;
             }
         }, 1000); // Adjust to match your CSS transition time
+    }
+};
+
+window.updateFloatingBtn = function () {
+    const btnSpan = document.getElementById("log-btn-exercise-name");
+    if (!btnSpan) return;
+
+    const exId = window.currentExercise;
+    const config = window.EXERCISE_LIB[exId];
+
+    if (config) {
+        btnSpan.innerText = config.name.toUpperCase();
     }
 };
 
@@ -208,8 +219,9 @@ window.selectExercise = function (id, silent = false) {
     wheel.style.transition = silent ? "none" : "transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1)";
     wheel.style.transform = `rotateY(${targetAngle}deg)`;
 
-    // Always update the active class on the faces/menu
+    // Always update the active class on the faces/menu and the floating button text
     window.updateSwitcherUI();
+    if (window.updateFloatingBtn) window.updateFloatingBtn();
 
     // 🛡️ THE FIX: Only trigger the rest of the app if we aren't in a "silent" sync
     if (!silent) {
@@ -314,6 +326,8 @@ const initWheelInteractions = () => {
             if (window.updateDisplay) window.updateDisplay();
             if (window.renderExerciseSettings) window.renderExerciseSettings();
             if (window.renderEditList) window.renderEditList();
+            if (window.updateFloatingBtn) window.updateFloatingBtn();
+
             window.updateSwitcherUI();
         }
     };
@@ -332,9 +346,18 @@ document.addEventListener("click", (e) => {
     const menu = document.getElementById("menu-items");
     const trigger = document.querySelector(".menu-trigger");
 
+    // 1. If clicking the trigger (the hamburger or icon), toggle the menu
     if (trigger && trigger.contains(e.target)) {
         menu.classList.toggle("show");
-    } else if (menu && !menu.contains(e.target)) {
+    }
+    // 2. If clicking an exercise item INSIDE the menu, select it and CLOSE
+    else if (menu && menu.contains(e.target) && e.target.closest(".exercise-menu-item")) {
+        // The onclick="window.selectExercise()" handles the logic,
+        // we just need to hide the menu here.
+        menu.classList.remove("show");
+    }
+    // 3. If clicking anywhere else outside the menu, close it
+    else if (menu && !menu.contains(e.target)) {
         menu.classList.remove("show");
     }
 });
@@ -343,7 +366,10 @@ document.addEventListener("click", (e) => {
  *************************************************/
 window.updateDisplay = function () {
     const s = window.computeStats ? window.computeStats() : null;
-    if (!s) return;
+    if (!s) {
+        console.warn("No stats object returned.");
+        return;
+    }
 
     // Optimized Helper: No more document.getElementById!
     const updateText = (id, val) => {
@@ -386,28 +412,57 @@ window.updateDisplay = function () {
 
     // --- 3. WEEKLY CHART ---
     if (window.barChart && window.barLabels) {
-        barChart.innerHTML = "";
-        barLabels.innerHTML = "";
-        const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
-        const maxVal = Math.max(...s.weeklyData, 1);
-        const midVal = Math.round(maxVal / 2);
-
-        updateText("axis-max-l", maxVal);
-        updateText("axis-max-r", maxVal);
-        updateText("axis-mid-l", midVal);
-        updateText("axis-mid-r", midVal);
-
-        s.weeklyData.forEach((v, i) => {
-            const hPercentage = (v / maxVal) * 100;
-            barChart.insertAdjacentHTML(
-                "beforeend",
-                `<div class="bar-unit" style="height:${hPercentage}%; opacity:${v > 0 ? 1 : 0.2}"></div>`,
-            );
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            barLabels.insertAdjacentHTML("beforeend", `<span class="day-label">${days[d.getDay()]}</span>`);
+        // 1. START THE SINK: Set existing bars to 0
+        const oldBars = barChart.querySelectorAll(".bar-unit");
+        oldBars.forEach((bar) => {
+            bar.style.setProperty("--bar-h", "0%");
+            bar.style.opacity = "0";
         });
-        updateText("weekly-title", `Total: ${s.weeklyTotal}`);
+
+        // 2. WAIT FOR SINK: Then replace and grow
+        setTimeout(() => {
+            barChart.innerHTML = "";
+            barLabels.innerHTML = "";
+
+            const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
+            const maxVal = Math.max(...s.weeklyData, 1);
+            const midVal = Math.round(maxVal / 2);
+
+            updateText("axis-max-l", maxVal);
+            updateText("axis-max-r", maxVal);
+            updateText("axis-mid-l", midVal);
+            updateText("axis-mid-r", midVal);
+
+            s.weeklyData.forEach((v, i) => {
+                const barId = `week-bar-${i}`;
+                const hPercentage = (v / maxVal) * 100;
+
+                // Inject at 0% first
+                barChart.insertAdjacentHTML(
+                    "beforeend",
+                    `<div id="${barId}" class="bar-unit" style="--bar-h: 0%; opacity: 0;"></div>`,
+                );
+
+                // Trigger the "Grow" animation
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        const el = document.getElementById(barId);
+                        if (el) {
+                            el.style.setProperty("--bar-h", `${hPercentage}%`);
+                            el.style.opacity = v > 0 ? "1" : "0.2";
+                            el.removeAttribute("id");
+                        }
+                    });
+                });
+
+                // Handle labels
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                barLabels.insertAdjacentHTML("beforeend", `<span class="day-label">${days[d.getDay()]}</span>`);
+            });
+
+            updateText("weekly-title", `Total: ${s.weeklyTotal}`);
+        }, 300); // This 300ms matches your CSS transition time
     }
 
     // --- 4. LEGACY INSIGHTS (ALL-TIME) ---
@@ -433,30 +488,63 @@ window.updateDisplay = function () {
         if (window.pillLight) pillLight.style.width = (s.lightVol / total) * 100 + "%";
 
         if (window.monthlyChart) {
-            monthlyChart.innerHTML = "";
-            const monthEntries = Object.entries(s.monthlyData);
-            const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
-
-            monthEntries.forEach(([label, val]) => {
-                const hPct = (val / maxMonth) * 100;
-                monthlyChart.insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <div class="monthly-bar-container">
-                        <div style="height: 60px; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-                            <span class="label-tiny chart-value" style="font-size: 0.6rem; margin-bottom: 2px; line-height: 1;">
-                                ${val > 0 ? val : ""}
-                            </span>
-                            <div class="bar-unit legacy" style="height:${hPct}%; opacity:${val > 0 ? 1 : 0.2};"></div>
-                        </div>
-                        <span class="month-label" style="font-size: 0.6rem; margin-top: 4px;">
-                            ${label.toUpperCase()}
-                        </span>
-                    </div>
-                `,
-                );
+            const oldMonthly = monthlyChart.querySelectorAll(".bar-unit");
+            oldMonthly.forEach((bar) => {
+                bar.style.setProperty("--bar-h", "0%");
+                bar.style.opacity = "0";
             });
+
+            setTimeout(() => {
+                monthlyChart.innerHTML = "";
+                const monthEntries = Object.entries(s.monthlyData);
+                const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
+
+                monthEntries.forEach(([label, val], i) => {
+                    const barId = `month-bar-${i}`;
+                    const hPct = (val / maxMonth) * 100;
+
+                    // 1. Inject with 0% height
+                    monthlyChart.insertAdjacentHTML(
+                        "beforeend",
+                        `
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label">${val > 0 ? val : ""}</span>
+                                <div id="${barId}" class="bar-unit legacy" style="--bar-h: 0%; opacity: 0;"></div>
+                            </div>
+                            <span class="month-name-label">${label}</span>
+                        </div>
+                        `,
+                    );
+
+                    // 2. Trigger the "Grow"
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            const el = document.getElementById(barId);
+                            if (el) {
+                                el.style.setProperty("--bar-h", `${hPct}%`);
+                                el.style.opacity = val > 0 ? "1" : "0.2";
+                                el.removeAttribute("id");
+                            }
+                        });
+                    });
+                });
+            }, 300);
         }
+    } else {
+        // If there is no all-time data, we must clear the "sticky" elements
+        updateText("legacy-projected", "NO DATA YET");
+        updateText("legacy-since", "START TRACKING TODAY");
+        updateText("stat-all-time", "0");
+        updateText("stat-pb", "0");
+        updateText("stat-ytd", "0");
+
+        if (window.monthlyChart) monthlyChart.innerHTML = "";
+        if (window.milestoneFill) milestoneFill.style.width = "0%";
+
+        if (window.pillElite) pillElite.style.width = "0%";
+        if (window.pillSolid) pillSolid.style.width = "0%";
+        if (window.pillLight) pillLight.style.width = "0%";
     }
 };
 
@@ -579,8 +667,10 @@ window.renderExerciseSettings = function () {
     };
 
     // 3. Update Header & Labels
-    const nameDisplay = document.getElementById("settings-exercise-name");
-    if (nameDisplay) nameDisplay.innerText = config.name.toUpperCase();
+    const exerciseNameLabels = document.querySelectorAll(".settings-exercise-name");
+    exerciseNameLabels.forEach((el) => {
+        el.innerText = config.name.toUpperCase();
+    });
 
     // Update the unit labels (e.g., changes "Reps" to "Secs" for Plank)
     const unitLabels = document.querySelectorAll(".unit-label");
@@ -841,9 +931,9 @@ window.debounceSave = function (callback, delay = 500) {
 //------- HAPTIC FEEDBACK ----------
 window.triggerHaptic = function (type = "success") {
     // 1. Console Log for PC/Mac Debugging
-    const colors = { tick: "#888", success: "#4CAF50", warning: "#FF5252", heavy: "#FFD700" };
-    const styles = `color: ${colors[type] || "white"}; font-weight: bold; border-left: 4px solid ${colors[type] || "white"}; padding-left: 10px;`;
-    console.log(`%c[Haptic: ${type.toUpperCase()}]`, styles);
+    // const colors = { tick: "#888", success: "#4CAF50", warning: "#FF5252", heavy: "#FFD700" };
+    // const styles = `color: ${colors[type] || "white"}; font-weight: bold; border-left: 4px solid ${colors[type] || "white"}; padding-left: 10px;`;
+    // console.log(`%c[Haptic: ${type.toUpperCase()}]`, styles);
 
     // 2. Check for support
     if (!("vibrate" in navigator)) return;
@@ -872,4 +962,13 @@ window.triggerHaptic = function (type = "success") {
     } catch (e) {
         // Silently handle any remaining browser-specific gesture blocks
     }
+};
+
+window.initDebugMenu = function () {
+    const debugMenu = document.getElementById("debug-menu");
+    const debugUid = document.getElementById("debug-uid");
+    const user = window.auth?.currentUser;
+
+        debugMenu.classList.toggle("hidden");
+        debugUid.innerText = user?.uid || "Not Authenticated";
 };

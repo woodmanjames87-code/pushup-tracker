@@ -11,6 +11,10 @@
     margin: 20px 0;
 }
 
+.divider.accordion {
+    margin: 5px 0;
+}
+
 /* =========================
     Exercise Wheel and Dropdown
     ========================= */
@@ -34,17 +38,12 @@
     transform: translate(-50%, -50%);
     width: 200px;
     height: 45px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(0, 0, 0, 0) 60%,
-        rgba(0, 0, 0, 0.8) 100%
-    );
+    background: radial-gradient(ellipse at center, var(--layer-4), var(--layer-2), var(--layer-0));
     pointer-events: none;
     border-radius: 10px;
     z-index: 100;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 5px rgba(249, 249, 249, 0.2);
+    border: var(--glass-border);
+    box-shadow: inset var(--shadow-2);
 }
 
 #exercise-wheel-hitbox {
@@ -82,9 +81,10 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    background: #1a1919;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--layer-1);
+    border-top: var(--glass-border);
+    border-bottom: var(--glass-border);
+    box-shadow: var(--shadow-1);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     transition:
@@ -122,9 +122,8 @@
 
 .exercise-menu-list {
     position: absolute;
-    top: 60px; /* Pulls it below the header */
-    left: 0;
-    display: none !important; /* Hide by default */
+    top: 25px;
+    left: 10px;
     min-width: 180px;
     z-index: 1000;
     display: flex;
@@ -137,13 +136,32 @@
     backdrop-filter: var(--glass-blur);
     border: var(--glass-border);
     box-shadow: var(--shadow-2);
+
+    pointer-events: none; /* Prevents clicks when hidden */
+    transform-origin: top left;
+    opacity: 0.5;
+    visibility: hidden;
+    clip-path: inset(0 100% 100% 0);
+    transform: translate(10px, 10px); /* Appear from inside the button */
+    transition:
+        opacity 0.3s ease,
+        transform 0.4s ease,
+        clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0.4s;
+
+    will-change: clip-path, opacity;
 }
+
 .exercise-menu-list.show {
-    display: flex !important;
+    pointer-events: auto; /* Enables clicks when shown */
+    opacity: 1;
+    visibility: visible;
+    clip-path: inset(0 0 0% 0); /* Reveals the full menu */
+    transform: translate(0, 0); /* Aligns it perfectly with the trigger */
 }
 .menu-svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     fill: currentColor;
 }
 .exercise-menu-item {
@@ -176,6 +194,7 @@
     width: 24px;
     text-align: center;
 }
+
 /* =================================================
     GOOGLE LOGIN BUTTON
    ================================================= */
@@ -735,6 +754,10 @@ input:checked + .slider:before {
     background: linear-gradient(to bottom, var(--fitness-green), var(--fitness-green-dark));
     border-radius: 4px 4px 1px 1px;
     min-height: 2px;
+    height: var(--bar-h, 0%);
+    transition:
+        height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        opacity 0.5s ease;
 }
 
 .bar-unit.legacy {
@@ -775,6 +798,40 @@ input:checked + .slider:before {
 #monthly-chart {
     padding-top: 5px; /* Gives the numbers room to breathe when the bar is at max height */
     overflow: visible; /* Prevents numbers from being clipped */
+}
+
+/* Container for each individual bar + label */
+.monthly-bar-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%; /* Or a fixed width like 30px depending on layout */
+}
+
+/* The wrapper that defines the max height of the bars */
+.monthly-bar-wrapper {
+    height: 60px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* The tiny value text above the bar */
+.chart-value-label {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+    line-height: 1;
+    color: var(--text-secondary); /* Use your existing variables */
+}
+
+/* The label at the very bottom (Jan, Feb, etc) */
+.month-name-label {
+    font-size: 0.6rem;
+    margin-top: 4px;
+    text-transform: uppercase;
 }
 
 /* =================================================
@@ -1126,6 +1183,50 @@ input:checked + .slider:before {
 .nav-item.active .icon-svg {
     filter: drop-shadow(0 0 8px var(--accent-color));
     transform: scale(1.1);
+}
+
+.loading-state {
+    text-align: center;
+    margin-top: 40px;
+    opacity: 0.5;
+    font-family: sans-serif; /* Or your app's main font */
+}
+
+.dots-container {
+    display: inline-block;
+    position: relative;
+    /* We add padding to the right so 'Loading' stays centered 
+       while the dots have a dedicated 'invisible' box to live in */
+    padding-right: 1.2em;
+    text-align: left;
+}
+
+.dots-container::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    /* This ensures the dots align with the baseline of the text */
+    width: 1em;
+    text-align: left;
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%,
+    20% {
+        content: "";
+    }
+    40% {
+        content: ".";
+    }
+    60% {
+        content: "..";
+    }
+    80%,
+    100% {
+        content: "...";
+    }
 }
 /* =================================================
    BACKGROUND IMAGE (FIXED & NON-INTERACTIVE)

@@ -1,98 +1,42 @@
-(function injectMockLeaderboard() {
-    const lbList = document.getElementById("lb-list");
-    if (!lbList) {
-        console.error("❌ Could not find #lb-list");
-        return;
-    }
-
-    console.log("🚀 Injecting 25 mock competitors...");
-
-    // Create 25 fake users
-    let mockHTML = "";
-    const names = [
-        "Alex",
-        "Jordan",
-        "Taylor",
-        "Casey",
-        "Riley",
-        "Quinn",
-        "Skyler",
-        "Charlie",
-        "Emerson",
-        "Parker",
-        "Sloane",
-        "Reese",
-    ];
-
-    for (let i = 1; i <= 25; i++) {
-        const rank = i + 5; // Start after your real top few
-        const name = names[i % names.length] + " " + (100 + i);
-        const score = (1000 - i * 20).toLocaleString();
-
-        mockHTML += `
-            <div class="lb-row">
-                <span class="lb-rank">${rank}</span>
-                <span class="lb-name">${name}</span>
-                <div style="text-align:right">
-                    <span class="lb-score">${score}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    // Append to the list
-    lbList.insertAdjacentHTML("beforeend", mockHTML);
-
-    // 📏 Apply the padding fix so the last user isn't hidden by the podium
-    lbList.style.paddingBottom = "220px";
-
-    console.log("✅ Mock users added. Scroll down to check the podium overlap!");
-})();
-
 initDOMReferences();
 console.table(Object.keys(window).filter((key) => key.includes("Btn") || key.includes("Modal")));
 
-// PUSHUPS ONLY TEST DATA SEEDER
-(function seedTestData() {
-    const data = {};
-    const today = new Date();
-    
-    // We go back 180 days (approx 6 months)
-    for (let i = 180; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(today.getDate() - i);
-        const dateKey = d.toISOString().split('T')[0];
+async function checkStandingsHealth() {
+    const { collection, getDocs, query, where } = window.firebaseMethods;
+    const exercise = window.currentExercise || "pushups";
+    const standingsRef = collection(window.db, "standings");
 
-        // Leave a 5-day gap leading up to today
-        // (Days 1 to 5 ago will be empty)
-        if (i > 0 && i <= 5) {
-            continue; 
+    console.log(
+        `%c 🛡️ Checking Standings for: ${exercise.toUpperCase()} `,
+        "background: #111; color: #00ff00; font-weight: bold;",
+    );
+
+    try {
+        const snap = await getDocs(query(standingsRef, where("exerciseId", "==", exercise)));
+
+        if (snap.empty) {
+            console.warn("⚠️ No standings found for this exercise. Have you synced yet?");
+            return;
         }
 
-        // Randomly skip some days to make the data look real (Rest days)
-        if (Math.random() > 0.2) {
-            data[dateKey] = {
-                // Generate 1 to 3 random sets
-                pushups: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, 
-                    () => Math.floor(Math.random() * 20) + 30) 
+        const report = snap.docs.map((doc) => {
+            const d = doc.data();
+            return {
+                "Doc ID": doc.id,
+                Type: d.type,
+                Period: d.periodId,
+                Score: d.score,
+                User: d.username,
+                "Yest Score": d.yestScore !== undefined ? d.yestScore : "N/A",
+                "Last Sync": d.lastUpdated ? d.lastUpdated.split("T")[1].split(".")[0] : "???",
             };
-        }
+        });
+
+        console.table(report);
+        console.log("%c ✅ Health Check Complete", "color: #00ff00; font-weight: bold;");
+    } catch (err) {
+        console.error("❌ Health check failed:", err);
     }
-
-    // Add necessary metadata
-    data.settings = {
-        goals: {
-            pushups: { manualGoal: 60, goalMode: "auto", onTrackDays: 4 }
-        },
-        thresholdMode: "recommended"
-    };
-    data.lastUpdated = new Date().toISOString();
-
-    // Save to LocalStorage
-    localStorage.setItem("workout-data", JSON.stringify(data));
-    
-    console.log("✅ Test Data Seeded!");
-    console.log("Gap: Last 23 days are empty.");
-    console.log("Exercise: Pushups (Array format).");
-    console.log("Reload your app to see the results.");
-})();
+}
+// Run it immediately
+checkStandingsHealth();

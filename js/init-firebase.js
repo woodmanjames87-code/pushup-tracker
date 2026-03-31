@@ -5,6 +5,7 @@ import {
     signInWithPopup,
     GoogleAuthProvider,
     onAuthStateChanged,
+    signInWithEmailAndPassword,
     updateProfile, // Added for the username fix
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
@@ -12,6 +13,7 @@ import {
     doc,
     setDoc,
     getDoc,
+    deleteDoc,
     collection,
     query,
     orderBy,
@@ -42,10 +44,12 @@ window.googleProvider = provider;
 window.firebaseMethods = {
     signInWithPopup,
     onAuthStateChanged,
+    signInWithEmailAndPassword,
     updateProfile,
     doc,
     setDoc,
     getDoc,
+    deleteDoc,
     collection,
     query,
     orderBy,
@@ -59,7 +63,6 @@ console.log("Firebase initialized and methods attached to window.");
 /*************************************************
  * DATA & CLOUD SYNC
  *************************************************/
-
 window.initAuthListener = async function initAuthListener() {
     // Wait for the Firebase SDK to be injected into the window
     if (window.firebaseMethods?.onAuthStateChanged) {
@@ -86,8 +89,8 @@ window.initAuthListener = async function initAuthListener() {
                     }
                 }
                 // Call initApp from main.js
-                if (window.initApp) {
-                    window.initApp();
+                if (window.refreshStateAndUI) {
+                    window.refreshStateAndUI();
                 } else {
                     // If main.js isn't loaded yet, it will call initApp itself when it loads
                     console.log("Waiting for main.js to initialize...");
@@ -99,7 +102,8 @@ window.initAuthListener = async function initAuthListener() {
 
                 // Call UI refreshes from ui.js
                 if (window.updateDisplay) window.updateDisplay();
-                if (window.updateGoalUI) window.updateGoalUI();
+                if (window.renderExerciseSettings) window.renderExerciseSettings();
+                if (window.renderExerciseSwitcher) window.renderExerciseSwitcher();
             }
         });
     } else {
@@ -163,10 +167,7 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
 
     const payload = {
         uid: userId,
-        stats: {
-            ...localData.stats, // Keep existing stats for other exercises
-            [exerciseId]: mapStatsToSchema(s),
-        },
+        username: confirmedUsername,
         workouts: localData, // Contains the full nested data object
         lastUpdated: localData.lastUpdated || new Date().toISOString(),
         ...extraData,
@@ -176,55 +177,66 @@ window.syncLocalToCloud = async function syncLocalToCloud(userId, extraData = {}
         // 1. Update the Main User Profile
         await setDoc(userRef, payload, { merge: true });
 
-        // 2. Update the Exercise-Specific Standings
+        // 2. Prepare all Standing Updates (Daily + Historical)
         const periods = [
-            { id: s.weekId, score: s.calendarWeeklyTotal, type: "weekly" },
-            { id: s.monthId, score: s.monthlyTotal, type: "monthly" },
-            { id: s.yearId, score: s.ytdTotal, type: "yearly" },
+            // --- ADD THE DAILY ENTRY HERE ---
+            {
+                id: window.getTodayId(),
+                score: s.todayTotal,
+                type: "daily",
+                standingId: `daily_${userId}_${exerciseId}`,
+            },
+
+            {
+                id: s.weekId,
+                score: s.calendarWeeklyTotal,
+                type: "weekly",
+                standingId: `${s.weekId}_${exerciseId}_${userId}`,
+            },
+            {
+                id: s.monthId,
+                score: s.monthlyTotal,
+                type: "monthly",
+                standingId: `${s.monthId}_${exerciseId}_${userId}`,
+            },
+            {
+                id: s.yearId,
+                score: s.ytdTotal,
+                type: "yearly",
+                standingId: `${s.yearId}_${exerciseId}_${userId}`,
+            },
         ];
 
         const historyPromises = periods.map((p) => {
-            // Document ID: "2026-W11_pushups_user123"
-            // This prevents different exercises from overwriting each other!
-            const standingId = `${p.id}_${exerciseId}_${userId}`;
-            const standingsRef = doc(window.db, "standings", standingId);
+            const standingsRef = doc(window.db, "standings", p.standingId);
 
-            return setDoc(
-                standingsRef,
-                {
-                    username: confirmedUsername,
-                    score: p.score,
-                    periodId: p.id,
-                    exerciseId: exerciseId,
-                    type: p.type,
-                    lastUpdated: new Date().toISOString(),
-                    unit: window.EXERCISE_LIB[exerciseId]?.unit || "reps", // 🚀 New: Save units for display
-                },
-                { merge: true },
-            );
+            // Base Payload
+            const data = {
+                uid: userId, // Ensure UID is saved for the leaderboard filter
+                username: confirmedUsername,
+                score: p.score || 0,
+                periodId: p.id,
+                exerciseId: exerciseId,
+                type: p.type,
+                lastUpdated: new Date().toISOString(),
+                unit: window.EXERCISE_LIB[exerciseId]?.unit || "reps",
+            };
+
+            // --- ADD EXTRA FIELDS ONLY FOR DAILY ---
+            if (p.type === "daily") {
+                data.yestScore = s.yesterdayTotal || 0;
+                data.yestId = window.getYesterdayId();
+            }
+
+            return setDoc(standingsRef, data, { merge: true });
         });
 
         await Promise.all(historyPromises);
-        console.log(`Cloud sync successful for ${exerciseId}.`);
+        console.log(`✅ Cloud sync (Daily + History) successful for ${exerciseId}.`);
     } catch (err) {
-        console.error("Cloud sync failed:", err);
+        console.error("❌ Cloud sync failed:", err);
     }
 };
-
-function mapStatsToSchema(s) {
-    return {
-        today: s.todayTotal,
-        todayId: getTodayId(),
-        yest: s.yesterdayTotal,
-        yestId: getYesterdayId(),
-        week: s.calendarWeeklyTotal,
-        weekId: s.weekId,
-        month: s.monthlyTotal,
-        monthId: s.monthId,
-        year: s.ytdTotal,
-        yearId: s.yearId,
-    };
-}
 
 window.isReconciling = false;
 window.lastReconcileTime = 0;

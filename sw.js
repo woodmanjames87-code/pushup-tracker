@@ -18,7 +18,7 @@ const ASSETS = [
     "manifest.json",
     "img/pushup-icon.PNG",
     "img/Google_G_logo.png",
-    "img/workout-app-icon.PNG",
+    "img/dailygrind-icon.PNG",
     "img/screenshot-mobile.png",
     "img/pushup-tile.PNG",
     "img/pullup-tile.PNG",

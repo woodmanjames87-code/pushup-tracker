@@ -247,6 +247,8 @@ window.getPreviousPeriodId = function (type, currentId) {
     }
 
     if (t.includes("month")) {
+        // 1. Force the date to the 1st of the month to avoid day-overflow (like Feb 29)
+        date.setDate(1);
         date.setMonth(date.getMonth() - 1);
         return window.getMonthId(date);
     }
@@ -657,6 +659,316 @@ async function exportData() {
     URL.revokeObjectURL(url);
 }
 
+window.nukeCloudData = async function () {
+    if (!window.auth?.currentUser) return (console.error("No user logged in."), window.showToast("No user logged in."));
+    const user = window.auth?.currentUser;
+    if (!user) return;
+
+    const confirm1 = confirm("STOP! This will delete your ENTIRE cloud presence. Are you sure?");
+    if (!confirm1) return;
+
+    const confirm2 = prompt("Type 'DELETE' to confirm (All caps):");
+    if (confirm2 !== "DELETE") return;
+
+    const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseMethods;
+    const uid = window.auth.currentUser.uid;
+
+    try {
+        console.log("🧨 Starting Cloud Nuke for UID:", uid);
+
+        // 1. Delete Main User Doc
+        const userRef = doc(window.db, "users", uid);
+        await deleteDoc(userRef);
+
+        // 2. Find and Delete ALL Standings (Daily + Historical)
+        // We query by 'uid' field we added to the documents earlier
+        const standingsRef = collection(window.db, "standings");
+        const q = query(standingsRef, where("uid", "==", uid));
+        const snapshot = await getDocs(q);
+
+        const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
+        await Promise.all(deletePromises);
+        await window.auth.signOut();
+
+        console.log(`✅ Cloud wiped. ${snapshot.size + 1} documents removed.`);
+        window.showToast(`✅ Cloud wiped. ${snapshot.size + 1} documents removed.`);
+
+        // 3. Clear Local as well to stay in sync
+        window.clearAllData();
+    } catch (err) {
+        console.error("❌ Nuke failed:", err);
+        window.showToast("❌ Nuke failed:", err);
+    }
+};
+
+function injectMockLeaderboard() {
+    const lbList = document.getElementById("lb-list");
+    if (!lbList) {
+        console.error("❌ Could not find #lb-list");
+        return;
+    }
+
+    console.log("🚀 Injecting 25 mock competitors...");
+
+    // Create 25 fake users
+    let mockHTML = "";
+    const names = [
+        "Alex",
+        "Jordan",
+        "Taylor",
+        "Casey",
+        "Riley",
+        "Quinn",
+        "Skyler",
+        "Charlie",
+        "Emerson",
+        "Parker",
+        "Sloane",
+        "Reese",
+    ];
+
+    for (let i = 1; i <= 25; i++) {
+        const rank = i + 5; // Start after your real top few
+        const name = names[i % names.length] + " " + (100 + i);
+        const score = (1000 - i * 20).toLocaleString();
+
+        mockHTML += `
+            <div class="lb-row">
+                <span class="lb-rank">${rank}</span>
+                <span class="lb-name">${name} 🤖</span>
+                <div style="text-align:right">
+                    <span class="lb-score">${score}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Append to the list
+    lbList.insertAdjacentHTML("beforeend", mockHTML);
+
+    window.showToast("✅ Mock users added to Leaderboard.");
+}
+// PUSHUPS ONLY TEST DATA SEEDER
+function seedTestData() {
+    const message = "Warning: This will overwrite your entire pushup history and settings with test data. Are you sure you want to proceed?";
+    
+    if (!window.confirm(message)) {
+        console.log("Operation cancelled by user.");
+        return; // Exit the function if they click 'Cancel'
+    }
+    
+    const data = {};
+    const today = new Date();
+
+    // We go back 180 days (approx 6 months)
+    for (let i = 180; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateKey = d.toISOString().split("T")[0];
+
+        // Leave a 5-day gap leading up to today
+        // (Days 1 to 5 ago will be empty)
+        if (i > 0 && i <= 5) {
+            continue;
+        }
+
+        // Randomly skip some days to make the data look real (Rest days)
+        if (Math.random() > 0.2) {
+            data[dateKey] = {
+                // Generate 1 to 3 random sets
+                pushups: Array.from(
+                    { length: Math.floor(Math.random() * 3) + 1 },
+                    () => Math.floor(Math.random() * 20) + 30,
+                ),
+            };
+        }
+    }
+
+    // Add necessary metadata
+    data.settings = {
+        goals: {
+            pushups: { manualGoal: 60, goalMode: "auto", onTrackDays: 4 },
+        },
+        thresholdMode: "recommended",
+    };
+    data.lastUpdated = new Date().toISOString();
+
+    // Save to LocalStorage
+    localStorage.setItem("workout-data", JSON.stringify(data));
+
+    console.log("✅ Test Data Seeded!");
+    console.log("Gap: Last 23 days are empty.");
+    console.log("Exercise: Pushups (Array format).");
+    window.showToast("✅ Test Data Seeded!\nReload the app to see the results.");
+}
+/*************************************************
+ * LEADERBOARD LOGIC
+ *************************************************/
+window.fetchLeaderboard = async function (passedFilter = null) {
+    // Hide the staggered podium by default (will be shown if data exists)
+    if (podiumOverlay) podiumOverlay.hidden = true;
+
+    if (!lbList) return;
+
+    // 1. Determine Filter
+    const activeBtn = Array.from(window.lbFilterButtons || []).find((btn) => btn.classList.contains("active"));
+    const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
+
+    // 2. Safety Guard
+    if (!window.firebaseMethods || !window.db) {
+        lbList.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
+        return;
+    }
+
+    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
+    const now = new Date();
+    const exerciseId = window.currentExercise || "pushups"; // 🚀 Added context
+    let displayLabel = "";
+
+    // 3. Set Display Label (No changes here)
+    if (filter === "stats.daily") displayLabel = "Today & Yesterday";
+    else if (filter === "stats.week") {
+        const sun = new Date(now);
+        sun.setDate(now.getDate() - now.getDay());
+        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    } else if (filter === "stats.month") {
+        displayLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    } else if (filter === "stats.year") {
+        displayLabel = now.getFullYear();
+    }
+    if (lbRangeText) lbRangeText.innerText = displayLabel;
+
+    try {
+        lbList.innerHTML = `<div class="loading-state"><span class="dots-container">Loading</span></div>`;
+
+        let leaderboardData = [];
+
+        // 4. Fetch Logic
+        if (filter === "stats.daily") {
+            if (window.drawPodium) window.drawPodium(null);
+            // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
+            const standingsRef = collection(window.db, "standings");
+
+            // Inside fetchLeaderboard (Daily Section)
+            const qToday = query(
+                standingsRef,
+                where("exerciseId", "==", exerciseId),
+                where("periodId", "==", window.getTodayId()),
+                limit(30),
+            );
+            const qYest = query(
+                standingsRef,
+                where("exerciseId", "==", exerciseId),
+                where("periodId", "==", window.getYesterdayId()),
+                limit(30),
+            );
+
+            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
+            const userMap = new Map();
+
+            // 1. First, add everyone who was active YESTERDAY
+            snapYest.forEach((doc) => {
+                const d = doc.data();
+                userMap.set(d.uid, {
+                    uid: d.uid,
+                    username: d.username,
+                    todayScore: 0, // Default to 0 until proven otherwise
+                    yesterdayScore: d.score, // Their 'score' in a yesterday document IS their yesterday score
+                });
+            });
+
+            // 2. Then, add or update with everyone active TODAY
+            snapToday.forEach((doc) => {
+                const d = doc.data();
+                if (userMap.has(d.uid)) {
+                    const entry = userMap.get(d.uid);
+                    entry.todayScore = d.score;
+                    // Optimization: Use the yestScore bundled in the today doc
+                    entry.yesterdayScore = d.yestScore || 0;
+                } else {
+                    userMap.set(d.uid, {
+                        uid: d.uid,
+                        username: d.username,
+                        todayScore: d.score,
+                        yesterdayScore: d.yestScore || 0,
+                    });
+                }
+            });
+
+            leaderboardData = Array.from(userMap.values());
+            leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
+        } else {
+            // --- 🚀 HISTORICAL LOGIC (Standings Collection) ---
+            const fieldName = filter.split(".")[1]; // "week", "month", or "year"
+            const now = new Date();
+
+            let idValue;
+            if (fieldName === "week") idValue = getWeekId(now);
+            else if (fieldName === "month") idValue = getMonthId(now);
+            else idValue = getYearId(now);
+
+            // NOW you can call these
+            // ... inside the else (Historical Logic) block ...
+            const typeKey = fieldName === "week" ? "weekly" : fieldName === "month" ? "monthly" : "yearly";
+
+            // 1. Fetch the data using your existing function
+            const podiumData = await fetchPreviousPodium(typeKey, idValue);
+
+            // 2. Call the DRAW function (make sure this matches the name in your JS)
+            if (window.drawPodium) {
+                window.drawPodium(podiumData, filter);
+            }
+
+            // Query the 'standings' collection
+            const standingsRef = collection(window.db, "standings");
+            const q = query(
+                standingsRef,
+                where("periodId", "==", idValue),
+                where("exerciseId", "==", exerciseId), // 🚀 Exercise-aware!
+                orderBy("score", "desc"),
+                limit(20),
+            );
+
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const d = doc.data();
+                leaderboardData.push({
+                    uid: d.uid || doc.id.split("_").pop(),
+                    username: d.username || "Anonymous",
+                    score: d.score || 0,
+                });
+            });
+        }
+
+        // 5. Render (No changes here)
+        lbList.innerHTML = "";
+        if (leaderboardData.length === 0) {
+            lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
+            return;
+        }
+
+        leaderboardData.forEach((user, index) => {
+            const isMe = user.uid === window.auth?.currentUser?.uid;
+            const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
+
+            const row = `
+                <div class="lb-row ${isMe ? "is-me" : ""}">
+                    <span class="lb-rank">${index + 1}</span>
+                    <span class="lb-name">${user.username}</span>
+                    <div style="text-align:right">
+                        <span class="lb-score">${displayScore.toLocaleString()}</span>
+                        ${filter === "stats.daily" ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` : ""}
+                    </div>
+                </div>
+            `;
+            lbList.insertAdjacentHTML("beforeend", row);
+        });
+    } catch (err) {
+        console.error("Leaderboard failed:", err);
+        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
+    }
+};
 // Fetch Previous Podium Data for Leaderboard
 async function fetchPreviousPodium(type, currentPeriodId) {
     const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
@@ -677,7 +989,6 @@ async function fetchPreviousPodium(type, currentPeriodId) {
 
 // Expose Data & Logic to the Global Window Object
 window.getDateKey = getDateKey;
-window.getDayTotal = getDayTotal;
 window.getTodayId = getTodayId;
 window.getYesterdayId = getYesterdayId;
 window.getWeekId = getWeekId;

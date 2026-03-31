@@ -128,31 +128,35 @@ function initDOMReferences() {
 /*************************************************
  * 2. initApp (The Entry Point)
  *************************************************/
+async function initApp() {
+    if (document.visibilityState === "hidden") return;
+
+    // --- 1. STRUCTURAL SETUP (Run ONLY Once) ---
+    if (!window.appInitialized) {
+        initDOMReferences();
+        setupEventListeners();
+        initPWAUtils();
+        window.migrateToMultiExercise();
+
+        // This starts the Auth listener, which will eventually trigger the UI Refresh
+        if (window.initAuthListener) window.initAuthListener();
+
+        window.appInitialized = true;
+        // We STOP here on the first run. Let the Auth Listener trigger the first UI draw.
+        return;
+    }
+    // --- 2. UI & DATA REFRESH (Runs on every Focus/Auth Change/Visibility) ---
+    // This part only runs after appInitialized is true
+    refreshStateAndUI();
+}
+
 let lastInitTime = 0;
 
-async function initApp() {
+window.refreshStateAndUI = function () {
     const now = Date.now();
     const isQuickRefresh = now - lastInitTime < 10000;
 
-    if (document.visibilityState === "hidden") return;
-
-    // --- 1. CORE ENGINE SETUP (Run Once) ---
-    if (!window.appInitialized) {
-        initDOMReferences(); // Find the buttons/inputs first!
-        setupEventListeners(); // Attach the clicks
-
-        if (window.initAuthListener) {
-            window.initAuthListener();
-        }
-
-        initPWAUtils(); // Service Worker & Updates
-        window.appInitialized = true;
-
-        window.migrateToMultiExercise(); // Handle any old data structures from single-exercise version
-    }
-
     // --- 2. INITIAL STATE (Logic & UI) ---
-    // Now we use editDatePicker (cached in initDOMReferences) instead of getElementById
     if (!window.selectedEditDate && window.getDateKey) {
         window.selectedEditDate = window.getDateKey();
         if (window.editDatePicker) {
@@ -177,7 +181,7 @@ async function initApp() {
     // --- 4. DATA REFRESH (Local) ---
     if (window.loadCurrentUsername) window.loadCurrentUsername();
     if (window.updateDisplay) window.updateDisplay();
-    if (window.updateGoalUI) window.updateGoalUI();
+    if (window.renderExerciseSettings) window.renderExerciseSettings();
     if (window.renderExerciseSwitcher) window.renderExerciseSwitcher();
     if (window.renderEnabledSelector) window.renderEnabledSelector();
 
@@ -196,7 +200,7 @@ async function initApp() {
             })
             .catch((err) => console.error("Sync Error:", err));
     }
-}
+};
 
 /*************************************************
  * 3. EVENT LISTENERS SETUP
@@ -620,157 +624,6 @@ function setupPullToRefresh() {
 }
 
 /*************************************************
- * LEADERBOARD LOGIC
- *************************************************/
-window.fetchLeaderboard = async function (passedFilter = null) {
-    // Hide the staggered podium by default (will be shown if data exists)
-    if (podiumOverlay) podiumOverlay.hidden = true;
-
-    if (!lbList) return;
-
-    // 1. Determine Filter
-    const activeBtn = Array.from(window.lbFilterButtons || []).find((btn) => btn.classList.contains("active"));
-    const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
-
-    // 2. Safety Guard
-    if (!window.firebaseMethods || !window.db) {
-        lbList.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
-        return;
-    }
-
-    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
-    const now = new Date();
-    const exerciseId = window.currentExercise || "pushups"; // 🚀 Added context
-    let displayLabel = "";
-
-    // 3. Set Display Label (No changes here)
-    if (filter === "stats.daily") displayLabel = "Today & Yesterday";
-    else if (filter === "stats.week") {
-        const sun = new Date(now);
-        sun.setDate(now.getDate() - now.getDay());
-        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-    } else if (filter === "stats.month") {
-        displayLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    } else if (filter === "stats.year") {
-        displayLabel = now.getFullYear();
-    }
-    if (lbRangeText) lbRangeText.innerText = displayLabel;
-
-    try {
-        lbList.innerHTML = '<div class="loader"></div>';
-        let leaderboardData = [];
-
-        // 4. Fetch Logic
-        if (filter === "stats.daily") {
-            if (window.drawPodium) window.drawPodium(null);
-            // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
-            const usersRef = collection(window.db, "users");
-            const qToday = query(usersRef, where("stats.todayId", "==", window.getTodayId()), limit(30));
-            const qYest = query(usersRef, where("stats.todayId", "==", window.getYesterdayId()), limit(30));
-
-            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
-            const userMap = new Map();
-
-            snapYest.forEach((doc) => {
-                const s = doc.data().stats;
-                userMap.set(doc.id, {
-                    uid: doc.id,
-                    username: doc.data().username || "Anonymous",
-                    todayScore: 0,
-                    yesterdayScore: s.today || 0,
-                });
-            });
-
-            snapToday.forEach((doc) => {
-                const s = doc.data().stats;
-                if (userMap.has(doc.id)) {
-                    userMap.get(doc.id).todayScore = s.today;
-                } else {
-                    userMap.set(doc.id, {
-                        uid: doc.id,
-                        username: doc.data().username || "Anonymous",
-                        todayScore: s.today,
-                        yesterdayScore: s.yest || 0,
-                    });
-                }
-            });
-
-            leaderboardData = Array.from(userMap.values());
-            leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
-        } else {
-            // --- 🚀 NEW HISTORICAL LOGIC (Standings Collection) ---
-            const fieldName = filter.split(".")[1]; // "week", "month", or "year"
-            const now = new Date();
-
-            let idValue;
-            if (fieldName === "week") idValue = getWeekId(now);
-            else if (fieldName === "month") idValue = getMonthId(now);
-            else idValue = getYearId(now);
-
-            // NOW you can call these
-            // ... inside the else (Historical Logic) block ...
-            const typeKey = fieldName === "week" ? "weekly" : fieldName === "month" ? "monthly" : "yearly";
-
-            // 1. Fetch the data using your existing function
-            const podiumData = await fetchPreviousPodium(typeKey, idValue);
-
-            // 2. Call the DRAW function (make sure this matches the name in your JS)
-            if (window.drawPodium) {
-                window.drawPodium(podiumData, filter);
-            }
-
-            // Query the 'standings' collection instead of 'users'
-            const standingsRef = collection(window.db, "standings");
-            const q = query(
-                standingsRef,
-                where("periodId", "==", idValue),
-                where("exerciseId", "==", exerciseId), // 🚀 Exercise-aware!
-                orderBy("score", "desc"),
-                limit(20),
-            );
-
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((doc) => {
-                const d = doc.data();
-                leaderboardData.push({
-                    uid: doc.id.split("_").pop(), // Extract UID from end of doc ID
-                    username: d.username || "Anonymous",
-                    score: d.score || 0,
-                });
-            });
-        }
-
-        // 5. Render (No changes here)
-        lbList.innerHTML = "";
-        if (leaderboardData.length === 0) {
-            lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
-            return;
-        }
-
-        leaderboardData.forEach((user, index) => {
-            const isMe = user.uid === window.auth?.currentUser?.uid;
-            const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
-
-            const row = `
-                <div class="lb-row ${isMe ? "is-me" : ""}">
-                    <span class="lb-rank">${index + 1}</span>
-                    <span class="lb-name">${user.username}</span>
-                    <div style="text-align:right">
-                        <span class="lb-score">${displayScore.toLocaleString()}</span>
-                        ${filter === "stats.daily" ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` : ""}
-                    </div>
-                </div>
-            `;
-            lbList.insertAdjacentHTML("beforeend", row);
-        });
-    } catch (err) {
-        console.error("Leaderboard failed:", err);
-        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
-    }
-};
-
-/*************************************************
  *  PWA & SERVICE WORKER UTILS
  *************************************************/
 async function initPWAUtils() {
@@ -893,3 +746,35 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", ()
         window.setTheme?.("auto");
     }
 });
+
+/*************************************************
+ *  ADMIN LISTENER AND LOG IN
+ *************************************************/
+// Secret tap counter
+let versionTaps = 0;
+
+const versionEl = document.getElementById("app-version");
+versionEl.addEventListener("click", () => {
+    versionTaps++;
+    if (versionTaps === 5) {
+        // Triple tap or 5 taps to trigger
+        window.initDebugMenu();
+        const pass = prompt("Enter Tester Password:");
+        if (pass === "Tester123!@#") {
+            // Use a specific string or handle via Firebase
+            window.loginAsTester();
+        }
+        versionTaps = 0;
+    }
+    // Reset taps after 2 seconds of inactivity
+    setTimeout(() => {
+        versionTaps = 0;
+    }, 2000);
+});
+
+window.loginAsTester = function () {
+    const { signInWithEmailAndPassword } = window.firebaseMethods;
+    signInWithEmailAndPassword(window.auth, "tester@dailygrind.app", "Tester123!@#")
+        .then(() => console.log("Logged into Test Environment"))
+        .catch((err) => alert("Auth Failed: " + err.message));
+};
