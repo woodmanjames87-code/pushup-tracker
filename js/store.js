@@ -1,107 +1,137 @@
+// prettier-ignore
+import { auth, db, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
+import { showToast, triggerHaptic } from "./ui.js";
+
 /*************************************************
- * CONSTANTS & CONFIG
+ * 1. CONSTANTS & CONFIG (Immutable)
  *************************************************/
-window.STORAGE_KEY = "workout-data";
-// 1. The Source of Truth
-window.EXERCISE_LIB = {
+export const STORAGE_KEY = "workout-data";
+
+export const EXERCISE_LIB = {
     pushups: { name: "Pushups", iconId: "#icon-pushups", unit: "reps", minGoal: 60, target: "Chest" },
     squats: { name: "Squats", iconId: "#icon-squats", unit: "reps", minGoal: 60, target: "Legs" },
     pullups: { name: "Pullups", iconId: "#icon-pullups", unit: "reps", minGoal: 10, target: "Back" },
     situps: { name: "Situps", iconId: "#icon-situps", unit: "reps", minGoal: 60, target: "Core" },
     lunges: { name: "Lunges", iconId: "#icon-lunges", unit: "reps", minGoal: 60, target: "Legs" },
     dips: { name: "Dips", iconId: "#icon-dips", unit: "reps", minGoal: 30, target: "Triceps" },
-    plank: { name: "Plank", iconId: "#icon-plank", unit: "secs", minGoal: 60, target: "Core" },
 };
 
-// 2. Global State
-window.currentExercise = localStorage.getItem("lastExercise") || "pushups";
-
+/*************************************************
+ * 2. GLOBAL STATE (Mutable Object)
+ *************************************************/
 const savedEnabled = localStorage.getItem("enabled_exercises");
-window.enabledExercises = savedEnabled ? JSON.parse(savedEnabled) : Object.keys(window.EXERCISE_LIB);
+
+export const state = {
+    // Current Selections
+    currentExercise: localStorage.getItem("lastExercise") || "pushups",
+    enabledExercises: savedEnabled ? JSON.parse(savedEnabled) : Object.keys(EXERCISE_LIB),
+    currentPageIndex: 0,
+    // UI/App Flow
+    selectedEditDate: "",
+    lastInitTime: 0,
+    appInitialized: false,
+    currentLayer: "primary",
+    isReconciling: false,
+    lastReconcileTime: 0,
+    weeklyChartTimeout: null,
+    monthlyChartTimeout: null,
+};
 
 /*************************************************
  * LOAD AND SAVE
  *************************************************/
-window.loadData = function () {
-    let raw = localStorage.getItem(window.STORAGE_KEY);
+export function loadData() {
+    let raw = localStorage.getItem(STORAGE_KEY);
     let data = raw ? JSON.parse(raw) : {};
 
     if (!data.settings) data.settings = {};
     if (!data.settings.goals) data.settings.goals = {};
 
-    window.enabledExercises.forEach((exId) => {
+    state.enabledExercises.forEach((exId) => {
         if (!data.settings.goals[exId]) {
             // 🚩 FIX: Use the library baseline instead of a hardcoded 60
-            const libEntry = window.EXERCISE_LIB[exId] || { minGoal: 10 };
+            const libEntry = EXERCISE_LIB[exId] || { minGoal: 10 };
             data.settings.goals[exId] = {
                 manualGoal: libEntry.minGoal,
                 goalMode: "auto",
+                thresholdMode: "recommended",
                 onTrackDays: 4,
             };
         }
     });
 
     return data;
-};
+}
 
 // This handles the LOCAL SAVE + triggers the Cloud Push
-window.saveData = async function (data) {
+export async function saveData(data) {
     // 1. Mark the data with the current time
     data.lastUpdated = new Date().toISOString();
 
     // 2. Save locally (Immediate)
-    localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     // 3. Trigger Cloud Sync (Background)
-    const user = window.auth?.currentUser;
+    const user = auth?.currentUser;
     if (user) {
         // We pass the userId to sync
-        await window.syncLocalToCloud(user.uid);
+        await syncLocalToCloud(user.uid);
     }
-};
+}
 
-window.migrateToMultiExercise = function (data) {
+//-------- DEBOUNCE UTILITY (for inputs like on-track days) --------
+let saveTimeout;
+export function debounceSave(callback, delay = 500) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(callback, delay);
+}
+
+export function migrateToMultiExercise(data) {
     // 🛡️ CRITICAL GUARD: If data is null/undefined, return an empty object immediately
     if (!data) return {};
 
-    if (!data.settings) data.settings = {};
-    if (!data.settings.goals) data.settings.goals = {};
+    // Ensure the structure exists without overwriting existing data
+    data.settings = data.settings || {};
+    data.settings.goals = data.settings.goals || {};
 
     let needsSave = false;
 
     // Check for old "Flat" settings (Legacy)
-    if (data.settings.manualGoal && !data.settings.goals.pushups) {
+    // We check for 'manualGoal' because it was the anchor of the old system
+    if (data.settings.hasOwnProperty("manualGoal") && !data.settings.goals.pushups) {
         console.log("🛠 Migrating legacy pushup goals...");
 
+        // Use ?? instead of || to allow a goal of 0
         data.settings.goals.pushups = {
-            manualGoal: data.settings.manualGoal || 60,
-            goalMode: data.settings.goalMode || "auto",
-            onTrackDays: data.settings.onTrackDays || 4,
-            thresholdMode: data.settings.thresholdMode || "recommended",
+            manualGoal: data.settings.manualGoal ?? 60,
+            goalMode: data.settings.goalMode ?? "auto",
+            onTrackDays: data.settings.onTrackDays ?? 4,
+            thresholdMode: data.settings.thresholdMode ?? "recommended",
         };
 
-        delete data.settings.manualGoal;
-        delete data.settings.goalMode;
-        delete data.settings.thresholdMode;
-        delete data.settings.onTrackDays;
+        // Cleanup: Remove legacy keys now that they are safely in the new object
+        const legacyKeys = ["manualGoal", "goalMode", "thresholdMode", "onTrackDays"];
+        legacyKeys.forEach((key) => delete data.settings[key]);
 
         needsSave = true;
     }
 
     if (needsSave) {
-        // Use a direct localStorage set here to avoid the circular dependency
-        // that window.saveData() might cause during initialization.
-        localStorage.setItem(window.STORAGE_KEY, JSON.stringify(data));
-        console.log("✅ Migration committed to storage.");
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            console.log("✅ Migration committed to storage.");
+        } catch (e) {
+            console.error("❌ Migration save failed:", e);
+        }
     }
 
     return data;
-};
+}
 /*************************************************
  * LOGGING & DATA ACTIONS
  *************************************************/
-window.addSetToDate = function (dateKey, reps, exerciseId = window.currentExercise) {
-    const data = window.loadData();
+export function addSetToDate(dateKey, reps, exerciseId = state.currentExercise) {
+    const data = loadData();
 
     // 1. Ensure the Date entry exists
     if (!data[dateKey]) {
@@ -128,42 +158,37 @@ window.addSetToDate = function (dateKey, reps, exerciseId = window.currentExerci
     data[dateKey][exerciseId].push(Number(reps));
 
     // 4. Save and Sync
-    window.saveData(data);
+    saveData(data);
 
-    console.log(`✅ Added ${reps} ${window.EXERCISE_LIB[exerciseId].unit} to ${exerciseId}`);
-};
+    console.log(`✅ Added ${reps} ${EXERCISE_LIB[exerciseId].unit} to ${exerciseId}`);
+}
 
-window.deleteSet = function (index, dateKey, exerciseId = window.currentExercise) {
-    const data = window.loadData();
+export function deleteSet(index, dateKey = state.selectedEditDate, exerciseId = state.currentExercise) {
+    const data = loadData();
 
-    // 1. Contextual Check
-    // We check if the date exists AND if that specific exercise exists
+    // Now if dateKey isn't passed, it uses state.selectedEditDate
     if (data[dateKey] && data[dateKey][exerciseId]) {
-        // 2. Remove the specific set
         data[dateKey][exerciseId].splice(index, 1);
 
-        // 3. Housekeeping (The "Cleanup" Rule)
-        // If that was the last set for that exercise, delete the empty array
+        // Housekeeping
         if (data[dateKey][exerciseId].length === 0) {
             delete data[dateKey][exerciseId];
         }
-
-        // 4. If the entire date is now empty (no exercises left), delete the date key
         if (Object.keys(data[dateKey]).length === 0) {
             delete data[dateKey];
         }
 
-        // 5. Save and Sync
-        window.saveData(data);
-
-        console.log(`🗑️ Deleted set at index ${index} from ${exerciseId} on ${dateKey}`);
+        saveData(data);
+        console.log(`🗑️ Deleted set ${index} from ${exerciseId} on ${dateKey}`);
+        return true; // CRITICAL: Return true so the UI knows to refresh
     }
-};
+    return false;
+}
 
 /*************************************************
  * STATS ENGINE
  *************************************************/
-function getDateKey(date = new Date()) {
+export function getDateKey(date = new Date()) {
     // 🛡️ THE FIX: If 'date' is a string (e.g., "2026-03-27"),
     // convert it back to a Date Object so .getFullYear() works.
     const d = date instanceof Date ? date : new Date(date);
@@ -181,8 +206,8 @@ function getDateKey(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
-window.getDayTotal = function (data, date, exerciseId) {
-    const dateKey = date instanceof Date ? window.getDateKey(date) : date;
+function getDayTotal(data, date, exerciseId) {
+    const dateKey = date instanceof Date ? getDateKey(date) : date;
     const dayEntry = data[dateKey];
 
     if (!dayEntry || !dayEntry[exerciseId]) return 0;
@@ -196,9 +221,9 @@ window.getDayTotal = function (data, date, exerciseId) {
 
     // Fallback if it's already a single number
     return Number(sets) || 0;
-};
+}
 
-function getTodayId() {
+export function getTodayId() {
     const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -206,7 +231,7 @@ function getTodayId() {
     return `${year}-${month}-${day}`;
 }
 
-function getYesterdayId() {
+export function getYesterdayId() {
     const d = new Date();
     d.setDate(d.getDate() - 1); // Subtract one day
     const year = d.getFullYear();
@@ -215,7 +240,7 @@ function getYesterdayId() {
     return `${year}-${month}-${day}`;
 }
 
-function getWeekId(date) {
+export function getWeekId(date) {
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     // Find the Sunday of this week
     d.setDate(d.getDate() - d.getDay());
@@ -225,16 +250,16 @@ function getWeekId(date) {
     // Returns a string like "2026-W-Feb-8"
     return `${year}-W-${month}-${day}`;
 }
-function getMonthId(date) {
+export function getMonthId(date) {
     const d = new Date(date);
     // Returns "2026-02"
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-function getYearId(date) {
+export function getYearId(date) {
     return String(new Date(date).getFullYear());
 }
 
-window.getPreviousPeriodId = function (type, currentId) {
+export function getPreviousPeriodId(type, currentId) {
     // We create a fresh date object right here to avoid any scope issues
     const date = new Date();
 
@@ -243,26 +268,26 @@ window.getPreviousPeriodId = function (type, currentId) {
 
     if (t.includes("week")) {
         date.setDate(date.getDate() - 7);
-        return window.getWeekId(date);
+        return getWeekId(date);
     }
 
     if (t.includes("month")) {
         // 1. Force the date to the 1st of the month to avoid day-overflow (like Feb 29)
         date.setDate(1);
         date.setMonth(date.getMonth() - 1);
-        return window.getMonthId(date);
+        return getMonthId(date);
     }
 
     if (t.includes("year")) {
         date.setFullYear(date.getFullYear() - 1);
-        return window.getYearId(date);
+        return getYearId(date);
     }
 
     return null;
-};
+}
 
-window.calculateDailyGoal = function (data, exerciseId) {
-    const libEntry = window.EXERCISE_LIB[exerciseId] || { minGoal: 10 };
+function calculateDailyGoal(data, exerciseId) {
+    const libEntry = EXERCISE_LIB[exerciseId] || { minGoal: 10 };
     const exSettings = data.settings?.goals?.[exerciseId] || {};
 
     if (exSettings.goalMode === "manual") {
@@ -277,7 +302,7 @@ window.calculateDailyGoal = function (data, exerciseId) {
         d.setDate(today.getDate() - i);
 
         // Passing 'data' through to the next function
-        const v = window.getDayTotal(data, d, exerciseId);
+        const v = getDayTotal(data, d, exerciseId);
         if (v > 0) activeValues.push(v);
     }
 
@@ -291,9 +316,9 @@ window.calculateDailyGoal = function (data, exerciseId) {
 
     const rounded = Math.ceil(Math.max(avg, median) / 5) * 5;
     return Math.max(libEntry.minGoal, rounded);
-};
+}
 
-window.getGoals = function (data, exerciseId = window.currentExercise) {
+function getGoals(data, exerciseId = state.currentExercise) {
     const settings = data.settings || {};
 
     // Look for settings specific to THIS exercise
@@ -317,34 +342,34 @@ window.getGoals = function (data, exerciseId = window.currentExercise) {
         onTrackRatio: ON_TRACK / DAYS_PER_WEEK,
         improveRatio: IMPROVE / DAYS_PER_WEEK,
     };
-};
+}
 
-window.computeStats = function (exerciseId = window.currentExercise) {
-    if (!exerciseId || !window.EXERCISE_LIB[exerciseId]) return null;
-    const data = window.loadData ? window.loadData() : {};
+export function computeStats(exerciseId = state.currentExercise) {
+    if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
+    const data = loadData ? loadData() : {};
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayStr = window.getDateKey(today);
+    const todayStr = getDateKey(today);
     const currentYearStr = today.getFullYear().toString();
 
     // 1. Contextual Dates & IDs
     const yest = new Date(today);
     yest.setDate(yest.getDate() - 1);
-    const yestStr = window.getDateKey(yest);
+    const yestStr = getDateKey(yest);
 
     const diffToSunday = today.getDay();
     const sunday = new Date(today);
     sunday.setDate(today.getDate() - diffToSunday);
-    const sundayStr = window.getDateKey(sunday);
+    const sundayStr = getDateKey(sunday);
 
     const fourteenDaysAgo = new Date(today);
     fourteenDaysAgo.setDate(today.getDate() - 13);
-    const fourteenDaysAgoStr = window.getDateKey(fourteenDaysAgo);
+    const fourteenDaysAgoStr = getDateKey(fourteenDaysAgo);
 
     // IDs for Database Sync/Organization
-    const weekId = window.getWeekId ? window.getWeekId(today) : null;
-    const monthId = window.getMonthId ? window.getMonthId(today) : null;
-    const yearId = window.getYearId ? window.getYearId(today) : null;
+    const weekId = getWeekId ? getWeekId(today) : null;
+    const monthId = getMonthId ? getMonthId(today) : null;
+    const yearId = getYearId ? getYearId(today) : null;
 
     // 2. Prepare Accumulators
     const allKeys = Object.keys(data)
@@ -370,12 +395,12 @@ window.computeStats = function (exerciseId = window.currentExercise) {
 
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 29);
-    const thirtyDaysAgoStr = window.getDateKey(thirtyDaysAgo);
+    const thirtyDaysAgoStr = getDateKey(thirtyDaysAgo);
 
     // --- THE ONE LOOP ---
 
     allKeys.forEach((dateKey) => {
-        const val = window.getDayTotal(data, dateKey, exerciseId);
+        const val = getDayTotal(data, dateKey, exerciseId);
         if (val <= 0) return; // Skip days with 0 reps for this specific exercise
 
         // 1. Accumulate all historical totals
@@ -411,7 +436,7 @@ window.computeStats = function (exerciseId = window.currentExercise) {
         // Prepare the string for the "Next Day" to check against
         let nextDay = new Date(dateKey + "T00:00:00");
         nextDay.setDate(nextDay.getDate() + 1);
-        expectedDateStr = window.getDateKey(nextDay);
+        expectedDateStr = getDateKey(nextDay);
 
         bestStreak = Math.max(bestStreak, currentStreakCount);
 
@@ -432,16 +457,16 @@ window.computeStats = function (exerciseId = window.currentExercise) {
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const v = window.getDayTotal(data, d, exerciseId);
+        const v = getDayTotal(data, d, exerciseId);
         weeklyData.push(v);
         weeklyTotal += v;
     }
 
     // 4. Specific Totals & Goals
-    const todayTotal = window.getDayTotal(data, todayStr, exerciseId);
-    const yesterdayTotal = window.getDayTotal(data, yestStr, exerciseId);
-    const dailyGoal = window.calculateDailyGoal(data, exerciseId);
-    const currentGoals = window.getGoals(data, exerciseId);
+    const todayTotal = getDayTotal(data, todayStr, exerciseId);
+    const yesterdayTotal = getDayTotal(data, yestStr, exerciseId);
+    const dailyGoal = calculateDailyGoal(data, exerciseId);
+    const currentGoals = getGoals(data, exerciseId);
 
     // 5. Monthly Trend Calculation
     const monthlyData = {};
@@ -454,7 +479,7 @@ window.computeStats = function (exerciseId = window.currentExercise) {
         const monthPrefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         monthlyData[label] = allKeys
             .filter((date) => date.startsWith(monthPrefix))
-            .reduce((s, date) => s + window.getDayTotal(data, date, exerciseId), 0);
+            .reduce((s, date) => s + getDayTotal(data, date, exerciseId), 0);
     }
 
     // 6. Rest Streak Math
@@ -524,17 +549,17 @@ window.computeStats = function (exerciseId = window.currentExercise) {
         firstDateStr,
         activeDays,
     };
-};
+}
 
 /*************************************************
  * CLEAR LOCAL DATA - IMPORT - EXPORT
  *************************************************/
-function clearAllData() {
+window.clearLocalData = function () {
     // 1. Check if the user is logged in
-    const user = window.auth?.currentUser;
+    const user = auth?.currentUser;
 
     if (user) {
-        if (window.triggerHaptic) window.triggerHaptic("error");
+        triggerHaptic("error");
         alert("🔒 Action Blocked: You must sign out before clearing local data to prevent an automatic cloud sync.");
         return;
     }
@@ -543,22 +568,22 @@ function clearAllData() {
     const warning = "⚠️ This will delete all local workout history on this device. Are you sure?";
 
     if (confirm(warning)) {
-        if (window.triggerHaptic) window.triggerHaptic("warning");
+        triggerHaptic("warning");
 
         // 3. Simple Wipe
         localStorage.clear();
         sessionStorage.clear();
 
         // Show toast notification and refresh
-        window.showToast("Local database cleared.");
+        showToast("Local database cleared.");
         // location.reload();
     }
-}
+};
 
 window.smartImport = function (jsonString) {
     try {
         const imported = JSON.parse(jsonString);
-        const current = window.loadData();
+        const current = loadData();
         let newEntries = 0;
         let mergedEntries = 0;
 
@@ -611,7 +636,7 @@ window.smartImport = function (jsonString) {
         });
 
         // 2. Finalize
-        window.saveData(current);
+        saveData(current);
         alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
         location.reload();
     } catch (e) {
@@ -622,7 +647,7 @@ window.smartImport = function (jsonString) {
 
 async function exportData() {
     // 1. Grab everything from local storage
-    const data = localStorage.getItem(window.STORAGE_KEY) || "{}";
+    const data = localStorage.getItem(STORAGE_KEY) || "{}";
     const blob = new Blob([data], { type: "application/json" });
 
     // 2. Format the filename using your Local Time helper
@@ -660,8 +685,8 @@ async function exportData() {
 }
 
 window.nukeCloudData = async function () {
-    if (!window.auth?.currentUser) return (console.error("No user logged in."), window.showToast("No user logged in."));
-    const user = window.auth?.currentUser;
+    if (!auth?.currentUser) return (console.error("No user logged in."), showToast("No user logged in."));
+    const user = auth?.currentUser;
     if (!user) return;
 
     const confirm1 = confirm("STOP! This will delete your ENTIRE cloud presence. Are you sure?");
@@ -670,39 +695,38 @@ window.nukeCloudData = async function () {
     const confirm2 = prompt("Type 'DELETE' to confirm (All caps):");
     if (confirm2 !== "DELETE") return;
 
-    const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseMethods;
-    const uid = window.auth.currentUser.uid;
+    const uid = auth.currentUser.uid;
 
     try {
         console.log("🧨 Starting Cloud Nuke for UID:", uid);
 
         // 1. Delete Main User Doc
-        const userRef = doc(window.db, "users", uid);
+        const userRef = doc(db, "users", uid);
         await deleteDoc(userRef);
 
         // 2. Find and Delete ALL Standings (Daily + Historical)
         // We query by 'uid' field we added to the documents earlier
-        const standingsRef = collection(window.db, "standings");
+        const standingsRef = collection(db, "standings");
         const q = query(standingsRef, where("uid", "==", uid));
         const snapshot = await getDocs(q);
 
         const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
         await Promise.all(deletePromises);
-        await window.auth.signOut();
+        await auth.signOut();
 
         console.log(`✅ Cloud wiped. ${snapshot.size + 1} documents removed.`);
-        window.showToast(`✅ Cloud wiped. ${snapshot.size + 1} documents removed.`);
+        showToast(`✅ Cloud wiped. ${snapshot.size + 1} documents removed.`);
 
+        const confirm3 = confirm("Do you also want to clear local data to stay in sync? (Recommended)");
         // 3. Clear Local as well to stay in sync
-        window.clearAllData();
+        clearLocalData();
     } catch (err) {
         console.error("❌ Nuke failed:", err);
-        window.showToast("❌ Nuke failed:", err);
+        showToast("❌ Nuke failed:", err);
     }
 };
 
 function injectMockLeaderboard() {
-    const lbList = document.getElementById("lb-list");
     if (!lbList) {
         console.error("❌ Could not find #lb-list");
         return;
@@ -746,17 +770,18 @@ function injectMockLeaderboard() {
     // Append to the list
     lbList.insertAdjacentHTML("beforeend", mockHTML);
 
-    window.showToast("✅ Mock users added to Leaderboard.");
+    showToast("✅ Mock users added to Leaderboard.");
 }
 // PUSHUPS ONLY TEST DATA SEEDER
-function seedTestData() {
-    const message = "Warning: This will overwrite your entire pushup history and settings with test data. Are you sure you want to proceed?";
-    
+window.seedTestData = function seedTestData() {
+    const message =
+        "Warning: This will overwrite your entire pushup history and settings with test data. Are you sure you want to proceed?";
+
     if (!window.confirm(message)) {
         console.log("Operation cancelled by user.");
         return; // Exit the function if they click 'Cancel'
     }
-    
+
     const data = {};
     const today = new Date();
 
@@ -799,200 +824,5 @@ function seedTestData() {
     console.log("✅ Test Data Seeded!");
     console.log("Gap: Last 23 days are empty.");
     console.log("Exercise: Pushups (Array format).");
-    window.showToast("✅ Test Data Seeded!\nReload the app to see the results.");
-}
-/*************************************************
- * LEADERBOARD LOGIC
- *************************************************/
-window.fetchLeaderboard = async function (passedFilter = null) {
-    // Hide the staggered podium by default (will be shown if data exists)
-    if (podiumOverlay) podiumOverlay.hidden = true;
-
-    if (!lbList) return;
-
-    // 1. Determine Filter
-    const activeBtn = Array.from(window.lbFilterButtons || []).find((btn) => btn.classList.contains("active"));
-    const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
-
-    // 2. Safety Guard
-    if (!window.firebaseMethods || !window.db) {
-        lbList.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
-        return;
-    }
-
-    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
-    const now = new Date();
-    const exerciseId = window.currentExercise || "pushups"; // 🚀 Added context
-    let displayLabel = "";
-
-    // 3. Set Display Label (No changes here)
-    if (filter === "stats.daily") displayLabel = "Today & Yesterday";
-    else if (filter === "stats.week") {
-        const sun = new Date(now);
-        sun.setDate(now.getDate() - now.getDay());
-        displayLabel = `Week of ${sun.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-    } else if (filter === "stats.month") {
-        displayLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    } else if (filter === "stats.year") {
-        displayLabel = now.getFullYear();
-    }
-    if (lbRangeText) lbRangeText.innerText = displayLabel;
-
-    try {
-        lbList.innerHTML = `<div class="loading-state"><span class="dots-container">Loading</span></div>`;
-
-        let leaderboardData = [];
-
-        // 4. Fetch Logic
-        if (filter === "stats.daily") {
-            if (window.drawPodium) window.drawPodium(null);
-            // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
-            const standingsRef = collection(window.db, "standings");
-
-            // Inside fetchLeaderboard (Daily Section)
-            const qToday = query(
-                standingsRef,
-                where("exerciseId", "==", exerciseId),
-                where("periodId", "==", window.getTodayId()),
-                limit(30),
-            );
-            const qYest = query(
-                standingsRef,
-                where("exerciseId", "==", exerciseId),
-                where("periodId", "==", window.getYesterdayId()),
-                limit(30),
-            );
-
-            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
-            const userMap = new Map();
-
-            // 1. First, add everyone who was active YESTERDAY
-            snapYest.forEach((doc) => {
-                const d = doc.data();
-                userMap.set(d.uid, {
-                    uid: d.uid,
-                    username: d.username,
-                    todayScore: 0, // Default to 0 until proven otherwise
-                    yesterdayScore: d.score, // Their 'score' in a yesterday document IS their yesterday score
-                });
-            });
-
-            // 2. Then, add or update with everyone active TODAY
-            snapToday.forEach((doc) => {
-                const d = doc.data();
-                if (userMap.has(d.uid)) {
-                    const entry = userMap.get(d.uid);
-                    entry.todayScore = d.score;
-                    // Optimization: Use the yestScore bundled in the today doc
-                    entry.yesterdayScore = d.yestScore || 0;
-                } else {
-                    userMap.set(d.uid, {
-                        uid: d.uid,
-                        username: d.username,
-                        todayScore: d.score,
-                        yesterdayScore: d.yestScore || 0,
-                    });
-                }
-            });
-
-            leaderboardData = Array.from(userMap.values());
-            leaderboardData.sort((a, b) => b.todayScore - a.todayScore || b.yesterdayScore - a.yesterdayScore);
-        } else {
-            // --- 🚀 HISTORICAL LOGIC (Standings Collection) ---
-            const fieldName = filter.split(".")[1]; // "week", "month", or "year"
-            const now = new Date();
-
-            let idValue;
-            if (fieldName === "week") idValue = getWeekId(now);
-            else if (fieldName === "month") idValue = getMonthId(now);
-            else idValue = getYearId(now);
-
-            // NOW you can call these
-            // ... inside the else (Historical Logic) block ...
-            const typeKey = fieldName === "week" ? "weekly" : fieldName === "month" ? "monthly" : "yearly";
-
-            // 1. Fetch the data using your existing function
-            const podiumData = await fetchPreviousPodium(typeKey, idValue);
-
-            // 2. Call the DRAW function (make sure this matches the name in your JS)
-            if (window.drawPodium) {
-                window.drawPodium(podiumData, filter);
-            }
-
-            // Query the 'standings' collection
-            const standingsRef = collection(window.db, "standings");
-            const q = query(
-                standingsRef,
-                where("periodId", "==", idValue),
-                where("exerciseId", "==", exerciseId), // 🚀 Exercise-aware!
-                orderBy("score", "desc"),
-                limit(20),
-            );
-
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((doc) => {
-                const d = doc.data();
-                leaderboardData.push({
-                    uid: d.uid || doc.id.split("_").pop(),
-                    username: d.username || "Anonymous",
-                    score: d.score || 0,
-                });
-            });
-        }
-
-        // 5. Render (No changes here)
-        lbList.innerHTML = "";
-        if (leaderboardData.length === 0) {
-            lbList.innerHTML = `<p class='h3' style="text-align:center; opacity:0.5; margin-top:40px;">No ranks yet.</p>`;
-            return;
-        }
-
-        leaderboardData.forEach((user, index) => {
-            const isMe = user.uid === window.auth?.currentUser?.uid;
-            const displayScore = filter === "stats.daily" ? user.todayScore : user.score;
-
-            const row = `
-                <div class="lb-row ${isMe ? "is-me" : ""}">
-                    <span class="lb-rank">${index + 1}</span>
-                    <span class="lb-name">${user.username}</span>
-                    <div style="text-align:right">
-                        <span class="lb-score">${displayScore.toLocaleString()}</span>
-                        ${filter === "stats.daily" ? `<span style="font-size:0.75rem; opacity:0.6; display:block;">Yest: ${user.yesterdayScore}</span>` : ""}
-                    </div>
-                </div>
-            `;
-            lbList.insertAdjacentHTML("beforeend", row);
-        });
-    } catch (err) {
-        console.error("Leaderboard failed:", err);
-        lbList.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load leaderboard.</p>`;
-    }
+    showToast("✅ Test Data Seeded!\nReload the app to see the results.");
 };
-// Fetch Previous Podium Data for Leaderboard
-async function fetchPreviousPodium(type, currentPeriodId) {
-    const { collection, query, where, orderBy, limit, getDocs } = window.firebaseMethods;
-    const prevId = window.getPreviousPeriodId(type, currentPeriodId);
-    const exerciseId = window.currentExercise;
-
-    const q = query(
-        collection(window.db, "standings"),
-        where("periodId", "==", prevId),
-        where("exerciseId", "==", exerciseId),
-        orderBy("score", "desc"),
-        limit(3),
-    );
-
-    const snap = await getDocs(q);
-    return snap.docs.map((doc) => doc.data());
-}
-
-// Expose Data & Logic to the Global Window Object
-window.getDateKey = getDateKey;
-window.getTodayId = getTodayId;
-window.getYesterdayId = getYesterdayId;
-window.getWeekId = getWeekId;
-window.getMonthId = getMonthId;
-window.getYearId = getYearId;
-window.clearAllData = clearAllData;
-window.exportData = exportData;

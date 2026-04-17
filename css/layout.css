@@ -2,7 +2,7 @@
     width: 100%;
     max-width: 400px;
     margin: 0 auto;
-    padding: 0 20px 120px 20px;
+    padding: 0 20px 145px 20px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -68,15 +68,16 @@ header {
 }
 
 .main-header {
-    display: grid;
-    grid-template-columns: 45px 1fr 120px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    height: 70px;
-    padding: 0 1px;
+    height: var(--header-height);
+    height: calc(var(--header-height) + env(safe-area-inset-top));
+    padding: 0 15px;
+    padding-top: env(safe-area-inset-top);
     background: var(--layer-1);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
@@ -87,18 +88,11 @@ header {
 .page-header {
     position: sticky;
     top: 0;
-    z-index: 10;
-    background-color: var(--layer-2);
-    border-bottom: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    box-shadow: var(--shadow-1);
-    display: flex;
-    flex-direction: column;
     margin: 0 -20px 0 -20px;
     padding: 20px 20px 0 20px;
+    padding-top: calc (20px + env(safe-area-inset-top));
     width: calc(100% + 40px);
-    min-height: 70px;
+    min-height: var(--header-height);
 }
 
 .header-content {
@@ -219,7 +213,7 @@ header {
 
 .leaderboard-nav {
     position: sticky;
-    top: 80px;
+    top: calc(80px + env(safe-area-inset-top));
     margin-bottom: 20px;
     padding: 5px 20px;
     align-self: center;
@@ -388,7 +382,6 @@ header {
 
 .checkbox-grid {
     line-height: 2;
-    
 }
 
 /* =================================================

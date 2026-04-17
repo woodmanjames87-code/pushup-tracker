@@ -16,104 +16,34 @@
 }
 
 /* =========================
-    Exercise Wheel and Dropdown
-    ========================= */
-.exercise-wheel-scene {
-    grid-column: 2;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    perspective: 800px;
-    perspective-origin: 50% 50%;
-}
-
-/* The Radial Gradient Overlay (The "Look") */
-.exercise-wheel-scene::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 200px;
-    height: 45px;
-    background: radial-gradient(ellipse at center, var(--layer-4), var(--layer-2), var(--layer-0));
-    pointer-events: none;
-    border-radius: 10px;
-    z-index: 100;
-    border: var(--glass-border);
-    box-shadow: inset var(--shadow-2);
-}
-
-#exercise-wheel-hitbox {
-    position: absolute;
-    width: 200px;
-    height: 65px;
-    z-index: 100;
-    cursor: grab;
-    touch-action: none;
-    align-items: center;
-    justify-content: center;
-}
-
-.exercise-wheel-track {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-    will-change: transform;
-}
-
-.wheel-face {
-    position: absolute;
-    width: var(--panel-width);
-    height: var(--panel-height);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    background: var(--layer-1);
-    border-top: var(--glass-border);
-    border-bottom: var(--glass-border);
-    box-shadow: var(--shadow-1);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transition:
-        opacity 0.4s,
-        filter 0.4s;
-    -webkit-user-select: none;
-    user-select: none;
-    pointer-events: none;
-    transform-origin: center;
-}
-
-/* ==== Dropdown Menu ==== */
+    Dropdown Menu
+========================= */
 .exercise-dropdown-container {
     position: relative;
+    flex-direction: column;
     z-index: 1001;
 }
 .menu-trigger {
     background: none;
     border: none;
     color: var(--text);
-    font-size: 28px; /* Adjust size to match your header scale */
-    width: 45px;
+    font-size: 2rem; /* Adjust size to match your header scale */
+    font-weight: 600;
     height: 70px; /* Match header height for a larger hit-box */
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0;
+    gap: 12px;
+    line-height: 1;
+    padding: 8px 12px;
     transition: opacity 0.2s;
+}
+
+.hamburger-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2rem; /* Match font size */
 }
 
 .menu-trigger:active {
@@ -159,11 +89,7 @@
     clip-path: inset(0 0 0% 0); /* Reveals the full menu */
     transform: translate(0, 0); /* Aligns it perfectly with the trigger */
 }
-.menu-svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-}
+
 .exercise-menu-item {
     display: flex;
     align-items: center;
@@ -189,10 +115,24 @@
     font-weight: 600;
 }
 
-.menu-icon {
-    font-size: 18px;
+.menu-thumb-container {
     width: 24px;
-    text-align: center;
+    height: 24px;
+    margin-right: 16px;
+    border-radius: 8px;
+    overflow: visible; /* Clips the image to the box */
+    flex-shrink: 0; /* Keeps the square from squishing */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.menu-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    opacity: 0.8;
+    transition: transform 0.3s ease;
 }
 
 /* =================================================
@@ -228,12 +168,16 @@
 .btn-login-pill.logged-in .google-icon {
     display: none;
 }
+
 /* =========================
      Install Banner 
    ========================= */
 #install-text {
     font-weight: 600;
     font-size: 0.9rem;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #btn-install-close {
@@ -251,7 +195,60 @@
         opacity: 1;
     }
 }
-
+.ios-icon {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    vertical-align: text-bottom;
+    margin: 0 4px;
+    border: 1.5px solid rgba(0, 123, 255, 0.137);
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    position: relative;
+    &::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+        background-color: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v13m0-13l-4 4m4-4l4 4M5 11v10a1 1 0 001 1h12a1 1 0 001-1V11' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E")
+            no-repeat center;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v13m0-13l-4 4m4-4l4 4M5 11v10a1 1 0 001 1h12a1 1 0 001-1V11' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E")
+            no-repeat center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+    }
+}
+.ios-add-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: text-bottom;
+    margin: 0 4px;
+    border: 1.5px solid rgba(10, 10, 10, 0.959);
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-radius: 5px; /* Slightly more rounded to match Apple's UI */
+    position: relative;
+    &::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+        background-color: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='black' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'%3E%3C/line%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E")
+            no-repeat center;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='black' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'%3E%3C/line%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E")
+            no-repeat center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+    }
+}
 /* ============================= */
 
 .goal-description {
@@ -570,43 +567,6 @@ input:checked + .slider:before {
 }
 
 /* =================================================
-    GOOGLE LOGIN BUTTON
-   ================================================= */
-.btn-login-pill {
-    position: fixed; /* Pins it to the screen */
-    top: 15px;
-    right: 20px;
-    z-index: 200; /* Higher than everything else */
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 40px;
-    padding: 0 0 0 10px;
-    border-radius: 20px;
-    border: var(--glass-border);
-    background-color: white;
-    box-shadow: var(--shadow-2);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #000;
-}
-
-/* logged-in state */
-.btn-login-pill.logged-in {
-    padding: 0;
-    width: 40px;
-    border-radius: 50%;
-    background-size: cover;
-}
-
-.btn-login-pill.logged-in .login-text,
-.btn-login-pill.logged-in .google-icon {
-    display: none;
-}
-
-/* =================================================
    5. WIDGET CARDS (BENTO BOXES)
    ================================================= */
 .widget-card {
@@ -776,11 +736,15 @@ input:checked + .slider:before {
 }
 
 .day-label,
-.month-label {
+.month-name-label {
     font-size: 0.65rem;
     color: var(--text-muted);
     font-weight: bold;
     text-align: center;
+}
+/* The label at the very bottom (Jan, Feb, etc) */
+.month-name-label {
+    text-transform: uppercase;
 }
 
 .trend-label {
@@ -788,15 +752,7 @@ input:checked + .slider:before {
     font-size: 0.9rem;
 }
 
-.chart-value {
-    color: var(--text);
-    font-size: 0.55rem; /* Slightly larger than 0.5rem for clarity */
-    font-weight: 600; /* Semi-bold so the numbers don't "disappear" */
-    margin-bottom: 2px;
-}
-
 #monthly-chart {
-    padding-top: 5px; /* Gives the numbers room to breathe when the bar is at max height */
     overflow: visible; /* Prevents numbers from being clipped */
 }
 
@@ -809,29 +765,22 @@ input:checked + .slider:before {
     width: 100%; /* Or a fixed width like 30px depending on layout */
 }
 
-/* The wrapper that defines the max height of the bars */
 .monthly-bar-wrapper {
-    height: 60px;
+    height: 100%;
     width: 100%;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
 }
 
-/* The tiny value text above the bar */
+/* The tiny value text above the Monthly bar */
 .chart-value-label {
     font-size: 0.6rem;
     margin-bottom: 2px;
     line-height: 1;
-    color: var(--text-secondary); /* Use your existing variables */
-}
-
-/* The label at the very bottom (Jan, Feb, etc) */
-.month-name-label {
-    font-size: 0.6rem;
-    margin-top: 4px;
-    text-transform: uppercase;
+    color: var(--text);
 }
 
 /* =================================================
@@ -888,7 +837,7 @@ input:checked + .slider:before {
 #lb-list {
     /* Create a massive buffer at the bottom of the SCROLLABLE area */
     padding-bottom: 250px !important;
-    padding-top: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top));
 }
 .lb-row {
     padding: 8px 15px;
@@ -1231,24 +1180,38 @@ input:checked + .slider:before {
 /* =================================================
    BACKGROUND IMAGE (FIXED & NON-INTERACTIVE)
    ================================================= */
-.bg-fixed-img {
+#bg-fixed-img {
     /* Locks the div to the viewport */
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-height: 40vh;
     height: 100%;
     z-index: -1; /* Ensures it stays behind your text */
-    /* Your specific styles */
-    background-image: url("../img/pushup-tile.PNG");
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain;
     /* IMPORTANT: Use scroll (default) instead of fixed here */
     background-attachment: scroll;
     /* Optional: Hardware acceleration to keep scrolling smooth on mobile */
     will-change: transform;
-    opacity: 0.5;
+}
+
+.bg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: opacity 0.5s ease-in-out;
+    will-change: opacity;
+    opacity: 0;
+}
+
+.bg-layer.active {
+    opacity: 0.3; /* Your desired visibility */
 }
 
 /* =================================================

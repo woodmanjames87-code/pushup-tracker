@@ -2,72 +2,51 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="theme-color" content="#1e1e1e">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="DailyGrind">
+        <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
         <title>DailyGrind</title>
 
-        <link rel="manifest" href="manifest.json" />
-        <link rel="apple-touch-icon" sizes="180x180" href="img/pushup-icon.PNG" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet" />
+
+        <link rel="manifest" href="manifest.json" />
+        
+        <link rel="apple-touch-icon" sizes="180x180" href="img/dailygrind-icon.PNG" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
         <link rel="stylesheet" href="css/variables.css" />
         <link rel="stylesheet" href="css/base.css" />
         <link rel="stylesheet" href="css/layout.css" />
         <link rel="stylesheet" href="css/components.css" />
     </head>
+
     <body>
-        <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
-            <symbol id="icon-pushups" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21.6 7.5c-1.1 0-2 1.2-2 2.5v.6L8.9 14.4l-3.7 2.3-4.6 1.5-.2.3q0 .3.3.2l4.6-1.5L9 14.9l9.3-3.3-2.1 2.9v3.9l.1.3.2-.3v-3.7l2.5-3.4.7-.2q.5 1.4 1.9 1.5c1.1 0 2-1.2 2-2.6 0-1.3-.9-2.5-2-2.5m0 .5c1 0 1.7 1 1.7 2q-.2 1.9-1.7 2-1.6-.1-1.7-2c0-1 .8-2 1.7-2" overflow="visible"/>
-            </symbol>
-            
-            <symbol id="icon-squats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 3v18M17 3v18M7 12h10M7 18h10M7 6h10" />
-            </symbol>
-            
-            <symbol id="icon-situps" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 3v18M17 3v18M7 12h10M7 18h10M7 6h10" />
-            </symbol>
-
-            <symbol id="icon-pullups" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 3v18M20 3v18M4 7h16M7 7v4a5 5 0 0 0 10 0V7" />
-            </symbol>
-
-            <symbol id="icon-lunges" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 21l3-4m0 0l3-6m-3 6l-3-2M11 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
-                <path d="M14 11l5 2m-5-2l-2 5 6 3" />
-            </symbol>
-
-            <symbol id="icon-dips" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 4v10a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V4" />
-                <path d="M4 4h4m8 0h4M9 17v3m6-3v3" />
-            </symbol>
-
-            <symbol id="icon-plank" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-                <path d="M7 12h10" />
-            </symbol>
-        </svg>
 
         <div id="pull-to-refresh">
             <div class="spinner"></div>
+        </div>
+        <div id="bg-fixed-img">
+            <div class="bg-layer" id="bg-primary"></div>
+            <div class="bg-layer" id="bg-secondary"></div>
         </div>
 
         <!-- APP HEADER -->
         <header class="main-header">
             <nav class="exercise-dropdown-container">
-                <button class="menu-trigger">☰</button>
+                <button class="menu-trigger" id="exercise-menu-btn">
+                    <span class="hamburger-icon">☰</span>
+                    <span id="active-exercise-name">" "</span>
+                </button>
+                
                 <div class="exercise-menu-list" id="menu-items"></div>
             </nav>
-
-            <div class="exercise-wheel-scene">
-                <div id="exercise-wheel-hitbox">
-                    <div class="exercise-wheel-track" id="wheel"></div>
-                </div>
-            </div>
 
             <button id="auth-button" class="btn-login-pill">
                 <span class="login-text">Login to &nbsp;</span>
@@ -75,13 +54,10 @@
             </button>
         </header>
 
-        <div class="bg-fixed-img"></div>
-
         <!-- TRACKER PAGE -->
         <section id="tracker-page" class="app-container" data-page="tracker">
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Push-Ups</h1>
                 </div>
             </header>
 
@@ -124,22 +100,38 @@
                         <span id="weekly-title"></span>
                     </p>
                     <div class="chart-section">
-                        <div class="chart-with-axis">
-                            <div class="axis left">
-                                <span id="axis-max-l">0</span>
-                                <span id="axis-mid-l">0</span>
-                                <span>0</span>
+                            <div class="chart-with-axis">
+                                <div class="axis left">
+                                    <span id="axis-max-l">0</span>
+                                    <span id="axis-mid-l">0</span>
+                                    <span>0</span>
+                                </div>
+                                <div id="bar-chart" class="bar-chart">
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                </div>
+                                <div class="axis right">
+                                    <span id="axis-max-r">0</span>
+                                    <span id="axis-mid-r">0</span>
+                                    <span>0</span>
+                                </div>
                             </div>
-                            <div id="bar-chart" class="bar-chart"></div>
-                            <div class="axis right">
-                                <span id="axis-max-r">0</span>
-                                <span id="axis-mid-r">0</span>
-                                <span>0</span>
+                            <div id="bar-labels" class="bar-labels">
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
                             </div>
                         </div>
-                        <div id="bar-labels" class="bar-labels"></div>
                     </div>
-                </div>
 
                 <h3>30-Day Performance Trend</h3>
                 <div class="widget-card trend-section">
@@ -178,7 +170,51 @@
 
                 <h3>6 Month Trend</h3>
                 <div id="6-month-trend" class="widget-card">
-                    <div id="monthly-chart" class="chart-with-axis"></div>
+                    <div id="monthly-chart" class="chart-with-axis monthly-grid">
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy" ></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+
+                    </div>
                 </div>
 
                 <h3>Legacy Insights</h3>
@@ -251,12 +287,14 @@
         <section id="settings-page" class="app-container" data-page="settings" hidden>
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Settings</h1>
                 </div>
             </header>
 
             <main>
                 <section class="settings-section">
+                    <h1>Settings</h1>
+                    <hr class="divider accordion"/>
+
                     <div class="accordion-item">
                         <div class="accordion-header">
                             <h3>GLOBAL USER SETTINGS</h3>
@@ -390,9 +428,9 @@
                                 <input type="file" id="import-input" hidden accept=".json" />
                             </div>
                             <div class="danger-zone">
-                                <button onclick="clearAllData()" class="btn-danger">Clear All Local Data</button>
+                                <button onclick="clearLocalData()" class="btn-danger">Clear All Local Data</button>
                                 <button onclick="window.nukeCloudData()" class="btn-danger">
-                                    🧨 NUKE CLOUD + LOCAL DATA <br>
+                                    CLEAR CLOUD + LOCAL DATA <br>
                                     DELETE EVERYTHING
                                 </button>
                             </div>
@@ -427,7 +465,6 @@
         <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Leaderboards</h1>
                 </div>
             </header>
 
@@ -543,9 +580,6 @@
 
         <div id="toast-container"></div>
 
-        <script type="module" src="js/init-firebase.js"></script>
-        <script src="js/store.js"></script>
-        <script src="js/ui.js"></script>
-        <script src="js/main.js"></script>
+        <script type="module" src="js/main.js"></script>
     </body>
 </html>
