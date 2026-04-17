@@ -243,7 +243,10 @@ function setActiveExercise(id, silent = false) {
         updateFloatingBtn();
         updateBgImage(id);
         renderEditList();
-
+        const pageId = location.hash.substring(1).replace("-page", "");
+        if (pageId === "leaderboard" && fetchLeaderboard) {
+            fetchLeaderboard();
+        }
         menu.classList.remove("show");
     }
 }
@@ -322,7 +325,7 @@ function updateTrackerDisplay() {
     if (elements.ui.blueBar) elements.ui.blueBar.style.width = pct > 1 ? Math.min(pct - 1, 1) * 100 + "%" : "0%";
 
     if (elements.ui.restStreakTag) {
-        elements.ui.restStreakTag.style.display = s.restStreak > 0 ? "inline-flex" : "none";
+        elements.ui.restStreakTag.style.display = s.restStreak > 1 ? "inline-flex" : "none";
         if (s.restStreak > 0) updateText("rest-streak-val", s.restStreak);
     }
 

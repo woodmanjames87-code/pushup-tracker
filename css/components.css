@@ -837,7 +837,7 @@ input:checked + .slider:before {
 #lb-list {
     /* Create a massive buffer at the bottom of the SCROLLABLE area */
     padding-bottom: 250px !important;
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-top: 15px;
 }
 .lb-row {
     padding: 8px 15px;
@@ -852,7 +852,6 @@ input:checked + .slider:before {
 
 .lb-row.is-me {
     border: 2px solid var(--primary-light);
-    background: var(--layer-1);
 }
 .lb-rank {
     font-weight: bold;
