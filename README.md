@@ -1,6 +1,7 @@
 # DailyGrind: Bodyweight Workout Tracker 🏋️‍♂️
 
 DailyGrind is built for the "living room athlete" who prioritizes consistency and volume over heart rate and distance.
+Currently hosted on GitHub: https://woodmanjames87-code.github.io/pushup-tracker/
 
 ## 📝 Project Vision
 
