@@ -601,7 +601,7 @@ function updateDateLabel(dateKey) {
 function updateBgImage(exId) {
     const primary = elements.ui.bgPrimary;
     const secondary = elements.ui.bgSecondary;
-    const newUrl = `url("../img/bg/bg-${exId}.webp")`;
+    const newUrl = `url("img/bg/bg-${exId}.webp")`;
 
     if (state.currentLayer === "primary") {
         secondary.style.backgroundImage = newUrl;
