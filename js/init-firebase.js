@@ -17,6 +17,7 @@ import {
     setDoc,
     getDoc,
     deleteDoc,
+    writeBatch,
     collection,
     query,
     orderBy,
@@ -51,6 +52,7 @@ export {
     setDoc,
     getDoc,
     deleteDoc,
+    writeBatch,
     collection,
     query,
     orderBy,
@@ -136,202 +138,120 @@ async function startCloudSync() {
 }
 
 export async function syncLocalToCloud(userId, extraData = {}) {
-    if (state.isReconciling) {
-        console.warn("🛡️ Sync blocked: App is currently merging data from cloud.");
-        return;
-    }
+    if (state.isReconciling) return;
     const localData = loadData();
-
-    // 🛡️ THE SAFETY VALVE
-    if (!localData.lastUpdated && !extraData.isInitialSetup) {
-        console.warn("⚠️ Blocked sync: Local data is empty. Waiting for Cloud Heal...");
-        return;
-    }
-
+    if (!localData.lastUpdated && !extraData.isInitialSetup) return;
     if (!userId) return;
 
-    // 1. Contextual Data Gathering
-    const exerciseId = state.currentExercise || "pushups"; // Get active exercise
-    const s = computeStats(exerciseId); // Compute stats for THIS exercise
+    const batch = writeBatch(db);
+    const exerciseId = state.currentExercise || "pushups";
+    const s = computeStats(exerciseId);
     const confirmedUsername = localData.settings?.username || getDisplayUsername(extraData);
 
-    // 2. The User Profile Payload
+    // 1. User Profile (Full Mirror Overwrite)
     const userRef = doc(db, "users", userId);
-
-    const payload = {
+    batch.set(userRef, {
         uid: userId,
         username: confirmedUsername,
-        workouts: localData, // Contains the full nested data object
+        workouts: localData,
         lastUpdated: localData.lastUpdated || new Date().toISOString(),
         ...extraData,
-    };
+    });
 
-    try {
-        // 1. Update the Main User Profile
-        await setDoc(userRef, payload, { merge: true });
+    // 2. Standings (Update or Purge 0s)
+    const periods = [
+        { id: getTodayId(), score: s.todayTotal, type: "daily", sid: `daily_${exerciseId}_${userId}` },
+        { id: s.weekId, score: s.calendarWeeklyTotal, type: "weekly", sid: `${s.weekId}_${exerciseId}_${userId}` },
+        { id: s.monthId, score: s.monthlyTotal, type: "monthly", sid: `${s.monthId}_${exerciseId}_${userId}` },
+        { id: s.yearId, score: s.ytdTotal, type: "yearly", sid: `${s.yearId}_${exerciseId}_${userId}` },
+    ];
 
-        // 2. Prepare all Standing Updates (Daily + Historical)
-        const periods = [
-            // --- ADD THE DAILY ENTRY HERE ---
-            {
-                id: getTodayId(),
-                score: s.todayTotal,
-                type: "daily",
-                standingId: `daily_${exerciseId}_${userId}`,
-            },
-
-            {
-                id: s.weekId,
-                score: s.calendarWeeklyTotal,
-                type: "weekly",
-                standingId: `${s.weekId}_${exerciseId}_${userId}`,
-            },
-            {
-                id: s.monthId,
-                score: s.monthlyTotal,
-                type: "monthly",
-                standingId: `${s.monthId}_${exerciseId}_${userId}`,
-            },
-            {
-                id: s.yearId,
-                score: s.ytdTotal,
-                type: "yearly",
-                standingId: `${s.yearId}_${exerciseId}_${userId}`,
-            },
-        ];
-
-        const historyPromises = periods.map((p) => {
-            const standingsRef = doc(db, "standings", p.standingId);
-
-            // Base Payload
+    periods.forEach((p) => {
+        const ref = doc(db, "standings", p.sid);
+        if (!p.score || p.score === 0) {
+            batch.delete(ref); // Remove from leaderboard if total is 0
+        } else {
             const data = {
-                uid: userId, // Ensure UID is saved for the leaderboard filter
+                uid: userId,
                 username: confirmedUsername,
-                score: p.score || 0,
+                score: p.score,
                 periodId: p.id,
-                exerciseId: exerciseId,
+                exerciseId,
                 type: p.type,
                 lastUpdated: new Date().toISOString(),
                 unit: EXERCISE_LIB[exerciseId]?.unit || "reps",
             };
-
-            // --- ADD EXTRA FIELDS ONLY FOR DAILY ---
             if (p.type === "daily") {
                 data.yestScore = s.yesterdayTotal || 0;
                 data.yestId = getYesterdayId();
             }
+            batch.set(ref, data, { merge: true });
+        }
+    });
 
-            return setDoc(standingsRef, data, { merge: true });
-        });
-
-        await Promise.all(historyPromises);
-        console.log(`✅ Cloud sync (Daily + History) successful for ${exerciseId}.`);
+    try {
+        await batch.commit();
+        console.log(`✅ Cloud Synced: ${exerciseId}`);
     } catch (err) {
-        console.error("❌ Cloud sync failed:", err);
+        console.error("❌ Sync Error:", err);
     }
 }
 
 export async function reconcileData() {
-    const now = Date.now();
-    if (now - (state.lastReconcileTime || 0) < 30000 || state.isReconciling) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
     state.isReconciling = true;
-    const user = auth?.currentUser;
-    if (!user) {
-        state.isReconciling = false;
-        return;
-    }
-
-    const userRef = doc(db, "users", user.uid);
+    console.log("🔄 Reconciling local and cloud data...");
 
     try {
-        const snap = await getDoc(userRef);
-        const localData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        const userRef = doc(db, "users", user.uid);
+        const cloudSnap = await getDoc(userRef);
+        const local = loadData();
 
-        if (snap.exists()) {
-            const cloudData = snap.data();
+        if (cloudSnap.exists()) {
+            const cloud = cloudSnap.data();
+            const cloudWorkouts = cloud.workouts || {};
+            
+            const localTime = new Date(local.lastUpdated || 0).getTime();
+            const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
 
-            // 🚀 THE SMART MERGE: Combine both truths
-            const finalData = deepMerge(localData, cloudData.workouts || cloudData);
+            // HEAL: If Cloud is newer OR Local has never been updated
+            if (localTime === 0 || cloudTime > localTime) {
+                console.log("☁️ Cloud data is newer. Updating local storage...");
+                const merged = mergeWorkouts(local, cloudWorkouts);
+                
+                merged.settings = { ...(local.settings || {}), ...(cloud.settings || cloud.workouts?.settings || {}) };
+                merged.lastUpdated = cloud.lastUpdated;
 
-            // Save the "Healed" version locally
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
-
-            // UI Refresh now that data is merged
-            refreshStateAndUI();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                refreshStateAndUI();
+            } else if (localTime > cloudTime) {
+                console.log("📱 Local data is newer. Syncing up...");
+                await syncLocalToCloud(user.uid);
+            }
+        } else {
+            console.log("🆕 Initializing cloud for new account...");
+            await syncLocalToCloud(user.uid, { isInitialSetup: true });
         }
-
-        // 🚀 THE DISTRIBUTION: Now that local is "whole", push it back
-        state.isReconciling = false;
-        await syncLocalToCloud(user.uid);
-
-        state.lastReconcileTime = Date.now();
     } catch (err) {
-        console.error("Reconciliation failed:", err);
+        console.error("❌ Reconciliation failed:", err);
+    } finally {
         state.isReconciling = false;
     }
 }
 
-function deepMerge(local, cloud) {
-    // Start with a clean clone of local
-    const merged = JSON.parse(JSON.stringify(local || {}));
-
-    // 1. Normalize Cloud Structure
-    const cloudWorkouts = cloud.workouts || cloud;
-
-    Object.keys(cloudWorkouts).forEach((date) => {
-        // Skip metadata keys
-        if (date === "settings" || date === "lastUpdated" || date === "username") return;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return; // Only process date keys
-
-        let incomingDay = cloudWorkouts[date];
-
-        // --- STEP A: NORMALIZE CLOUD DAY (Array -> Object) ---
-        if (Array.isArray(incomingDay)) {
-            incomingDay = { pushups: incomingDay };
-        }
-
-        // --- STEP B: MERGE ---
-        if (!merged[date]) {
-            // Local is missing this date, take normalized cloud version
-            merged[date] = incomingDay;
-        } else {
-            // Local has this date. Ensure LOCAL is also normalized (Object)
-            if (Array.isArray(merged[date])) {
-                merged[date] = { pushups: merged[date] };
-            }
-
-            // Merge exercises one by one
-            Object.keys(incomingDay).forEach((ex) => {
-                const localSets = merged[date][ex] || [];
-                const cloudSets = incomingDay[ex] || [];
-
-                // Standard "Higher Volume Wins" logic per exercise
-                // This preserves the most complete set history for that specific activity
-                if (cloudSets.length > localSets.length) {
-                    merged[date][ex] = cloudSets;
+function mergeWorkouts(local, cloud) {
+    const merged = { ...local, ...cloud };
+    // Simple logic: If both have data for a date, the one with more sets wins
+    Object.keys(cloud).forEach(date => {
+        if (local[date] && cloud[date]) {
+            Object.keys(cloud[date]).forEach(ex => {
+                if ((cloud[date][ex]?.length || 0) > (local[date][ex]?.length || 0)) {
+                    merged[date][ex] = cloud[date][ex];
                 }
             });
         }
     });
-
-    // 2. Merge Settings (Clock-based 'Last Updated' logic)
-    const localTime = new Date(local.lastUpdated || 0).getTime();
-    const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
-    const cloudSettings = cloud.settings || (cloud.username ? { username: cloud.username } : {});
-
-    if (cloudTime > localTime || localTime === 0) {
-        console.log("💎 Healing Settings from Cloud...");
-        merged.settings = {
-            ...(merged.settings || {}),
-            ...cloudSettings,
-        };
-        // Don't forget to sync the username if it lives in settings now
-        if (cloud.username && !merged.settings.username) {
-            merged.settings.username = cloud.username;
-        }
-        merged.lastUpdated = cloud.lastUpdated || new Date().toISOString();
-    }
-
     return merged;
 }

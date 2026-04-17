@@ -67,13 +67,11 @@ export function loadData() {
 export async function saveData(data) {
     // 1. Mark the data with the current time
     data.lastUpdated = new Date().toISOString();
-
     // 2. Save locally (Immediate)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
     // 3. Trigger Cloud Sync (Background)
     const user = auth?.currentUser;
-    if (user) {
+    if (user && !state.isReconciling) {
         // We pass the userId to sync
         await syncLocalToCloud(user.uid);
     }
@@ -166,21 +164,16 @@ export function addSetToDate(dateKey, reps, exerciseId = state.currentExercise) 
 export function deleteSet(index, dateKey = state.selectedEditDate, exerciseId = state.currentExercise) {
     const data = loadData();
 
-    // Now if dateKey isn't passed, it uses state.selectedEditDate
     if (data[dateKey] && data[dateKey][exerciseId]) {
         data[dateKey][exerciseId].splice(index, 1);
 
-        // Housekeeping
-        if (data[dateKey][exerciseId].length === 0) {
-            delete data[dateKey][exerciseId];
-        }
-        if (Object.keys(data[dateKey]).length === 0) {
-            delete data[dateKey];
-        }
+        // Housekeeping: remove empty dates/exercises
+        if (data[dateKey][exerciseId].length === 0) delete data[dateKey][exerciseId];
+        if (Object.keys(data[dateKey]).length === 0) delete data[dateKey];
 
         saveData(data);
-        console.log(`🗑️ Deleted set ${index} from ${exerciseId} on ${dateKey}`);
-        return true; // CRITICAL: Return true so the UI knows to refresh
+        console.log(`🗑️ Deleted set ${index} - Syncing mirror...`);
+        return true; 
     }
     return false;
 }
