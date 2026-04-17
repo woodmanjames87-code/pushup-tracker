@@ -16,6 +16,7 @@ body {
     line-height: 1.4;
     margin: 0;
     padding: 0;
+    padding-top: env(safe-area-inset-top); /* For iOS notch */
     padding-bottom: env(safe-area-inset-bottom); /* Ensures content isn't hidden behind the bottom nav on iOS */
     /* Ensure the body doesn't bounce horizontally */
     overflow-x: hidden;

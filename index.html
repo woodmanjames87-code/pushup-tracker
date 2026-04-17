@@ -2,39 +2,62 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="theme-color" content="#1e1e1e">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="DailyGrind">
+        <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
         <title>DailyGrind</title>
 
-        <link rel="manifest" href="manifest.json" />
-        <link rel="apple-touch-icon" sizes="180x180" href="img/pushup-icon.PNG" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet" />
+
+        <link rel="manifest" href="manifest.json" />
+        
+        <link rel="apple-touch-icon" sizes="180x180" href="img/dailygrind-icon.PNG" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
         <link rel="stylesheet" href="css/variables.css" />
         <link rel="stylesheet" href="css/base.css" />
         <link rel="stylesheet" href="css/layout.css" />
         <link rel="stylesheet" href="css/components.css" />
     </head>
+
     <body>
+
         <div id="pull-to-refresh">
             <div class="spinner"></div>
         </div>
+        <div id="bg-fixed-img">
+            <div class="bg-layer" id="bg-primary"></div>
+            <div class="bg-layer" id="bg-secondary"></div>
+        </div>
 
-        <!-- LOGIN BUTTON -->
-        <button id="auth-button" class="btn-login-pill">
-            <span class="login-text">Login to &nbsp;</span>
-            <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
-        </button>
+        <!-- APP HEADER -->
+        <header class="main-header">
+            <nav class="exercise-dropdown-container">
+                <button class="menu-trigger" id="exercise-menu-btn">
+                    <span class="hamburger-icon">☰</span>
+                    <span id="active-exercise-name">" "</span>
+                </button>
+                
+                <div class="exercise-menu-list" id="menu-items"></div>
+            </nav>
 
-        <div class="bg-fixed-img"></div>
+            <button id="auth-button" class="btn-login-pill">
+                <span class="login-text">Login to &nbsp;</span>
+                <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
+            </button>
+        </header>
 
         <!-- TRACKER PAGE -->
         <section id="tracker-page" class="app-container" data-page="tracker">
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Push-Ups</h1>
                 </div>
             </header>
 
@@ -77,22 +100,38 @@
                         <span id="weekly-title"></span>
                     </p>
                     <div class="chart-section">
-                        <div class="chart-with-axis">
-                            <div class="axis left">
-                                <span id="axis-max-l">0</span>
-                                <span id="axis-mid-l">0</span>
-                                <span>0</span>
+                            <div class="chart-with-axis">
+                                <div class="axis left">
+                                    <span id="axis-max-l">0</span>
+                                    <span id="axis-mid-l">0</span>
+                                    <span>0</span>
+                                </div>
+                                <div id="bar-chart" class="bar-chart">
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                </div>
+                                <div class="axis right">
+                                    <span id="axis-max-r">0</span>
+                                    <span id="axis-mid-r">0</span>
+                                    <span>0</span>
+                                </div>
                             </div>
-                            <div id="bar-chart" class="bar-chart"></div>
-                            <div class="axis right">
-                                <span id="axis-max-r">0</span>
-                                <span id="axis-mid-r">0</span>
-                                <span>0</span>
+                            <div id="bar-labels" class="bar-labels">
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
+                                <span class="day-label">-</span>
                             </div>
                         </div>
-                        <div id="bar-labels" class="bar-labels"></div>
                     </div>
-                </div>
 
                 <h3>30-Day Performance Trend</h3>
                 <div class="widget-card trend-section">
@@ -131,7 +170,51 @@
 
                 <h3>6 Month Trend</h3>
                 <div id="6-month-trend" class="widget-card">
-                    <div id="monthly-chart" class="chart-with-axis"></div>
+                    <div id="monthly-chart" class="chart-with-axis monthly-grid">
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy" ></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+                        <div class="monthly-bar-container">
+                            <div class="monthly-bar-wrapper">
+                                <span class="chart-value-label"></span>
+                                <div class="bar-unit legacy"></div>
+                            </div>
+                            <span class="month-name-label">-</span>
+                        </div>
+
+                    </div>
                 </div>
 
                 <h3>Legacy Insights</h3>
@@ -204,15 +287,17 @@
         <section id="settings-page" class="app-container" data-page="settings" hidden>
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Settings</h1>
                 </div>
             </header>
 
             <main>
                 <section class="settings-section">
+                    <h1>Settings</h1>
+                    <hr class="divider accordion"/>
+
                     <div class="accordion-item">
                         <div class="accordion-header">
-                            <h3>USER SETTINGS</h3>
+                            <h3>GLOBAL USER SETTINGS</h3>
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
@@ -224,6 +309,33 @@
 
                             <hr class="divider" />
 
+                            <div class="settings-group">
+                                <h3>Enabled Exercises</h3>
+                                <p class="label-tiny">Toggle the exercises you want to track.</p>
+                                <div id="exercise-checkbox-list" class="checkbox-grid"></div>
+                            </div>
+
+                            <hr class="divider" />
+
+                            <div class="setting-row">
+                                <label for="theme-selector">Display Mode:</label>
+                                <div class="segmented-control" id="theme-selector">
+                                    <button class="seg-btn" data-theme="light">Light</button>
+                                    <button class="seg-btn" data-theme="auto">System</button>
+                                    <button class="seg-btn" data-theme="dark">Dark</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="divider accordion" />
+
+                    <div class="accordion-item">
+                        <div class="accordion-header exercise-header">
+                            <h3><span class="settings-exercise-name">CURRENT EXERCISE</span> GOALS</h3>
+                            <span class="chevron">&#10095;</span>
+                        </div>
+                        <div class="widget-card collapsed">
                             <div class="setting-row">
                                 <label for="goal-mode-toggle">Auto Calculate Goal:</label>
                                 <label class="switch">
@@ -231,9 +343,10 @@
                                     <span class="slider round"></span>
                                 </label>
                             </div>
-                            <p class="label-tiny goal-description">
-                                Calculated Goal: Max(Avg,Median) of 14 active days (Min 60).
+                            <p class="label-tiny goal-description" id="goal-description-text">
+                                Calculated Goal: Max(Avg,Median) of 14 active days.
                             </p>
+
                             <div id="manual-goal-container" class="setting-row" style="display: none">
                                 <label for="manual-goal-input">Daily Target:</label>
                                 <div class="input-inline-group input-compact">
@@ -251,22 +364,17 @@
                             <hr class="divider" />
 
                             <div class="settings-group">
-                                <h3>Activity Thresholds</h3>
-
+                                <h3>Activity Thresholds <span class="label-mini">(for 30-day trend)</span></h3>
                                 <div class="setting-row">
-                                    <label for="threshold-mode-toggle">Use Recommended Target:</label>
+                                    <label for="threshold-mode-toggle">Use Recommended:</label>
                                     <label class="switch">
                                         <input type="checkbox" id="threshold-mode-toggle" checked />
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
 
-                                <p class="label-tiny threshold-description">
-                                    Recommended: 4 days/week for a balanced 30-day trend.
-                                </p>
-
                                 <div id="custom-threshold-container" class="setting-row" style="display: none">
-                                    <label for="on-track-input">Custom Target:</label>
+                                    <label for="on-track-input">Custom Weekly Target:</label>
                                     <div class="number-stepper">
                                         <button type="button" id="btn-ontrack-minus" class="stepper-btn">-</button>
                                         <input type="number" id="on-track-input" readonly value="4" />
@@ -275,28 +383,19 @@
                                 </div>
 
                                 <p class="label-tiny">
-                                    Status: <strong>On Track</strong> at <span id="on-track-display-hint">4</span> days.
-                                    <strong>Improving</strong> at <span id="improve-display">5</span>+.
+                                    Status: <strong>On Track</strong> at
+                                    <span id="on-track-display-hint">4</span> days/week. <strong>Improving</strong> at
+                                    <span id="improve-display">5</span>+.
                                 </p>
-                            </div>
-
-                            <hr class="divider" />
-
-                            <div class="setting-row">
-                                <label for="theme-selector">Display Mode:</label>
-                                <div class="segmented-control" id="theme-selector">
-                                    <button class="seg-btn" data-theme="light">Light</button>
-                                    <button class="seg-btn" data-theme="auto">System</button>
-                                    <button class="seg-btn" data-theme="dark">Dark</button>
-                                </div>
                             </div>
                         </div>
                     </div>
-                    <hr class="divider" />
+
+                    <hr class="divider accordion" />
 
                     <div class="accordion-item">
                         <div class="accordion-header">
-                            <h3>EDIT ENTRIES</h3>
+                            <h3>EDIT <span class="settings-exercise-name">CURRENT EXERCISE</span> ENTRIES</h3>
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
@@ -313,7 +412,7 @@
                             </button>
                         </div>
                     </div>
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div class="accordion-item">
                         <div class="accordion-header">
@@ -328,12 +427,16 @@
                                 </button>
                                 <input type="file" id="import-input" hidden accept=".json" />
                             </div>
-                            <div class="danger-zone" style="margin-top: 20px">
-                                <button onclick="clearAllData()" class="btn-danger">Clear All Local Data</button>
+                            <div class="danger-zone">
+                                <button onclick="clearLocalData()" class="btn-danger">Clear All Local Data</button>
+                                <button onclick="window.nukeCloudData()" class="btn-danger">
+                                    CLEAR CLOUD + LOCAL DATA <br>
+                                    DELETE EVERYTHING
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <hr class="divider" />
+                    <hr class="divider accordion" />
 
                     <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee">
                         <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px">
@@ -342,7 +445,18 @@
                         <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5">Version --</div>
                     </div>
 
-                    <h3 style="text-align: center">More workout types to come!</h3>
+                    <div id="debug-menu" class="widget-card hidden">
+                        <h3 style="color: #ff4444; margin-top: 0">🛠️ Debug Operations</h3>
+                        <p class="label-tiny">Current User: <span id="debug-uid"></span></p>
+                        <div class="danger-zone">
+                                <button onclick="injectMockLeaderboard()" class="btn-secondary">
+                                    Mock Leaderboard
+                                </button>
+                                <button onclick="seedTestData()" class="btn-secondary">Seed Pushup Data</button>
+                                <button onclick="location.reload()" class="btn-secondary">Force Reload</button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </main>
         </section>
@@ -351,7 +465,6 @@
         <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
             <header class="page-header">
                 <div class="header-content">
-                    <h1>Leaderboards</h1>
                 </div>
             </header>
 
@@ -362,7 +475,7 @@
                     <button class="seg-btn" data-filter="stats.month">Month</button>
                     <button class="seg-btn" data-filter="stats.year">Year</button>
                 </div>
-                
+
                 <div class="lb-context-label">
                     <span id="lb-date-range-text">This Week</span>
                 </div>
@@ -371,14 +484,13 @@
             <div id="lb-list" class="leaderboard-list">
                 <p class="h3" style="text-align: center; opacity: 0.5; margin-top: 40px">Loading ranks...</p>
             </div>
-
         </section>
 
         <!-- MINI PODIUM OVERLAY -->
         <div id="mini-podium-overlay" class="mini-podium" hidden>
             <div class="podium-frame">
                 <div class="p-title" id="podium-title">PREVIOUS TOP 3</div>
-                
+
                 <div class="podium-slot rank-1">
                     <div class="crown">👑</div>
                     <span class="p-name">--</span>
@@ -403,8 +515,8 @@
         <!-- LOG MODAL -->
         <div id="log-modal" class="modal-overlay">
             <div class="modal-content" role="dialog" aria-modal="true">
-                <h3>Log Push-ups</h3>
-                <p>How many reps did you do?</p>
+                <h3 id="modal-title">Log Push-ups</h3>
+                <p id="modal-prompt">How many reps did you do?</p>
 
                 <form id="log-form" action="#">
                     <input
@@ -425,7 +537,9 @@
         </div>
 
         <!-- FLOATING LOG BUTTON-->
-        <button id="floating-log-btn" class="btn-primary floating-btn">+ LOG SET</button>
+        <button id="floating-log-btn" class="btn-primary floating-btn">
+            + LOG <span id="log-btn-exercise-name">SET</span>
+        </button>
 
         <!--BOTTOM NAVIGATION-->
         <nav class="bottom-nav">
@@ -466,9 +580,6 @@
 
         <div id="toast-container"></div>
 
-        <script type="module" src="js/init-firebase.js"></script>
-        <script src="js/store.js"></script>
-        <script src="js/ui.js"></script>
-        <script src="js/main.js"></script>
+        <script type="module" src="js/main.js"></script>
     </body>
 </html>
