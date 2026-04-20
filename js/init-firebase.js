@@ -1,7 +1,7 @@
 // js/init-firebase.js
 import { STORAGE_KEY, EXERCISE_LIB, state, computeStats, loadData, getTodayId, getYesterdayId } from "./store.js";
 import { elements } from "./dom.js";
-import { refreshStateAndUI, getDisplayUsername } from "./ui.js";
+import { refreshStateAndUI, getDisplayUsername, showToast } from "./ui.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
     getAuth,
@@ -192,8 +192,10 @@ export async function syncLocalToCloud(userId, extraData = {}) {
     try {
         await batch.commit();
         console.log(`✅ Cloud Synced: ${exerciseId}`);
+        showToast("Cloud Sync Successful", "success");
     } catch (err) {
         console.error("❌ Sync Error:", err);
+        showToast("Cloud Sync Failed", "error");
     }
 }
 
