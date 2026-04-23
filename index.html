@@ -40,7 +40,7 @@
         <!-- APP HEADER -->
         <header class="main-header">
             <nav class="exercise-dropdown-container">
-                <button class="menu-trigger" id="exercise-menu-btn">
+                <button class="menu-trigger" id="exercise-menu-btn" type="button">
                     <span class="hamburger-icon">☰</span>
                     <span id="active-exercise-name"></span>
                 </button>
@@ -48,7 +48,7 @@
                 <div class="exercise-menu-list" id="menu-items"></div>
             </nav>
 
-            <button id="auth-button" class="btn-login-pill">
+            <button id="auth-button" class="btn-login-pill" type="button">
                 <span class="login-text">Login to &nbsp;</span>
                 <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
             </button>
@@ -107,13 +107,13 @@
                                     <span>0</span>
                                 </div>
                                 <div id="bar-chart" class="bar-chart">
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
-                                    <div class="bar-unit" style="--bar-h: 0%; opacity: 0.2;"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
+                                    <div class="bar-unit"></div>
                                 </div>
                                 <div class="axis right">
                                     <span id="axis-max-r">0</span>
@@ -229,55 +229,55 @@
                     </div>
                     <div class="divider"></div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0">
+                    <div class="stat-grid">
                         <div>
                             <div class="label-tiny">ALL-TIME TOTAL</div>
-                            <div id="stat-all-time" style="font-size: 1.4rem; font-weight: 800">0</div>
+                            <div id="stat-all-time">0</div>
                         </div>
                         <div>
                             <div class="label-tiny">PERSONAL BEST</div>
-                            <div id="stat-pb" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green)">
+                            <div id="stat-pb">
                                 0
                             </div>
                         </div>
                         <div>
                             <div id="label-ytd" class="label-tiny">YTD TOTAL</div>
-                            <div id="stat-ytd" style="font-size: 1.4rem; font-weight: 800; color: var(--fitness-green)">
+                            <div id="stat-ytd">
                                 0
                             </div>
                         </div>
                         <div>
                             <div class="label-tiny">100+ CLUB</div>
-                            <div id="stat-century" style="font-size: 1.4rem; font-weight: 800; color: var(--orange)">
+                            <div id="stat-century">
                                 0
                             </div>
                         </div>
                         <div>
                             <div class="label-tiny">LIFETIME AVG</div>
-                            <div id="stat-avg" style="font-size: 1.4rem; font-weight: 800">0/day</div>
+                            <div id="stat-avg">0/day</div>
                         </div>
                         <div>
-                            <div id="label-next-milestone" class="label-tiny" style="margin-bottom: 4px">
+                            <div id="label-next-milestone" class="label-tiny">
                                 NEXT MILESTONE: 0
                             </div>
-                            <div class="progress-container" style="height: 9px">
-                                <div id="milestone-fill" class="bar-fill green" style="width: 0%"></div>
+                            <div class="progress-container mini-bar">
+                                <div id="milestone-fill" class="bar-fill green"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="divider"></div>
 
-                    <div class="label-tiny" style="text-align: center; margin-bottom: 4px">VOLUME BY INTENSITY</div>
-                    <div class="segmented-track" style="height: 9px">
-                        <div id="pill-elite" style="height: 100%; background: var(--fitness-green); width: 0%"></div>
-                        <div id="pill-solid" style="height: 100%; background: var(--orange); width: 0%"></div>
-                        <div id="pill-light" style="height: 100%; background: var(--danger); width: 0%"></div>
+                    <div class="label-tiny label-centered">VOLUME BY INTENSITY</div>
+                    <div class="segmented-track mini-bar">
+                        <div id="pill-elite"></div>
+                        <div id="pill-solid"></div>
+                        <div id="pill-light"></div>
                     </div>
                     <div class="intensity-legend">
                         <div class="legend-item"><span class="dot green"></span>(100+)</div>
                         <div class="legend-item"><span class="dot orange"></span>(50-99)</div>
-                        <div class="legend-item"><span class="dot red"></span>(<50)</div>
+                        <div class="legend-item"><span class="dot red"></span>(1-50)</div>
                     </div>
                 </div>
             </main>
@@ -304,7 +304,7 @@
                             <h3>Leaderboard Display Name</h3>
                             <div class="input-inline-group input-wide">
                                 <input type="text" id="username-input" maxlength="20" placeholder="Enter name..." />
-                                <button id="btn-update-username" class="btn-secondary">Update</button>
+                                <button id="btn-update-username" class="btn-secondary" type="button">Update</button>
                             </div>
 
                             <hr class="divider" />
@@ -320,9 +320,9 @@
                             <div class="setting-row">
                                 <label for="theme-selector">Display Mode:</label>
                                 <div class="segmented-control" id="theme-selector">
-                                    <button class="seg-btn" data-theme="light">Light</button>
-                                    <button class="seg-btn" data-theme="auto">System</button>
-                                    <button class="seg-btn" data-theme="dark">Dark</button>
+                                    <button class="seg-btn" data-theme="light" type="button">Light</button>
+                                    <button class="seg-btn" data-theme="auto" type="button">System</button>
+                                    <button class="seg-btn" data-theme="dark" type="button">Dark</button>
                                 </div>
                             </div>
                         </div>
@@ -376,9 +376,9 @@
                                 <div id="custom-threshold-container" class="setting-row" style="display: none">
                                     <label for="on-track-input">Custom Weekly Target:</label>
                                     <div class="number-stepper">
-                                        <button type="button" id="btn-ontrack-minus" class="stepper-btn">-</button>
+                                        <button type="button" id="btn-ontrack-minus" class="stepper-btn" type="button">-</button>
                                         <input type="number" id="on-track-input" readonly value="4" />
-                                        <button type="button" id="btn-ontrack-plus" class="stepper-btn">+</button>
+                                        <button type="button" id="btn-ontrack-plus" class="stepper-btn" type="button">+</button>
                                     </div>
                                 </div>
 
@@ -407,7 +407,7 @@
                                 </div>
                             </div>
                             <div id="edit-sets-list"></div>
-                            <button id="btn-add-past" class="btn-secondary" style="width: 100%; margin-top: 15px">
+                            <button id="btn-add-past" class="btn-secondary" type="button">
                                 + Add Set to Selected Date
                             </button>
                         </div>
@@ -420,16 +420,16 @@
                             <span class="chevron">&#10095;</span>
                         </div>
                         <div class="widget-card collapsed">
-                            <div style="display: grid; gap: 10px; margin-top: 10px">
-                                <button onclick="exportData()" class="btn-secondary">Export Backup (.json)</button>
-                                <button onclick="document.getElementById('import-input').click()" class="btn-secondary">
+                            <div class="import-export-section">
+                                <button id="export-data-btn" class="btn-secondary" type="button">Export Backup (.json)</button>
+                                <button onclick="document.getElementById('import-input').click()" class="btn-secondary" type="button">
                                     Import Data
                                 </button>
                                 <input type="file" id="import-input" hidden accept=".json" />
                             </div>
                             <div class="danger-zone">
-                                <button onclick="clearLocalData()" class="btn-danger">Clear All Local Data</button>
-                                <button onclick="window.nukeCloudData()" class="btn-danger">
+                                <button onclick="clearLocalData()" class="btn-danger" type="button">Clear All Local Data</button>
+                                <button onclick="window.nukeCloudData()" class="btn-danger" type="button">
                                     CLEAR CLOUD + LOCAL DATA <br>
                                     DELETE EVERYTHING
                                 </button>
@@ -438,22 +438,22 @@
                     </div>
                     <hr class="divider accordion" />
 
-                    <div style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #eee">
-                        <button id="btn-update-app" class="btn-secondary" style="width: auto; padding: 8px 16px">
+                    <div class="update-app-section">
+                        <button id="btn-update-app" class="btn-secondary" type="button">
                             Check for Updates
                         </button>
-                        <div id="app-version" class="label-tiny" style="margin-top: 10px; opacity: 0.5">Version --</div>
+                        <div id="app-version" class="label-tiny">Version --</div>
                     </div>
 
                     <div id="debug-menu" class="widget-card hidden">
-                        <h3 style="color: #ff4444; margin-top: 0">🛠️ Debug Operations</h3>
+                        <h3 class="label-danger">🛠️ Debug Operations</h3>
                         <p class="label-tiny">Current User: <span id="debug-uid"></span></p>
                         <div class="danger-zone">
-                                <button onclick="injectMockLeaderboard()" class="btn-secondary">
+                                <button onclick="injectMockLeaderboard()" class="btn-secondary" type="button">
                                     Mock Leaderboard
                                 </button>
-                                <button onclick="seedTestData()" class="btn-secondary">Seed Pushup Data</button>
-                                <button onclick="location.reload()" class="btn-secondary">Force Reload</button>
+                                <button onclick="seedTestData()" class="btn-secondary" type="button">Seed Pushup Data</button>
+                                <button onclick="location.reload()" class="btn-secondary" type="button">Force Reload</button>
                             </div>
                         </div>
                     </div>
@@ -470,10 +470,10 @@
 
             <div class="leaderboard-nav">
                 <div class="segmented-control" id="leaderboard-filter">
-                    <button class="seg-btn active" data-filter="stats.daily">Daily</button>
-                    <button class="seg-btn" data-filter="stats.week">Week</button>
-                    <button class="seg-btn" data-filter="stats.month">Month</button>
-                    <button class="seg-btn" data-filter="stats.year">Year</button>
+                    <button class="seg-btn active" data-filter="stats.daily" type="button">Daily</button>
+                    <button class="seg-btn" data-filter="stats.week" type="button">Week</button>
+                    <button class="seg-btn" data-filter="stats.month" type="button">Month</button>
+                    <button class="seg-btn" data-filter="stats.year" type="button">Year</button>
                 </div>
 
                 <div class="lb-context-label">
@@ -482,7 +482,7 @@
             </div>
 
             <div id="lb-list" class="leaderboard-list">
-                <p class="h3" style="text-align: center; opacity: 0.5; margin-top: 40px">Loading ranks...</p>
+                <p class="h3 label-loading">Loading ranks...</p>
             </div>
         </section>
 
@@ -537,20 +537,20 @@
         </div>
 
         <!-- FLOATING LOG BUTTON-->
-        <button id="floating-log-btn" class="btn-primary floating-btn">
+        <button id="floating-log-btn" class="btn-primary floating-btn" type="button">
             + LOG <span id="log-btn-exercise-name">SET</span>
         </button>
 
         <!--BOTTOM NAVIGATION-->
         <nav class="bottom-nav">
-            <button class="nav-item active">
+            <button class="nav-item active" type="button">
                 <svg viewBox="0 0 24 24" class="nav-icon">
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
                 </svg>
                 <small>Tracker</small>
             </button>
 
-            <button class="nav-item">
+            <button class="nav-item" type="button">
                 <svg viewBox="0 0 24 24" class="nav-icon">
                     <path
                         d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 10.82C5.84 10.4 5 9.3 5 8V7h2v3.82zM19 8c0 1.3-.84 2.4-2 2.82V7h2v1z" />
@@ -558,7 +558,7 @@
                 <small>Social</small>
             </button>
 
-            <button class="nav-item">
+            <button class="nav-item" type="button">
                 <svg viewBox="0 0 24 24" class="nav-icon">
                     <path
                         d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
@@ -572,8 +572,8 @@
             <div class="install-content">
                 <span id="install-text"></span>
                 <div class="install-actions">
-                    <button id="btn-install-now" class="btn-primary-small" title="Install app"></button>
-                    <button id="btn-install-close" title="Close Banner">✕</button>
+                    <button id="btn-install-now" class="btn-primary-small" title="Install app" type="button"></button>
+                    <button id="btn-install-close" title="Close Banner" type="button">✕</button>
                 </div>
             </div>
         </div>

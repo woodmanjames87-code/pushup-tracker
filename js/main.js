@@ -3,16 +3,16 @@ import { auth, db, signInWithEmailAndPassword, updateProfile, doc, setDoc, initA
 import { elements } from "./dom.js";
 import * as UI from "./ui.js";
 // prettier-ignore
-import { state, migrateToMultiExercise, EXERCISE_LIB, deleteSet, loadData, saveData, addSetToDate, getDateKey } from "./store.js";
+import { state, migrateToMultiExercise, EXERCISE_LIB, deleteSet, loadData, saveData, addSetToDate, getDateKey, exportData } from "./store.js";
 
 /*************************************************
  * 2. initApp (The Entry Point)
  *************************************************/
 async function initApp() {
-    console.log("App initialization triggered...");
     if (document.visibilityState === "hidden") return;
 
     if (!state.appInitialized) {
+        console.log("App initialization triggered...");
         // --- Group A: Fast/Required immediately ---
         setupEventListeners();
         initPWAUtils();
@@ -30,6 +30,7 @@ async function initApp() {
         return;
     }
     // --- 2. Wake-up Refresh ---
+    console.log("App wake-up refresh triggered...");
     UI.refreshStateAndUI();
 }
 
@@ -72,9 +73,12 @@ function setupEventListeners() {
             // 3. Update the Visuals (UI)
             UI.closeLogModal();
             UI.updateTrackerDisplay();
-            UI.renderEditList();
-            // 🏆 REFRESH LEADERBOARD (if visible)
+
             const pageId = location.hash.substring(1).replace("-page", "");
+
+            if (pageId === "settings") {
+                UI.renderEditList();
+            }
             if (pageId === "leaderboard" && UI.fetchLeaderboard) {
                 UI.fetchLeaderboard();
             }
@@ -84,8 +88,8 @@ function setupEventListeners() {
     };
 
     // --- 3. CANCEL BUTTON (The Dismissal) ---
-    if (elements.modal.modalCancelBtn) {
-        elements.modal.modalCancelBtn.onclick = () => {
+    if (elements.modal.cancelBtn) {
+        elements.modal.cancelBtn.onclick = () => {
             UI.closeLogModal();
         };
     }
@@ -373,6 +377,11 @@ function setupEventListeners() {
 
     // --- Pull to Refresh (Leaderboard) ---
     setupPullToRefresh();
+
+    // --- Export Data Button ---
+    elements.settings.exportDataBtn.onclick = () => {
+        exportData();
+    };
 }
 function setupPullToRefresh() {
     let startY = 0;

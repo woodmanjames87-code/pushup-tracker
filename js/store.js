@@ -173,7 +173,7 @@ export function deleteSet(index, dateKey = state.selectedEditDate, exerciseId = 
 
         saveData(data);
         console.log(`🗑️ Deleted set ${index} - Syncing mirror...`);
-        return true; 
+        return true;
     }
     return false;
 }
@@ -523,7 +523,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         active30,
         restStreak,
         rest14,
-        streak: todayTotal > 0 ? currentStreakCount : 0,
+        streak: currentStreakCount,
         bestStreak,
         avg30,
         trend,
@@ -638,7 +638,7 @@ window.smartImport = function (jsonString) {
     }
 };
 
-async function exportData() {
+export async function exportData() {
     // 1. Grab everything from local storage
     const data = localStorage.getItem(STORAGE_KEY) || "{}";
     const blob = new Blob([data], { type: "application/json" });

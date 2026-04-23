@@ -81,6 +81,7 @@ export const elements = {
         importInput: document.getElementById("import-input"),
         themeButtons: document.getElementById("theme-selector")?.querySelectorAll(".seg-btn") || [],
         exerciseCheckboxList: document.getElementById("exercise-checkbox-list"),
+        exportDataBtn: document.getElementById("export-data-btn"),
     },
 
     // Visualization & Bars

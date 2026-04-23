@@ -192,10 +192,8 @@ export async function syncLocalToCloud(userId, extraData = {}) {
     try {
         await batch.commit();
         console.log(`✅ Cloud Synced: ${exerciseId}`);
-        showToast("Cloud Sync Successful", "success");
     } catch (err) {
         console.error("❌ Sync Error:", err);
-        showToast("Cloud Sync Failed", "error");
     }
 }
 
@@ -214,7 +212,7 @@ export async function reconcileData() {
         if (cloudSnap.exists()) {
             const cloud = cloudSnap.data();
             const cloudWorkouts = cloud.workouts || {};
-            
+
             const localTime = new Date(local.lastUpdated || 0).getTime();
             const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
 
@@ -222,7 +220,7 @@ export async function reconcileData() {
             if (localTime === 0 || cloudTime > localTime) {
                 console.log("☁️ Cloud data is newer. Updating local storage...");
                 const merged = mergeWorkouts(local, cloudWorkouts);
-                
+
                 merged.settings = { ...(local.settings || {}), ...(cloud.settings || cloud.workouts?.settings || {}) };
                 merged.lastUpdated = cloud.lastUpdated;
 
@@ -246,9 +244,9 @@ export async function reconcileData() {
 function mergeWorkouts(local, cloud) {
     const merged = { ...local, ...cloud };
     // Simple logic: If both have data for a date, the one with more sets wins
-    Object.keys(cloud).forEach(date => {
+    Object.keys(cloud).forEach((date) => {
         if (local[date] && cloud[date]) {
-            Object.keys(cloud[date]).forEach(ex => {
+            Object.keys(cloud[date]).forEach((ex) => {
                 if ((cloud[date][ex]?.length || 0) > (local[date][ex]?.length || 0)) {
                     merged[date][ex] = cloud[date][ex];
                 }

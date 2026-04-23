@@ -1,4 +1,4 @@
-const VERSION = "v5.0.0.5"; // Increment this to update the app
+const VERSION = "v5.0.0.6"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
@@ -75,7 +75,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     const url = event.request.url;
 
-    // ONLY skip actual external API calls. 
+    // ONLY skip actual external API calls.
     // We check for "googleapis.com" and "firebaseapp.com" (the hosted domains),
     // but we ALLOW files like "init-firebase.js" that are on your own domain.
     if (url.includes("googleapis.com") || url.includes("firebaseapp.com")) {

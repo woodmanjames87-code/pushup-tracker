@@ -267,6 +267,29 @@
     letter-spacing: 1px;
 }
 
+#stat-avg {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+#stat-century {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+}
+#stat-ytd {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--fitness-green);
+}
+#stat-pb {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--fitness-green);
+}
+#stat-all-time {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
 /* =========================
      BUTTONS 
    ========================= */
@@ -286,7 +309,7 @@
 .floating-btn {
     position: fixed;
     bottom: 85px;
-    bottom: calc(85px + env(safe-area-inset-bottom));
+    /* bottom: calc(85px + env(safe-area-inset-bottom)); */
     left: 50%;
     transform: translateX(-50%);
     width: 85%;
@@ -367,7 +390,10 @@
 }
 
 #btn-update-app {
+    width: auto;
+    padding: 8px 16px;
     background: var(--layer-4);
+    margin: 10px 0;
 }
 
 .segmented-control {
@@ -653,6 +679,9 @@ input:checked + .slider:before {
     overflow: hidden;
     margin: 4px 0;
 }
+.mini-bar {
+    height: 9px !important;
+}
 
 .bar-fill {
     height: 100%;
@@ -696,6 +725,21 @@ input:checked + .slider:before {
 .segment.green-bg {
     width: 27%;
     background: var(--track-bg);
+}
+#pill-elite {
+    height: 100%;
+    background: var(--fitness-green);
+    width: 0%;
+}
+#pill-solid {
+    height: 100%;
+    background: var(--orange);
+    width: 0%;
+}
+#pill-light {
+    height: 100%;
+    background: var(--danger);
+    width: 0%;
 }
 
 .trend-fill {
