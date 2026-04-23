@@ -258,8 +258,7 @@
 
 .lb-context-label {
     text-align: center;
-    margin-top: 15px;
-    margin-bottom: 15px;
+    margin-top: 5px;
     font-size: 0.9rem;
     color: var(--text-muted);
     font-weight: bold;
@@ -308,8 +307,8 @@
 
 .floating-btn {
     position: fixed;
-    bottom: 85px;
-    /* bottom: calc(85px + env(safe-area-inset-bottom)); */
+    bottom: 80px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: 85%;
@@ -911,8 +910,8 @@ input:checked + .slider:before {
 /* The Container: Lift it up! */
 .mini-podium {
     position: fixed;
-    bottom: 155px; /* 🚀 Lifted high enough to clear the Log Set button */
-    bottom: calc(155px + env(safe-area-inset-bottom));
+    bottom: 150px; /* 🚀 Lifted high enough to clear the Log Set button */
+    bottom: calc(150px + env(safe-area-inset-bottom));
     left: 50%;
     z-index: 10;
     width: 90%;
