@@ -8,12 +8,12 @@ import { state, computeStats, EXERCISE_LIB, debounceSave, loadData, saveData, ge
  * NAVIGATION
  *************************************************/
 function showPage(pageId) {
-    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
+    const indexMap = { overview: 0, tracker: 1, leaderboard: 2, settings: 3 };
     const newIndex = indexMap[pageId];
     if (newIndex === state.currentPageIndex) return; // Don't animate if already here
 
     const direction = newIndex > state.currentPageIndex ? "right" : "left";
-    const pageIds = ["tracker", "leaderboard", "settings"];
+    const pageIds = ["overview", "tracker", "leaderboard", "settings"];
 
     scrollTo(0, 0);
     location.hash = `${pageId}-page`;
