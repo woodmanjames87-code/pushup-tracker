@@ -431,6 +431,72 @@ function updateTrackerDisplay() {
     }
 }
 
+/**
+ * Renders the multi-card overview grid
+ */
+function renderOverview() {
+    const container = document.getElementById("overview-page");
+    if (!container) return;
+
+    // 1. Clear existing content (or a specific grid div inside the section)
+    container.innerHTML = '<div class="overview-grid"></div>';
+    const grid = container.querySelector(".overview-grid");
+    const template = document.getElementById("exercise-card-template");
+
+    // 2. Determine which exercises to show
+    const data = loadData();
+    const enabledList = data.enabled_exercises || Object.keys(EXERCISE_LIB);
+
+    // 3. Loop and Build
+    enabledList.forEach(id => {
+        const ex = EXERCISE_LIB[id];
+        if (!ex) return;
+
+        // Fetch light 7-day stats
+        const s = getQuickWeekly(id); 
+        
+        // Clone the template
+        const clone = template.content.cloneNode(true);
+        const card = clone.querySelector(".widget-card");
+        card.dataset.exercise = id; // Store ID for future click events
+
+        // Populate Title and Icon
+        clone.querySelector(".exercise-title").innerText = ex.name;
+        
+        // Calculate Axis Values
+        const maxVal = s.maxVal; // Provided by your helper
+        const midVal = Math.round(maxVal / 2);
+
+        // Update Axis (using classes within the clone)
+        clone.querySelectorAll(".axis-max").forEach(el => el.innerText = maxVal);
+        clone.querySelectorAll(".axis-mid").forEach(el => el.innerText = midVal);
+
+        // Update Bars and Labels
+        const bars = clone.querySelectorAll(".bar-unit");
+        const labels = clone.querySelectorAll(".day-label");
+        const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
+        const today = new Date();
+
+        s.weeklyData.forEach((v, i) => {
+            // Update Bar Height & Opacity
+            if (bars[i]) {
+                const hPercentage = (v / maxVal) * 100;
+                bars[i].style.setProperty("--bar-h", `${hPercentage}%`);
+                bars[i].style.opacity = v > 0 ? "1" : "0.2";
+            }
+            // Update Day Label (matching your tracker logic)
+            if (labels[i]) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - (6 - i));
+                labels[i].innerText = days[d.getDay()];
+            }
+        });
+
+        // Add to DOM
+        grid.appendChild(clone);
+    });
+}
+
 function renderExerciseSettings() {
     const data = loadData();
     const exId = state.currentExercise;
@@ -973,6 +1039,7 @@ export {
     buildExerciseToggles,
     refreshStateAndUI,
     updateTrackerDisplay,
+    renderOverview,
     renderExerciseSettings,
     adjustOnTrack,
     renderEditList,

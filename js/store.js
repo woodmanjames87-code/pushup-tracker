@@ -544,6 +544,37 @@ export function computeStats(exerciseId = state.currentExercise) {
     };
 }
 
+/**
+ * LIGHTWEIGHT OVERVIEW HELPER
+ * Returns only the 7-day array for a specific exercise.
+ * No historical loops, no streak math.
+ */
+export function getQuickWeekly(exerciseId) {
+    const data = loadData();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    let weeklyData = [];
+    let maxVal = 0;
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        
+        // Use your existing getDayTotal utility
+        const v = getDayTotal(data, d, exerciseId);
+        
+        weeklyData.push(v);
+        if (v > maxVal) maxVal = v;
+    }
+
+    return {
+        exerciseId,
+        weeklyData,
+        maxVal: maxVal || 10 // Fallback to avoid division by zero in CSS
+    };
+}
+
 /*************************************************
  * CLEAR LOCAL DATA - IMPORT - EXPORT
  *************************************************/
