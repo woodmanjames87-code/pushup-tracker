@@ -2,7 +2,7 @@
 import { auth, db, collection, query, orderBy, limit, getDocs, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 // prettier-ignore
-import { state, computeStats, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
+import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
 
 /*************************************************
  * NAVIGATION
@@ -10,12 +10,12 @@ import { state, computeStats, EXERCISE_LIB, debounceSave, loadData, saveData, ge
 function showPage(pageId) {
     const indexMap = { overview: 0, tracker: 1, leaderboard: 2, settings: 3 };
     const newIndex = indexMap[pageId];
-    if (newIndex === state.currentPageIndex) return; // Don't animate if already here
+    if (newIndex === state.currentPageIndex && document.readyState === "complete") return; // Don't animate if already here
 
     const direction = newIndex > state.currentPageIndex ? "right" : "left";
     const pageIds = ["overview", "tracker", "leaderboard", "settings"];
 
-    scrollTo(0, 0);
+    window.scrollTo(0, 0);
     location.hash = `${pageId}-page`;
 
     pageIds.forEach((id) => {
@@ -55,6 +55,10 @@ function showPage(pageId) {
     elements.navButtons.forEach((btn, idx) => {
         btn.classList.toggle("active", idx === indexMap[pageId]);
     });
+
+    if (pageId === "overview") {
+        renderOverview();
+    }
 
     if (pageId === "tracker") {
         updateTrackerDisplay();
@@ -435,7 +439,8 @@ function updateTrackerDisplay() {
  * Renders the multi-card overview grid
  */
 function renderOverview() {
-    const container = document.getElementById("overview-page");
+    console.log("Rendering overview...");
+    const container = document.getElementById("overview-content");
     if (!container) return;
 
     // 1. Clear existing content (or a specific grid div inside the section)
@@ -495,6 +500,8 @@ function renderOverview() {
         // Add to DOM
         grid.appendChild(clone);
     });
+    window.scrollTo(0, 0);
+
 }
 
 function renderExerciseSettings() {

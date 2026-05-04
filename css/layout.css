@@ -58,6 +58,12 @@ main {
     gap: 12px;
     margin-top: 20px;
 }
+.overview-grid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
 header {
     width: 100%;
@@ -106,6 +112,9 @@ header {
     display: none; /* Default to hidden */
 }
 #leaderboard-page {
+    display: none; /* Default to hidden */
+}
+#overview-page {
     display: none; /* Default to hidden */
 }
 

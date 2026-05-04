@@ -492,49 +492,12 @@
                 <div class="header-content">
                 </div>
             </header>
-            <h2 class="label-coming-soon">🚧 Coming Soon 🚧</h2>
-            <template id="exercise-card-template">
-                <div class="widget-card overview-card" data-exercise="">
-                    <p class="label-tiny label-bold">
-                        <span class="exercise-title"></span>
-                    </p>
-                    <div class="chart-section">
-                        <div class="chart-with-axis">
-                            <div class="axis left">
-                                <span class="axis-max">0</span>
-                                <span class="axis-mid">0</span>
-                                <span>0</span>
-                            </div>
-                            <div class="bar-chart">
-                                <!-- The 7 bars -->
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                                <div class="bar-unit"></div>
-                            </div>
-                            <div class="axis right">
-                                <span class="axis-max">0</span>
-                                <span class="axis-mid">0</span>
-                                <span>0</span>
-                            </div>
-                        </div>
-                        <div class="bar-labels">
-                            <!-- 7 day labels -->
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                            <span class="day-label">-</span>
-                        </div>
-                    </div>
-                    <button class="btn-log-quick">Log Set</button>
+            <main>
+                <h2 class="centered">🚧 Under Construction 🚧</h2>
+                <div id="overview-content" class="overview-grid">
+                    <!-- Exercise cards will be injected here -->   
                 </div>
-            </template>
+            </main>
         </section>
 
 
@@ -638,6 +601,49 @@
         </div>
 
         <div id="toast-container"></div>
+
+        <template id="exercise-card-template">
+            <div class="widget-card overview-card" data-exercise="">
+                <p class="label-tiny label-bold">
+                    <span class="exercise-title"></span>
+                </p>
+                <div class="chart-section">
+                    <div class="chart-with-axis">
+                        <div class="axis left">
+                            <span class="axis-max">0</span>
+                            <span class="axis-mid">0</span>
+                            <span>0</span>
+                        </div>
+                        <div class="bar-chart">
+                            <!-- The 7 bars -->
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                        </div>
+                        <div class="axis right">
+                            <span class="axis-max">0</span>
+                            <span class="axis-mid">0</span>
+                            <span>0</span>
+                        </div>
+                    </div>
+                    <div class="bar-labels">
+                        <!-- 7 day labels -->
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                    </div>
+                </div>
+                <button class="btn-log-quick">Log Set</button>
+            </div>
+        </template>
 
         <script type="module" src="js/main.js"></script>
     </body>

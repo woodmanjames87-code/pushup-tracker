@@ -34,6 +34,9 @@ h1 {
 h2 {
     font-size: 1.2rem;
 }
+h2.centered {
+    text-align: center;
+}
 h3 {
     color: var(--text);
     font-size: 0.8rem;
