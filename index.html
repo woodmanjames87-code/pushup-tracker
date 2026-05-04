@@ -100,38 +100,38 @@
                         <span id="weekly-title"></span>
                     </p>
                     <div class="chart-section">
-                            <div class="chart-with-axis">
-                                <div class="axis left">
-                                    <span id="axis-max-l">0</span>
-                                    <span id="axis-mid-l">0</span>
-                                    <span>0</span>
-                                </div>
-                                <div id="bar-chart" class="bar-chart">
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                    <div class="bar-unit"></div>
-                                </div>
-                                <div class="axis right">
-                                    <span id="axis-max-r">0</span>
-                                    <span id="axis-mid-r">0</span>
-                                    <span>0</span>
-                                </div>
+                        <div class="chart-with-axis">
+                            <div class="axis left">
+                                <span id="axis-max-l">0</span>
+                                <span id="axis-mid-l">0</span>
+                                <span>0</span>
                             </div>
-                            <div id="bar-labels" class="bar-labels">
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
-                                <span class="day-label">-</span>
+                            <div id="bar-chart" class="bar-chart">
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                                <div class="bar-unit"></div>
+                            </div>
+                            <div class="axis right">
+                                <span id="axis-max-r">0</span>
+                                <span id="axis-mid-r">0</span>
+                                <span>0</span>
                             </div>
                         </div>
+                        <div id="bar-labels" class="bar-labels">
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                            <span class="day-label">-</span>
+                        </div>
                     </div>
+                </div>
 
                 <h3>30-Day Performance Trend</h3>
                 <div class="widget-card trend-section">
@@ -486,6 +486,21 @@
             </div>
         </section>
 
+        <!-- OVERVIEW PAGE -->
+        <section id="overview-page" class="app-container" data-page="overview" hidden>
+            <header class="page-header">
+                <div class="header-content">
+                </div>
+            </header>
+            <main>
+                <h2 class="centered">🚧 Under Construction 🚧</h2>
+                <div id="overview-content" class="overview-grid">
+                    <!-- Exercise cards will be injected here -->   
+                </div>
+            </main>
+        </section>
+
+
         <!-- MINI PODIUM OVERLAY -->
         <div id="mini-podium-overlay" class="mini-podium" hidden>
             <div class="podium-frame">
@@ -543,6 +558,13 @@
 
         <!--BOTTOM NAVIGATION-->
         <nav class="bottom-nav">
+            <button class="nav-item" type="button">
+                <svg viewBox="0 -960 960 960" class="nav-icon">
+                    <path d="M520-600v-240h320v240H520Zm-400 160v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Z"/>
+                </svg>
+                <small>Overview</small>
+            </button>
+
             <button class="nav-item active" type="button">
                 <svg viewBox="0 0 24 24" class="nav-icon">
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
@@ -579,6 +601,49 @@
         </div>
 
         <div id="toast-container"></div>
+
+        <template id="exercise-card-template">
+            <div class="widget-card overview-card" data-exercise="">
+                <p class="label-tiny label-bold">
+                    <span class="exercise-title"></span>
+                </p>
+                <div class="chart-section">
+                    <div class="chart-with-axis">
+                        <div class="axis left">
+                            <span class="axis-max">0</span>
+                            <span class="axis-mid">0</span>
+                            <span>0</span>
+                        </div>
+                        <div class="bar-chart">
+                            <!-- The 7 bars -->
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                            <div class="bar-unit"></div>
+                        </div>
+                        <div class="axis right">
+                            <span class="axis-max">0</span>
+                            <span class="axis-mid">0</span>
+                            <span>0</span>
+                        </div>
+                    </div>
+                    <div class="bar-labels">
+                        <!-- 7 day labels -->
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                        <span class="day-label">-</span>
+                    </div>
+                </div>
+                <button class="btn-log-quick">Log Set</button>
+            </div>
+        </template>
 
         <script type="module" src="js/main.js"></script>
     </body>

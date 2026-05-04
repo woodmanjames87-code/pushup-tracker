@@ -2,20 +2,20 @@
 import { auth, db, collection, query, orderBy, limit, getDocs, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 // prettier-ignore
-import { state, computeStats, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
+import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
 
 /*************************************************
  * NAVIGATION
  *************************************************/
 function showPage(pageId) {
-    const indexMap = { tracker: 0, leaderboard: 1, settings: 2 };
+    const indexMap = { overview: 0, tracker: 1, leaderboard: 2, settings: 3 };
     const newIndex = indexMap[pageId];
-    if (newIndex === state.currentPageIndex) return; // Don't animate if already here
+    if (newIndex === state.currentPageIndex && document.readyState === "complete") return; // Don't animate if already here
 
     const direction = newIndex > state.currentPageIndex ? "right" : "left";
-    const pageIds = ["tracker", "leaderboard", "settings"];
+    const pageIds = ["overview", "tracker", "leaderboard", "settings"];
 
-    scrollTo(0, 0);
+    window.scrollTo(0, 0);
     location.hash = `${pageId}-page`;
 
     pageIds.forEach((id) => {
@@ -55,6 +55,10 @@ function showPage(pageId) {
     elements.navButtons.forEach((btn, idx) => {
         btn.classList.toggle("active", idx === indexMap[pageId]);
     });
+
+    if (pageId === "overview") {
+        renderOverview();
+    }
 
     if (pageId === "tracker") {
         updateTrackerDisplay();
@@ -429,6 +433,75 @@ function updateTrackerDisplay() {
             if (el) el.style.width = "0%";
         });
     }
+}
+
+/**
+ * Renders the multi-card overview grid
+ */
+function renderOverview() {
+    console.log("Rendering overview...");
+    const container = document.getElementById("overview-content");
+    if (!container) return;
+
+    // 1. Clear existing content (or a specific grid div inside the section)
+    container.innerHTML = '<div class="overview-grid"></div>';
+    const grid = container.querySelector(".overview-grid");
+    const template = document.getElementById("exercise-card-template");
+
+    // 2. Determine which exercises to show
+    const data = loadData();
+    const enabledList = data.enabled_exercises || Object.keys(EXERCISE_LIB);
+
+    // 3. Loop and Build
+    enabledList.forEach(id => {
+        const ex = EXERCISE_LIB[id];
+        if (!ex) return;
+
+        // Fetch light 7-day stats
+        const s = getQuickWeekly(id); 
+        
+        // Clone the template
+        const clone = template.content.cloneNode(true);
+        const card = clone.querySelector(".widget-card");
+        card.dataset.exercise = id; // Store ID for future click events
+
+        // Populate Title and Icon
+        clone.querySelector(".exercise-title").innerText = ex.name;
+        
+        // Calculate Axis Values
+        const maxVal = s.maxVal; // Provided by your helper
+        const midVal = Math.round(maxVal / 2);
+
+        // Update Axis (using classes within the clone)
+        clone.querySelectorAll(".axis-max").forEach(el => el.innerText = maxVal);
+        clone.querySelectorAll(".axis-mid").forEach(el => el.innerText = midVal);
+
+        // Update Bars and Labels
+        const bars = clone.querySelectorAll(".bar-unit");
+        const labels = clone.querySelectorAll(".day-label");
+        const days = ["Su", "M", "T", "W", "Th", "F", "Sa"];
+        const today = new Date();
+
+        s.weeklyData.forEach((v, i) => {
+            // Update Bar Height & Opacity
+            if (bars[i]) {
+                const hPercentage = (v / maxVal) * 100;
+                bars[i].style.setProperty("--bar-h", `${hPercentage}%`);
+                bars[i].style.opacity = v > 0 ? "1" : "0.2";
+            }
+            // Update Day Label (matching your tracker logic)
+            if (labels[i]) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - (6 - i));
+                labels[i].innerText = days[d.getDay()];
+            }
+        });
+
+        // Add to DOM
+        grid.appendChild(clone);
+    });
+    window.scrollTo(0, 0);
+
 }
 
 function renderExerciseSettings() {
@@ -973,6 +1046,7 @@ export {
     buildExerciseToggles,
     refreshStateAndUI,
     updateTrackerDisplay,
+    renderOverview,
     renderExerciseSettings,
     adjustOnTrack,
     renderEditList,

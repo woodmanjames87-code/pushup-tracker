@@ -106,10 +106,11 @@ function setupEventListeners() {
     // Because it's type="submit", the logForm.onsubmit handles it.
 
     // --- NAV BUTTONS TRIGGER ---
-    if (elements.navButtons.length >= 3) {
-        elements.navButtons[0].onclick = () => UI.showPage("tracker");
-        elements.navButtons[1].onclick = () => UI.showPage("leaderboard");
-        elements.navButtons[2].onclick = () => UI.showPage("settings");
+    if (elements.navButtons.length >= 4) {
+        elements.navButtons[0].onclick = () => UI.showPage("overview");
+        elements.navButtons[1].onclick = () => UI.showPage("tracker");
+        elements.navButtons[2].onclick = () => UI.showPage("leaderboard");
+        elements.navButtons[3].onclick = () => UI.showPage("settings");
     }
 
     //  Global Menu Toggle
