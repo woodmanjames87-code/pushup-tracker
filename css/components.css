@@ -15,6 +15,17 @@
     margin: 5px 0;
 }
 
+.overview-card {
+    position: relative;
+    /* Uses the JS variable as the base layer, stacked beneath a dark tint overlay */
+    background-image: linear-gradient(
+        var(--layer-1), var(--layer-1)),
+        var(--card-bg) !important;
+    background-size: 100% 100%, auto 60% !important;
+    background-position: top !important;
+    background-repeat: no-repeat !important;
+}
+
 /* =========================
     Dropdown Menu
 ========================= */
@@ -326,6 +337,25 @@
     align-items: center;
     position: relative;
     z-index: 101;
+}
+
+.btn-log-quick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 5px 14px;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-top: 6px; /* Pushes it to the bottom of the card if using flex-direction: column */
 }
 
 .btn-delete {
@@ -1138,6 +1168,42 @@ input:checked + .slider:before {
 
 #modal-input:focus {
     outline: none;
+}
+
+/* --- Feature Announcement Modal Styles --- */
+
+/* Give the feature list clean spacing and remove default bullets */
+.tour-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Spaces out each feature block cleanly */
+}
+
+/* Style the individual feature lines */
+.tour-features-list li {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-muted); /* Fallback to a readable gray if your variable isn't defined */
+    gap: 12px; /* Spaces the emoji neatly away from the text block */
+    align-items: start;
+}
+
+/* Highlight the key feature labels slightly more */
+.tour-features-list strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Ensure the CTA button is well spaced at the bottom */
+#reusable-tour-modal .tour-close-btn {
+    width: 100%;
+    padding: 12px;
+    font-weight: 600;
+    margin-top: 8px;
 }
 
 /* =================================================

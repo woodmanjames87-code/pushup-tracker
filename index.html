@@ -493,7 +493,6 @@
                 </div>
             </header>
             <main>
-                <h2 class="centered">🚧 Under Construction 🚧</h2>
                 <div id="overview-content" class="overview-grid">
                     <!-- Exercise cards will be injected here -->   
                 </div>
@@ -589,6 +588,16 @@
             </button>
         </nav>
 
+        <!--Update Modal-->
+        <div id="reusable-tour-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2 class="tour-title"></h2>
+                <ul class="tour-features-list">
+                    </ul>
+                <button class="tour-close-btn btn-primary-small">Awesome, Let's Go!</button>
+            </div>
+        </div>
+
         <!--Install Banner-->
         <div id="install-banner" class="hidden">
             <div class="install-content">
@@ -601,12 +610,14 @@
         </div>
 
         <div id="toast-container"></div>
-
+        
+        <!-- Overview Template -->
         <template id="exercise-card-template">
             <div class="widget-card overview-card" data-exercise="">
-                <p class="label-tiny label-bold">
-                    <span class="exercise-title"></span>
-                </p>
+                <div class="card-header">
+                    <h3 class="exercise-title"></h3>
+                    <!-- <img class="card-icon" src="" alt=""> -->
+                </div>
                 <div class="chart-section">
                     <div class="chart-with-axis">
                         <div class="axis left">
@@ -641,7 +652,7 @@
                         <span class="day-label">-</span>
                     </div>
                 </div>
-                <button class="btn-log-quick">Log Set</button>
+                <button class="btn-log-quick">+ Log Set</button>
             </div>
         </template>
 

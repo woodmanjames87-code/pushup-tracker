@@ -27,11 +27,22 @@ async function initApp() {
             initAuthListener();
             state.appInitialized = true;
         }, 0);
+        UI.triggerFeatureAnnouncement(
+            "v5.0.1.1", 
+            "New Overview Dashboard Features!",
+            [
+                "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
+                "📈 <strong>7-Day Trends:</strong> Scannable weekly charts.",
+                "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
+                "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings."
+            ]
+        );
         return;
     }
     // --- 2. Wake-up Refresh ---
     console.log("App wake-up refresh triggered...");
     UI.refreshStateAndUI();
+
 }
 
 /*************************************************
@@ -44,8 +55,11 @@ function setupEventListeners() {
         if (getDateKey) {
             state.selectedEditDate = getDateKey();
         }
-        // 2. Check the UI (Visuals)
-        UI.openLogModal();
+        
+        // 2. Pass the current exercise ID to the open function!
+        if (typeof UI.openLogModal === "function") {
+            UI.openLogModal(state.currentExercise);
+        }
     };
 
     // --- 2. SUBMITTING THE DATA ---
@@ -53,22 +67,19 @@ function setupEventListeners() {
         e.preventDefault();
         const reps = parseInt(elements.modal.input.value);
 
-        // Ensure we have the logic function before proceeding
         if (reps > 0 && addSetToDate) {
             // 1. Resolve the Date (Logic)
-            // Use selected date if it exists, otherwise ask the Store for Today
             let targetDate = state.selectedEditDate;
             if (!targetDate && getDateKey) {
                 targetDate = getDateKey();
             }
 
-            // 2. Perform the Save
-            if (addSetToDate) {
-                addSetToDate(targetDate, reps);
+            // NEW: Pull the exact context from the modal element
+            const activeExerciseId = elements.modal.container.dataset.activeContext;
 
-                // Trigger the physical feedback
-                UI.triggerHaptic("success");
-            }
+            // 2. Perform the Save (Pass the activeExerciseId explicitly as the 3rd argument)
+            addSetToDate(targetDate, reps, activeExerciseId);
+            UI.triggerHaptic("success");
 
             // 3. Update the Visuals (UI)
             UI.closeLogModal();
@@ -76,6 +87,9 @@ function setupEventListeners() {
 
             const pageId = location.hash.substring(1).replace("-page", "");
 
+            if (pageId === "overview") {
+                UI.renderOverview();
+            }
             if (pageId === "settings") {
                 UI.renderEditList();
             }
@@ -328,16 +342,16 @@ function setupEventListeners() {
             elements.settings.editDatePicker && elements.settings.editDatePicker.value
                 ? elements.settings.editDatePicker.value
                 : getDateKey
-                  ? getDateKey()
-                  : new Date().toISOString().split("T")[0];
+                ? getDateKey()
+                : new Date().toISOString().split("T")[0];
 
         // 2. Set the global state for the OK button
         state.selectedEditDate = selectedDate;
 
-        // 3. Open the modal
-        elements.modal.container.style.display = "flex";
-        elements.modal.input.value = "";
-        setTimeout(() => elements.modal.input.focus(), 50);
+        // 3. Open the modal cleanly using the context-aware function
+        if (typeof UI.openLogModal === "function") {
+            UI.openLogModal(state.currentExercise);
+        }
     };
 
     // --- Delete Set buttons ---
@@ -383,7 +397,43 @@ function setupEventListeners() {
     elements.settings.exportDataBtn.onclick = () => {
         exportData();
     };
+
+    const overviewContent = document.getElementById("overview-content");
+
+    if (overviewContent) {
+        overviewContent.addEventListener("click", (e) => {
+            const logBtn = e.target.closest(".btn-log-quick");
+            
+            // 1. Log Button Logic (Phase 2)
+            if (logBtn) {
+                const card = logBtn.closest(".overview-card");
+                const exId = card?.dataset.exercise;
+                if (exId && typeof UI.openLogModal === "function") {
+                    UI.openLogModal(exId);
+                }
+                return; 
+            }
+
+            // 2. Card Body Click Logic (Phase 4 Refined)
+            const card = e.target.closest(".overview-card");
+            if (card) {
+                const clickedExId = card.dataset.exercise;
+                
+                if (clickedExId) {
+                    if (typeof UI.setActiveExercise === "function") {
+                        UI.setActiveExercise(clickedExId);
+                    }
+
+                    // Smoothly slide over to the tracker screen now that the UI has updated
+                    if (typeof UI.showPage === "function") {
+                        UI.showPage("tracker");
+                    }
+                }
+            }
+        });
+    };
 }
+
 function setupPullToRefresh() {
     let startY = 0;
     let isPulling = false;

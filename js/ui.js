@@ -91,14 +91,17 @@ function showPage(pageId) {
     }
 }
 
-function openLogModal() {
-    // 1. Get current exercise config
-    const exId = state.currentExercise;
+function openLogModal(exId) {
     const config = EXERCISE_LIB[exId] || { name: "Exercise", unit: "reps" };
+    if (!config) {
+        console.error(`Exercise configuration not found for ID: ${exId}`);
+        return;
+    }
 
     // 2. Inject dynamic text
     elements.modal.title.innerText = `Log ${config.name}`;
     elements.modal.prompt.innerText = `How many ${config.unit} did you do?`;
+    elements.modal.container.dataset.activeContext = exId;
 
     elements.modal.container.style.display = "flex";
     if (elements.modal.input) {
@@ -114,6 +117,7 @@ function closeLogModal() {
             elements.modal.input.value = "";
         }
     }
+    delete elements.modal.container.dataset.activeContext;
 }
 
 function updateFloatingBtn() {
@@ -449,8 +453,8 @@ function renderOverview() {
     const template = document.getElementById("exercise-card-template");
 
     // 2. Determine which exercises to show
-    const data = loadData();
-    const enabledList = data.enabled_exercises || Object.keys(EXERCISE_LIB);
+    const rawEnabled = localStorage.getItem("enabled_exercises");
+    const enabledList = rawEnabled ? JSON.parse(rawEnabled) : Object.keys(EXERCISE_LIB);
 
     // 3. Loop and Build
     enabledList.forEach(id => {
@@ -467,7 +471,12 @@ function renderOverview() {
 
         // Populate Title and Icon
         clone.querySelector(".exercise-title").innerText = ex.name;
-        
+        // Apply the background image path to the card container
+        const cardContainer = clone.querySelector(".overview-card");
+        if (cardContainer) {
+            cardContainer.style.setProperty('--card-bg', `url('/img/bg/bg-${id}.webp')`);
+        }
+
         // Calculate Axis Values
         const maxVal = s.maxVal; // Provided by your helper
         const midVal = Math.round(maxVal / 2);
@@ -986,6 +995,29 @@ function showUnifiedInstallBanner(platform = "auto") {
     elements.installBanner.container.classList.remove("hidden");
 }
 
+function triggerFeatureAnnouncement(featureId, title, bulletPoints) {
+    // 1. Check if they have already seen this specific update
+    if (localStorage.getItem(`seen_update_${featureId}`)) return;
+
+    // 2. Grab elements and inject the custom text strings
+    const modal = document.getElementById("reusable-tour-modal");
+    if (!modal) return;
+
+    modal.querySelector(".tour-title").innerText = title;
+    
+    const listContainer = modal.querySelector(".tour-features-list");
+    listContainer.innerHTML = bulletPoints.map(point => `<li>${point}</li>`).join("");
+
+    // 3. SHOW THE MODAL: Use your standard style pattern
+    modal.style.display = "flex";
+
+    // 4. Handle closure click events and seal it for the future
+    modal.querySelector(".tour-close-btn").onclick = () => {
+        modal.style.display = "none";
+        localStorage.setItem(`seen_update_${featureId}`, "true");
+    };
+}
+
 function showToast(message, duration = 3000) {
     console.log("Toast triggered with message:", message); // Debug line
     const toast = document.createElement("div");
@@ -1043,6 +1075,7 @@ export {
     openLogModal,
     closeLogModal,
     buildExerciseMenu,
+    setActiveExercise,
     buildExerciseToggles,
     refreshStateAndUI,
     updateTrackerDisplay,
@@ -1055,6 +1088,7 @@ export {
     fetchLeaderboard,
     setTheme,
     showUnifiedInstallBanner,
+    triggerFeatureAnnouncement,
     showToast,
     triggerHaptic,
 };
