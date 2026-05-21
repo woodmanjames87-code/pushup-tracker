@@ -15,6 +15,17 @@
     margin: 5px 0;
 }
 
+.overview-card {
+    position: relative;
+    /* Uses the JS variable as the base layer, stacked beneath a dark tint overlay */
+    background-image: linear-gradient(
+        var(--layer-1), var(--layer-1)),
+        var(--card-bg) !important;
+    background-size: 100% 100%, auto 60% !important;
+    background-position: top !important;
+    background-repeat: no-repeat !important;
+}
+
 /* =========================
     Dropdown Menu
 ========================= */
@@ -1157,6 +1168,42 @@ input:checked + .slider:before {
 
 #modal-input:focus {
     outline: none;
+}
+
+/* --- Feature Announcement Modal Styles --- */
+
+/* Give the feature list clean spacing and remove default bullets */
+.tour-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Spaces out each feature block cleanly */
+}
+
+/* Style the individual feature lines */
+.tour-features-list li {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-muted); /* Fallback to a readable gray if your variable isn't defined */
+    gap: 12px; /* Spaces the emoji neatly away from the text block */
+    align-items: start;
+}
+
+/* Highlight the key feature labels slightly more */
+.tour-features-list strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Ensure the CTA button is well spaced at the bottom */
+#reusable-tour-modal .tour-close-btn {
+    width: 100%;
+    padding: 12px;
+    font-weight: 600;
+    margin-top: 8px;
 }
 
 /* =================================================

@@ -588,6 +588,16 @@
             </button>
         </nav>
 
+        <!--Update Modal-->
+        <div id="reusable-tour-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2 class="tour-title"></h2>
+                <ul class="tour-features-list">
+                    </ul>
+                <button class="tour-close-btn btn-primary-small">Awesome, Let's Go!</button>
+            </div>
+        </div>
+
         <!--Install Banner-->
         <div id="install-banner" class="hidden">
             <div class="install-content">
@@ -603,9 +613,10 @@
 
         <template id="exercise-card-template">
             <div class="widget-card overview-card" data-exercise="">
-                <h3>
-                    <span class="exercise-title"></span>
-                </h3>
+                <div class="card-header">
+                    <h3 class="exercise-title"></h3>
+                    <!-- <img class="card-icon" src="" alt=""> -->
+                </div>
                 <div class="chart-section">
                     <div class="chart-with-axis">
                         <div class="axis left">

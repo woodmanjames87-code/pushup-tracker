@@ -471,7 +471,12 @@ function renderOverview() {
 
         // Populate Title and Icon
         clone.querySelector(".exercise-title").innerText = ex.name;
-        
+        // Apply the background image path to the card container
+        const cardContainer = clone.querySelector(".overview-card");
+        if (cardContainer) {
+            cardContainer.style.setProperty('--card-bg', `url('/img/bg/bg-${id}.webp')`);
+        }
+
         // Calculate Axis Values
         const maxVal = s.maxVal; // Provided by your helper
         const midVal = Math.round(maxVal / 2);
@@ -990,6 +995,29 @@ function showUnifiedInstallBanner(platform = "auto") {
     elements.installBanner.container.classList.remove("hidden");
 }
 
+function triggerFeatureAnnouncement(featureId, title, bulletPoints) {
+    // 1. Check if they have already seen this specific update
+    if (localStorage.getItem(`seen_update_${featureId}`)) return;
+
+    // 2. Grab elements and inject the custom text strings
+    const modal = document.getElementById("reusable-tour-modal");
+    if (!modal) return;
+
+    modal.querySelector(".tour-title").innerText = title;
+    
+    const listContainer = modal.querySelector(".tour-features-list");
+    listContainer.innerHTML = bulletPoints.map(point => `<li>${point}</li>`).join("");
+
+    // 3. SHOW THE MODAL: Use your standard style pattern
+    modal.style.display = "flex";
+
+    // 4. Handle closure click events and seal it for the future
+    modal.querySelector(".tour-close-btn").onclick = () => {
+        modal.style.display = "none";
+        localStorage.setItem(`seen_update_${featureId}`, "true");
+    };
+}
+
 function showToast(message, duration = 3000) {
     console.log("Toast triggered with message:", message); // Debug line
     const toast = document.createElement("div");
@@ -1060,6 +1088,7 @@ export {
     fetchLeaderboard,
     setTheme,
     showUnifiedInstallBanner,
+    triggerFeatureAnnouncement,
     showToast,
     triggerHaptic,
 };

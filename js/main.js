@@ -27,11 +27,22 @@ async function initApp() {
             initAuthListener();
             state.appInitialized = true;
         }, 0);
+        UI.triggerFeatureAnnouncement(
+            "v5.0.1.1", 
+            "New Overview Dashboard Features!",
+            [
+                "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
+                "📈 <strong>7-Day Trends:</strong> Scannable weekly charts.",
+                "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
+                "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings."
+            ]
+        );
         return;
     }
     // --- 2. Wake-up Refresh ---
     console.log("App wake-up refresh triggered...");
     UI.refreshStateAndUI();
+
 }
 
 /*************************************************
