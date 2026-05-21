@@ -328,6 +328,25 @@
     z-index: 101;
 }
 
+.btn-log-quick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 5px 14px;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-top: 6px; /* Pushes it to the bottom of the card if using flex-direction: column */
+}
+
 .btn-delete {
     background: var(--danger);
     color: white;

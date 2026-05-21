@@ -91,14 +91,17 @@ function showPage(pageId) {
     }
 }
 
-function openLogModal() {
-    // 1. Get current exercise config
-    const exId = state.currentExercise;
+function openLogModal(exId) {
     const config = EXERCISE_LIB[exId] || { name: "Exercise", unit: "reps" };
+    if (!config) {
+        console.error(`Exercise configuration not found for ID: ${exId}`);
+        return;
+    }
 
     // 2. Inject dynamic text
     elements.modal.title.innerText = `Log ${config.name}`;
     elements.modal.prompt.innerText = `How many ${config.unit} did you do?`;
+    elements.modal.container.dataset.activeContext = exId;
 
     elements.modal.container.style.display = "flex";
     if (elements.modal.input) {
@@ -114,6 +117,7 @@ function closeLogModal() {
             elements.modal.input.value = "";
         }
     }
+    delete elements.modal.container.dataset.activeContext;
 }
 
 function updateFloatingBtn() {
@@ -449,8 +453,8 @@ function renderOverview() {
     const template = document.getElementById("exercise-card-template");
 
     // 2. Determine which exercises to show
-    const data = loadData();
-    const enabledList = data.enabled_exercises || Object.keys(EXERCISE_LIB);
+    const rawEnabled = localStorage.getItem("enabled_exercises");
+    const enabledList = rawEnabled ? JSON.parse(rawEnabled) : Object.keys(EXERCISE_LIB);
 
     // 3. Loop and Build
     enabledList.forEach(id => {
@@ -1043,6 +1047,7 @@ export {
     openLogModal,
     closeLogModal,
     buildExerciseMenu,
+    setActiveExercise,
     buildExerciseToggles,
     refreshStateAndUI,
     updateTrackerDisplay,
