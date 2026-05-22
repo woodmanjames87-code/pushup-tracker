@@ -474,7 +474,7 @@ function renderOverview() {
         // Apply the background image path to the card container
         const cardContainer = clone.querySelector(".overview-card");
         if (cardContainer) {
-            cardContainer.style.setProperty('--card-bg', `url('img/bg/bg-${id}.webp')`);
+            cardContainer.style.setProperty('--card-bg', `url('../img/bg/bg-${id}.webp')`);
         }
 
         // Calculate Axis Values
