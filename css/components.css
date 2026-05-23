@@ -436,6 +436,12 @@
     padding: 3px;
     gap: 2px;
 }
+#lb-mode-selector {
+    height: 30px;
+    .seg-btn {
+        padding: 0;
+    }
+}
 
 .seg-btn {
     flex: 1;
@@ -934,6 +940,107 @@ input:checked + .slider:before {
 .lb-score {
     font-weight: bold;
     color: var(--fitness-green);
+}
+
+/* Scrollable outer wrapper with clear tap padding */
+#leaderboard-matrix-view {
+    width: 100%;
+    margin-top: 12px;
+    background: var(--layer-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-radius: 8px;
+    border: var(--glass-border);
+    overflow-x: auto; /* Enables native mobile horizontal swipe */
+    -webkit-overflow-scrolling: touch; /* Keeps momentum scrolling buttery smooth on iOS */
+}
+
+/* Base Matrix Layout Structure */
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem; /* Slightly smaller base font for mobile efficiency */
+    min-width: 580px; /* Guarantees columns have breathing room to swipe */
+}
+
+/* Touch-friendly spacing on rows (taller padding targets) */
+.matrix-table th,
+.matrix-table td {
+    padding: 10px 14px; /* Plentiful vertical padding for finger scanning */
+    border-bottom: var(--glass-border);
+    white-space: nowrap;
+}
+
+/* Header Text Track */
+.matrix-table th {
+    background: var(--layer-2);
+    color: var(--text-muted, #aaa);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+/* Right-align all data numbers for quick downward scanning */
+.matrix-table td:not(:first-child),
+.matrix-table th:not(:first-child) {
+    text-align: right;
+    align-items: center;
+}
+
+/* 📱 STICKY USERNAME COLUMN (Locked on left while data scrolls) */
+.matrix-table th:first-child,
+.matrix-table td:first-child {
+    position: sticky;
+    left: 0;
+    background: #1e1e1e; /* Must be solid to hide values passing underneath */
+    z-index: 2;
+    font-weight: 600;
+    border-right: 2px inset rgba(255, 255, 255, 0.08);
+}
+
+/* Top-left header corner lock */
+.matrix-table th:first-child {
+    z-index: 3;
+    background: #161616;
+}
+
+/* 1. Clear out the inside borders by targeting only specific cell walls */
+.matrix-table tr.is-me td {
+    border-top: 2px solid var(--primary-light) !important;
+    border-bottom: 2px solid var(--primary-light) !important;
+    color: var(--primary-light) !important;
+}
+/* 2. Cap the far-left edge of the username cell */
+.matrix-table tr.is-me td:first-child {
+    border-left: 2px solid var(--primary-light) !important;
+    border-radius: 8px;
+}
+/* 3. Cap the far-right edge of the total cell */
+.matrix-table tr.is-me td:last-child {
+    border-right: 2px solid var(--primary-light) !important;
+    border-radius: 8px;
+}
+
+/* The Cumulative Total Column Focus */
+.matrix-table th:last-child,
+.matrix-table td:last-child {
+    font-weight: 700;
+    background: var(--layer-2);
+    color: var(--primary-light);
+}
+
+/* Grey out 0s so active numbers pop out clearly */
+.matrix-value-zero {
+    opacity: 0.2;
+    font-weight: 300;
+}
+
+/* Mobile Winner Medal Crown */
+.matrix-crown {
+    display: inline-block;
+    transform: translateY(-2px);
+    line-height: 1;
 }
 
 /* Base container for the floating overlay */

@@ -28,8 +28,8 @@ async function initApp() {
             state.appInitialized = true;
         }, 0);
         UI.triggerFeatureAnnouncement(
-            "v5.0.1.1", 
-            "New Overview Dashboard Features!",
+            "v5.0.2.0",
+            "Check out the Leaderboard all-new All Exercises View! \n \n New Overview Dashboard Features!",
             [
                 "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
                 "📈 <strong>7-Day Trends:</strong> Scannable weekly charts.",
@@ -75,7 +75,7 @@ function setupEventListeners() {
             }
 
             // NEW: Pull the exact context from the modal element
-            const activeExerciseId = elements.modal.container.dataset.activeContext;
+            const activeExerciseId = elements.modal.container.dataset.activeContext || state.currentExercise;
 
             // 2. Perform the Save (Pass the activeExerciseId explicitly as the 3rd argument)
             addSetToDate(targetDate, reps, activeExerciseId);
@@ -93,8 +93,20 @@ function setupEventListeners() {
             if (pageId === "settings") {
                 UI.renderEditList();
             }
-            if (pageId === "leaderboard" && UI.fetchLeaderboard) {
-                UI.fetchLeaderboard();
+            if (pageId === "leaderboard") {
+                const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
+                const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+
+                if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+                    // Find which sub-filter is active ("weekly" or "yearly")
+                    const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
+                    const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
+                    
+                    fetchAndRenderMatrix(matrixTimeframe);
+                } else if (typeof fetchLeaderboard === 'function') {
+                    // Fall back to single mode refresh
+                    fetchLeaderboard();
+                }
             }
 
             scrollTo({ top: 0, behavior: "smooth" });
@@ -193,6 +205,59 @@ function setupEventListeners() {
                 UI.fetchLeaderboard(filterValue);
             }
         });
+    });
+
+    const lb = elements.leaderboard;
+    // Master Mode Selector Logic
+    lb.modeSelector?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn || btn.classList.contains('active')) return;
+
+        lb.modeSelector.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const activeMode = btn.getAttribute('data-mode');
+
+        if (activeMode === 'matrix') {
+            lb.filterContainer.style.display = 'none';
+            lb.matrixFilterContainer.style.display = 'flex';
+            
+            if (lb.singleViewContainer) lb.singleViewContainer.hidden = true;
+            if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = false;
+
+            // Automatically click default 'weekly' matrix button
+            lb.matrixFilterButtons[0]?.click();
+        } else {
+            lb.matrixFilterContainer.style.display = 'none';
+            lb.filterContainer.style.display = 'flex';
+            
+            if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = true;
+            if (lb.singleViewContainer) lb.singleViewContainer.hidden = false;
+
+            // Automatically click default 'daily' button
+            lb.filterButtons[0]?.click();
+        }
+    });
+
+    // Standalone Matrix Sub-Filter Listener
+    lb.matrixFilterContainer?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+
+        // Clear active state across all matrix filter buttons and set current active
+        lb.matrixFilterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const timeframe = btn.getAttribute('data-matrix-filter');
+        
+        // Update the range text using the cached element reference
+        if (lb.rangeText) {
+            lb.rangeText.innerText = timeframe === 'weekly' 
+                ? "Current Week - All Movements" 
+                : "Year To Date - All Movements";
+        }
+
+        UI.fetchAndRenderMatrix(timeframe);
     });
 
     // --- Update Display Name ---
@@ -477,8 +542,20 @@ function setupPullToRefresh() {
 
             // 🏆 REFRESH LEADERBOARD (if visible)
             const pageId = location.hash.substring(1).replace("-page", "");
-            if (pageId === "leaderboard" && UI.fetchLeaderboard) {
-                await UI.fetchLeaderboard();
+            if (pageId === "leaderboard") {
+                const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
+                const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+
+                if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+                    // Find which sub-filter is active ("weekly" or "yearly")
+                    const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
+                    const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
+                    
+                    fetchAndRenderMatrix(matrixTimeframe);
+                } else if (typeof fetchLeaderboard === 'function') {
+                    // Fall back to single mode refresh
+                    fetchLeaderboard();
+                }
             }
 
             // Snap back
