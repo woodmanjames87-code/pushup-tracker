@@ -469,6 +469,11 @@
             </header>
 
             <div class="leaderboard-nav">
+                <div class="segmented-control mode-selector" id="lb-mode-selector">
+                    <button class="seg-btn active" data-mode="single" type="button">Single Exercise</button>
+                    <button class="seg-btn" data-mode="matrix" type="button">All Exercises</button>
+                </div>
+
                 <div class="segmented-control" id="leaderboard-filter">
                     <button class="seg-btn active" data-filter="stats.daily" type="button">Daily</button>
                     <button class="seg-btn" data-filter="stats.week" type="button">Week</button>
@@ -476,14 +481,24 @@
                     <button class="seg-btn" data-filter="stats.year" type="button">Year</button>
                 </div>
 
+                <div class="segmented-control" id="matrix-filter" style="display: none;">
+                    <button class="seg-btn active" data-matrix-filter="weekly" type="button">This Week</button>
+                    <button class="seg-btn" data-matrix-filter="yearly" type="button">YTD</button>
+                </div>
+
                 <div class="lb-context-label">
-                    <span id="lb-date-range-text">This Week</span>
+                    <span id="lb-date-range-text">Today</span>
                 </div>
             </div>
 
-            <div id="lb-list" class="leaderboard-list">
-                <p class="h3 label-loading">Loading ranks...</p>
+            <div id="single-leaderboard-view">
+                <div id="lb-list" class="leaderboard-list">
+                    <p class="h3 label-loading">Loading ranks...</p>
+                </div>
             </div>
+
+            <div id="leaderboard-matrix-view" hidden>
+                </div>
         </section>
 
         <!-- OVERVIEW PAGE -->

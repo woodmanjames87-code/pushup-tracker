@@ -228,10 +228,12 @@ header {
 }
 
 .leaderboard-nav {
+    display: grid;
+    gap: 5px;
     position: sticky;
-    top: calc(80px + env(safe-area-inset-top));
+    top: calc(68px + env(safe-area-inset-top));
     margin-bottom: 20px;
-    padding: 5px 20px;
+    padding: 5px 10px;
     align-self: center;
     width: calc(100% + 20px);
     border-radius: 12px;

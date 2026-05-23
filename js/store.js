@@ -64,7 +64,7 @@ export function loadData() {
 }
 
 // This handles the LOCAL SAVE + triggers the Cloud Push
-export async function saveData(data) {
+export async function saveData(data, exerciseId = state.currentExercise) {
     // 1. Mark the data with the current time
     data.lastUpdated = new Date().toISOString();
     // 2. Save locally (Immediate)
@@ -72,8 +72,8 @@ export async function saveData(data) {
     // 3. Trigger Cloud Sync (Background)
     const user = auth?.currentUser;
     if (user && !state.isReconciling) {
-        // We pass the userId to sync
-        await syncLocalToCloud(user.uid);
+        // We pass the userId plus the explicit exercise context to sync
+        await syncLocalToCloud(user.uid, {}, exerciseId);
     }
 }
 
@@ -156,7 +156,7 @@ export function addSetToDate(dateKey, reps, exerciseId = state.currentExercise) 
     data[dateKey][exerciseId].push(Number(reps));
 
     // 4. Save and Sync
-    saveData(data);
+    saveData(data, exerciseId);
 
     console.log(`✅ Added ${reps} ${EXERCISE_LIB[exerciseId].unit} to ${exerciseId}`);
 }
@@ -171,7 +171,7 @@ export function deleteSet(index, dateKey = state.selectedEditDate, exerciseId = 
         if (data[dateKey][exerciseId].length === 0) delete data[dateKey][exerciseId];
         if (Object.keys(data[dateKey]).length === 0) delete data[dateKey];
 
-        saveData(data);
+        saveData(data, exerciseId);
         console.log(`🗑️ Deleted set ${index} - Syncing mirror...`);
         return true;
     }

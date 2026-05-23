@@ -44,8 +44,13 @@ export const elements = {
 
     // Leaderboard
     leaderboard: {
+        modeSelector: document.getElementById("lb-mode-selector"),
         filterContainer: document.getElementById("leaderboard-filter"),
         filterButtons: document.getElementById("leaderboard-filter")?.querySelectorAll(".seg-btn") || [],
+        matrixFilterContainer: document.getElementById("matrix-filter"),
+        matrixFilterButtons: document.getElementById("matrix-filter")?.querySelectorAll(".seg-btn") || [],
+        matrixViewContainer: document.getElementById("leaderboard-matrix-view"),
+        singleViewContainer: document.getElementById("single-leaderboard-view"),
         list: document.getElementById("lb-list"),
         rangeText: document.getElementById("lb-date-range-text"),
         podiumOverlay: document.getElementById("mini-podium-overlay"),

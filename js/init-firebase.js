@@ -137,14 +137,14 @@ async function startCloudSync() {
     }
 }
 
-export async function syncLocalToCloud(userId, extraData = {}) {
+export async function syncLocalToCloud(userId, extraData = {}, targetExerciseId = null) {
     if (state.isReconciling) return;
     const localData = loadData();
     if (!localData.lastUpdated && !extraData.isInitialSetup) return;
     if (!userId) return;
 
     const batch = writeBatch(db);
-    const exerciseId = state.currentExercise || "pushups";
+    const exerciseId = targetExerciseId || state.currentExercise || "pushups";
     const s = computeStats(exerciseId);
     const confirmedUsername = localData.settings?.username || getDisplayUsername(extraData);
 

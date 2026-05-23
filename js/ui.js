@@ -63,9 +63,21 @@ function showPage(pageId) {
     if (pageId === "tracker") {
         updateTrackerDisplay();
     }
-    // 3. Special logic: Refresh leaderboard
-    if (pageId === "leaderboard" && fetchLeaderboard) {
-        fetchLeaderboard();
+    // 3. Special logic: Refresh leaderboard based on active view mode
+    if (pageId === "leaderboard") {
+        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
+        const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+
+        if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+            // Find which sub-filter is active ("weekly" or "yearly")
+            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
+            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
+            
+            fetchAndRenderMatrix(matrixTimeframe);
+        } else if (typeof fetchLeaderboard === 'function') {
+            // Fall back to single mode refresh
+            fetchLeaderboard();
+        }
     }
 
     // 4. Floating log button logic
@@ -300,8 +312,20 @@ function refreshStateAndUI() {
                 console.log("☁️ Background sync complete.");
                 // Silent Leaderboard refresh if active
                 const pageId = location.hash.substring(1).replace("-page", "");
-                if (pageId === "leaderboard" && fetchLeaderboard) {
-                    fetchLeaderboard();
+                if (pageId === "leaderboard") {
+                    const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
+                    const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+
+                    if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+                        // Find which sub-filter is active ("weekly" or "yearly")
+                        const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
+                        const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
+                        
+                        fetchAndRenderMatrix(matrixTimeframe);
+                    } else if (typeof fetchLeaderboard === 'function') {
+                        // Fall back to single mode refresh
+                        fetchLeaderboard();
+                    }
                 }
             })
             .catch((err) => console.error("Sync Error:", err));
@@ -457,13 +481,13 @@ function renderOverview() {
     const enabledList = rawEnabled ? JSON.parse(rawEnabled) : Object.keys(EXERCISE_LIB);
 
     // 3. Loop and Build
-    enabledList.forEach(id => {
+    enabledList.forEach((id) => {
         const ex = EXERCISE_LIB[id];
         if (!ex) return;
 
         // Fetch light 7-day stats
-        const s = getQuickWeekly(id); 
-        
+        const s = getQuickWeekly(id);
+
         // Clone the template
         const clone = template.content.cloneNode(true);
         const card = clone.querySelector(".widget-card");
@@ -474,7 +498,7 @@ function renderOverview() {
         // Apply the background image path to the card container
         const cardContainer = clone.querySelector(".overview-card");
         if (cardContainer) {
-            cardContainer.style.setProperty('--card-bg', `url('../img/bg/bg-${id}.webp')`);
+            cardContainer.style.setProperty("--card-bg", `url('../img/bg/bg-${id}.webp')`);
         }
 
         // Calculate Axis Values
@@ -482,8 +506,8 @@ function renderOverview() {
         const midVal = Math.round(maxVal / 2);
 
         // Update Axis (using classes within the clone)
-        clone.querySelectorAll(".axis-max").forEach(el => el.innerText = maxVal);
-        clone.querySelectorAll(".axis-mid").forEach(el => el.innerText = midVal);
+        clone.querySelectorAll(".axis-max").forEach((el) => (el.innerText = maxVal));
+        clone.querySelectorAll(".axis-mid").forEach((el) => (el.innerText = midVal));
 
         // Update Bars and Labels
         const bars = clone.querySelectorAll(".bar-unit");
@@ -510,7 +534,6 @@ function renderOverview() {
         grid.appendChild(clone);
     });
     window.scrollTo(0, 0);
-
 }
 
 function renderExerciseSettings() {
@@ -945,6 +968,146 @@ function drawPodium(winners, filterType) {
         }
     });
 }
+
+// New: Matrix fetch and render for All Exercises view
+async function fetchAndRenderMatrix(matrixTimeframe) {
+    console.log("fetchAndRenderMatrix triggered...", matrixTimeframe);
+    const el = elements.leaderboard;
+
+    if (!el || !el.matrixViewContainer) {
+        console.warn("Matrix container not present.");
+        return;
+    }
+
+    // Guard: Auth check
+    const user = auth?.currentUser;
+    if (!user) {
+        el.matrixViewContainer.innerHTML = `
+            <div style="text-align:center; padding: 40px 20px; opacity: 0.7;">
+                <h2>Join the leaderboard</h2>
+                <p style="margin-top: 10px; margin-bottom: 20px;">Sign in to Google to see your rank and compare stats with the community.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Guard: DB connection
+    if (!db) {
+        el.matrixViewContainer.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
+        return;
+    }
+
+    const now = new Date();
+    let idValue;
+    let typeKey;
+
+    if (matrixTimeframe === "weekly") {
+        idValue = getWeekId(now);
+        typeKey = "weekly";
+    } else {
+        // default to yearly
+        idValue = getYearId(now);
+        typeKey = "yearly";
+    }
+
+    // show loader
+    el.matrixViewContainer.innerHTML = `<div class="loading-state"><span class="dots-container">Loading</span></div>`;
+
+    try {
+        const matrixData = {};
+
+        const standingsRef = collection(db, "standings");
+        const q = query(standingsRef, where("periodId", "==", idValue), where("type", "==", typeKey));
+
+        const snap = await getDocs(q);
+
+        snap.forEach((doc) => {
+            const d = doc.data();
+            const uid = d.uid || doc.id.split("_").pop();
+            const username = d.username || "Anonymous";
+            const exerciseId = d.exerciseId || "unknown";
+            const score = d.score || 0;
+
+            if (!matrixData[uid]) matrixData[uid] = { name: username };
+            matrixData[uid][exerciseId] = (matrixData[uid][exerciseId] || 0) + score;
+        });
+
+        // Build rows
+        const rows = Object.entries(matrixData).map(([uid, rec]) => {
+            const total = Object.keys(rec).reduce((s, k) => (k === "name" ? s : s + (rec[k] || 0)), 0);
+            return { uid, name: rec.name, total, measures: rec };
+        });
+
+        // Sort by total desc then name
+        rows.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+        // Build table HTML
+        const exercises = Object.keys(EXERCISE_LIB || {});
+
+        // 👑 1. SCAN FOR HIGH SCORES PER EXERCISE
+        const highScores = {};
+        exercises.forEach((ex) => {
+            highScores[ex] = 0;
+        });
+
+        rows.forEach((userRow) => {
+            exercises.forEach((ex) => {
+                const val = userRow.measures[ex] || 0;
+                if (val > highScores[ex]) {
+                    highScores[ex] = val; // Update the record for this column
+                }
+            });
+        });
+
+        // Build table HTML
+        let html = `<div class="matrix-wrapper"><table class="matrix-table"><thead><tr><th>Name</th>`;
+        exercises.forEach((ex) => {
+            const label = (EXERCISE_LIB[ex] && EXERCISE_LIB[ex].name) || ex;
+            html += `<th>${label}</th>`;
+        });
+        html += `<th>Total</th></tr></thead><tbody>`;
+
+        // Generate Rows
+        rows.forEach((userRow) => {
+            const isMe = userRow.uid === auth?.currentUser?.uid;
+            
+            // ✂️ 2. TRUNCATE THE NAME
+            const formattedName = truncateUsername(userRow.name);
+
+            html += `<tr class="${isMe ? "is-me" : ""}">`;
+            html += `<td>${formattedName}</td>`; // Use the newly formatted name here
+            
+            // Generate individual cells with logic for zeros and crowns
+            exercises.forEach((ex) => {
+                const val = userRow.measures[ex] || 0;
+                
+                if (val === 0) {
+                    // Muted zero styling
+                    html += `<td><span class="matrix-value-zero">0</span></td>`;
+                } else {
+                    // Check if this score is the highest in the entire column
+                    const isWinner = val === highScores[ex];
+                    html += `
+                        <td>
+                            ${isWinner ? '<span class="matrix-crown">👑</span>' : ''}
+                            ${Number(val).toLocaleString()}
+                        </td>
+                    `;
+                }
+            });
+            
+            html += `<td><strong>${userRow.total.toLocaleString()}</strong></td>`;
+            html += `</tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+
+        el.matrixViewContainer.innerHTML = html;
+    } catch (err) {
+        console.error("Matrix failed:", err);
+        el.matrixViewContainer.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">Failed to load matrix view.</p>`;
+    }
+}
 /***********************
  * Utilities
  ***********************/
@@ -1004,9 +1167,9 @@ function triggerFeatureAnnouncement(featureId, title, bulletPoints) {
     if (!modal) return;
 
     modal.querySelector(".tour-title").innerText = title;
-    
+
     const listContainer = modal.querySelector(".tour-features-list");
-    listContainer.innerHTML = bulletPoints.map(point => `<li>${point}</li>`).join("");
+    listContainer.innerHTML = bulletPoints.map((point) => `<li>${point}</li>`).join("");
 
     // 3. SHOW THE MODAL: Use your standard style pattern
     modal.style.display = "flex";
@@ -1070,6 +1233,35 @@ function triggerHaptic(type = "success") {
     }
 }
 
+/**
+ * Safely shortens a username to First Name + Last Initial if it's too long.
+ * @param {string} username - The raw user name string from Firestore
+ * @param {number} maxChar - Max characters allowed before splitting (default 12)
+ * @return {string} The truncated name
+ */
+function truncateUsername(username, maxChar = 12) {
+    if (!username) return "Anonymous";
+    
+    const cleanName = username.trim();
+    
+    // If the name is already short enough, leave it exactly as they styled it
+    if (cleanName.length <= maxChar) return cleanName;
+    
+    // Split into parts by space
+    const parts = cleanName.split(/\s+/);
+    
+    // If it's just one massive single word, slice it and add an ellipsis
+    if (parts.length === 1) {
+        return `${cleanName.substring(0, maxChar)}...`;
+    }
+    
+    // Grab the first name, and the first letter of the last name
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    
+    return `${firstName} ${lastInitial}.`;
+}
+
 export {
     showPage,
     openLogModal,
@@ -1086,6 +1278,7 @@ export {
     loadCurrentUsername,
     getDisplayUsername,
     fetchLeaderboard,
+    fetchAndRenderMatrix,
     setTheme,
     showUnifiedInstallBanner,
     triggerFeatureAnnouncement,
