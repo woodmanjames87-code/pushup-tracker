@@ -1,4 +1,4 @@
-const VERSION = "v5.0.2.0"; // Increment this to update the app
+const VERSION = "v5.0.2.1"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
@@ -15,6 +15,7 @@ const ASSETS = [
     "js/store.js",
     "js/ui.js",
     "js/main.js",
+    "js/vendor/chart.js",
     // --- Manifest & Icons ---
     "manifest.json",
     "img/Google_G_logo.png",

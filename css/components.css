@@ -18,10 +18,10 @@
 .overview-card {
     position: relative;
     /* Uses the JS variable as the base layer, stacked beneath a dark tint overlay */
-    background-image: linear-gradient(
-        var(--layer-1), var(--layer-1)),
-        var(--card-bg) !important;
-    background-size: 100% 100%, auto 60% !important;
+    background-image: linear-gradient(var(--layer-1), var(--layer-1)), var(--card-bg) !important;
+    background-size:
+        100% 100%,
+        auto 60% !important;
     background-position: top !important;
     background-repeat: no-repeat !important;
 }
@@ -354,7 +354,9 @@
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition:
+        background-color 0.2s ease,
+        transform 0.1s ease;
     margin-top: 6px; /* Pushes it to the bottom of the card if using flex-direction: column */
 }
 
@@ -703,6 +705,38 @@ input:checked + .slider:before {
     opacity: 1;
 }
 
+/* =========================================
+    30-day trend card specific
+    ======================================*/
+/* Ensure the widget wrapper manages clickable behaviors nicely */
+.trend-section {
+    transition:
+        transform 0.1s ease,
+        background-color 0.2s ease;
+}
+
+.trend-section:active {
+    transform: scale(0.99); /* Gentle physical compression on push states */
+}
+
+/* Default state management rules */
+.trend-section .trend-summary-view {
+    display: block;
+}
+
+.trend-section .trend-chart-view {
+    display: none; /* Keep line graph workspace tucked away on initial load */
+}
+
+/* Active configuration overrides when card is clicked/toggled */
+.trend-section.showing-chart .trend-summary-view {
+    display: none; /* Hide the bar and text blocks entirely */
+}
+
+.trend-section.showing-chart .trend-chart-view {
+    display: block; /* Smoothly unhide the canvas framework */
+}
+
 /* =================================================
    6. PROGRESS BARS & TRACKS
    ================================================= */
@@ -959,7 +993,7 @@ input:checked + .slider:before {
 .matrix-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.75rem; /* Slightly smaller base font for mobile efficiency */
+    font-size: 0.95rem; /* Slightly smaller base font for mobile efficiency */
     min-width: 580px; /* Guarantees columns have breathing room to swipe */
 }
 
@@ -976,7 +1010,7 @@ input:checked + .slider:before {
     background: var(--layer-2);
     color: var(--text-muted, #aaa);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
 }
@@ -1010,6 +1044,7 @@ input:checked + .slider:before {
     border-top: 2px solid var(--primary-light) !important;
     border-bottom: 2px solid var(--primary-light) !important;
     color: var(--primary-light) !important;
+    border-radius: 8px;
 }
 /* 2. Cap the far-left edge of the username cell */
 .matrix-table tr.is-me td:first-child {

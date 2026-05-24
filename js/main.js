@@ -3,7 +3,7 @@ import { auth, db, signInWithEmailAndPassword, updateProfile, doc, setDoc, initA
 import { elements } from "./dom.js";
 import * as UI from "./ui.js";
 // prettier-ignore
-import { state, migrateToMultiExercise, EXERCISE_LIB, deleteSet, loadData, saveData, addSetToDate, getDateKey, exportData } from "./store.js";
+import { state, migrateToMultiExercise, EXERCISE_LIB, deleteSet, loadData, saveData, computeStats, addSetToDate, getDateKey, exportData } from "./store.js";
 
 /*************************************************
  * 2. initApp (The Entry Point)
@@ -154,6 +154,31 @@ function setupEventListeners() {
             menu.classList.remove("show");
         }
     });
+
+    // --- 30-DAY TREND CARD TOGGLE ---
+    if (elements.ui.trendCard30) {
+        elements.ui.trendCard30.addEventListener('click', function() {
+            // 1. Toggle the master state class on the card container itself
+            const isShowingChart = this.classList.toggle('showing-chart');
+            
+            // 2. Find the live views directly inside the clicked card right now
+            const summaryView = this.querySelector('.trend-summary-view');
+            const chartView = this.querySelector('.trend-chart-view');
+            
+            // 3. Switch their displays explicitly
+            if (isShowingChart) {
+                if (summaryView) summaryView.style.display = 'none';
+                if (chartView) chartView.style.display = 'block';
+                
+                // Recompute dynamic stats and fire up Chart.js
+                const stats = computeStats(state.currentExercise);
+                UI.renderTrendLineChart(stats?.chart30Labels || [], stats?.chart30Values || []);
+            } else {
+                if (summaryView) summaryView.style.display = 'block';
+                if (chartView) chartView.style.display = 'none';
+            }
+        });
+    }
 
     // --- Settings / Accordion Logic ---
     elements.settings.accordionHeaders.forEach((header) => {

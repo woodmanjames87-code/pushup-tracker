@@ -35,6 +35,7 @@ export const state = {
     lastReconcileTime: 0,
     weeklyChartTimeout: null,
     monthlyChartTimeout: null,
+    trendChartInstance: null,
 };
 
 /*************************************************
@@ -455,6 +456,20 @@ export function computeStats(exerciseId = state.currentExercise) {
         weeklyTotal += v;
     }
 
+    // 3.5. Rolling 30-Day Performance Timeline (Streamlined)
+    let chart30Values = [];
+    let chart30Labels = []; // Kept as empty spaces just to anchor the plot points
+    
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        
+        const v = getDayTotal(data, d, exerciseId);
+        
+        chart30Values.push(v);
+        chart30Labels.push(""); // An empty string for every single day
+    }
+
     // 4. Specific Totals & Goals
     const todayTotal = getDayTotal(data, todayStr, exerciseId);
     const yesterdayTotal = getDayTotal(data, yestStr, exerciseId);
@@ -515,6 +530,8 @@ export function computeStats(exerciseId = state.currentExercise) {
         calendarWeeklyTotal, // Sun-Sat total
         monthlyTotal: monthlyData[currentMonthLabel] || 0,
         total30,
+        chart30Labels,
+        chart30Values,
         allTimeTotal,
         ytdTotal,
         dailyGoal,
