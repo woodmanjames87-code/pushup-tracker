@@ -1,3 +1,4 @@
+import './vendor/chart.js';
 // prettier-ignore
 import { auth, db, collection, query, orderBy, limit, getDocs, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
@@ -130,6 +131,53 @@ function closeLogModal() {
         }
     }
     delete elements.modal.container.dataset.activeContext;
+}
+
+function renderTrendLineChart(labels, values) {
+    const canvas = document.getElementById('trendChartCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 🔒 Fully centralized cleanup: Wipe previous engine instance using your global state object
+    if (state.trendChartInstance) {
+        state.trendChartInstance.destroy();
+    }
+
+    // Assign directly to your shared global state registry
+    state.trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Reps',
+                data: values,
+                borderColor: '#39e639',
+                borderWidth: 2,
+                pointRadius: 0,
+                hoverRadius: 4,
+                tension: 0.2,
+                fill: true,
+                backgroundColor: '#39e63933', // 20% opacity for the fill
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    display: false,
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(128, 128, 128, 0.06)' },
+                    ticks: { maxTicksLimit: 4 }
+                }
+            }
+        }
+    });
 }
 
 function updateFloatingBtn() {
@@ -401,6 +449,11 @@ function updateTrackerDisplay() {
             }
         });
         updateText("weekly-title", `Total: ${s.weeklyTotal}`);
+    }
+
+    // --- 3.5. 30-DAY LINE CHART ---
+    if (elements.ui.trendChartView && elements.ui.trendChartView.style.display === 'block') {
+        renderTrendLineChart(s.chart30Labels || [], s.chart30Values || []);
     }
 
     // --- 4. MONTHLY CHART (6-Month Optimized) ---
@@ -1044,7 +1097,7 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
         // Build table HTML
         const exercises = Object.keys(EXERCISE_LIB || {});
 
-        // 👑 1. SCAN FOR HIGH SCORES PER EXERCISE
+        // 1. SCAN FOR HIGH SCORES PER EXERCISE
         const highScores = {};
         exercises.forEach((ex) => {
             highScores[ex] = 0;
@@ -1071,7 +1124,7 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
         rows.forEach((userRow) => {
             const isMe = userRow.uid === auth?.currentUser?.uid;
             
-            // ✂️ 2. TRUNCATE THE NAME
+            // 2. TRUNCATE THE NAME
             const formattedName = truncateUsername(userRow.name);
 
             html += `<tr class="${isMe ? "is-me" : ""}">`;
@@ -1266,6 +1319,7 @@ export {
     showPage,
     openLogModal,
     closeLogModal,
+    renderTrendLineChart,
     buildExerciseMenu,
     setActiveExercise,
     buildExerciseToggles,

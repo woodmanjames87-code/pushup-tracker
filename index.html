@@ -134,36 +134,47 @@
                 </div>
 
                 <h3>30-Day Performance Trend</h3>
-                <div class="widget-card trend-section">
-                    <p class="label-tiny">
-                        Total:
-                        <span id="total-30-val" class="label-bold">0</span>
-                    </p>
+                <div id="trend-card-30" class="widget-card trend-section">
+                    <span style="position: absolute; top: 1px; right: 5px; opacity: 0.5; font-size: 1.1rem;">
+                        ◎
+                    </span>
+                    <div class="trend-summary-view">
+                        <p class="label-tiny">
+                            Total:
+                            <span id="total-30-val" class="label-bold">0</span>
+                        </p>
 
-                    <div class="segmented-track">
-                        <div class="segment red"></div>
-                        <div class="segment yellow"></div>
-                        <div class="segment green-bg"></div>
-                        <div id="trend-fill" class="trend-fill"></div>
-                    </div>
+                        <div class="segmented-track">
+                            <div class="segment red"></div>
+                            <div class="segment yellow"></div>
+                            <div class="segment green-bg"></div>
+                            <div id="trend-fill" class="trend-fill"></div>
+                        </div>
 
-                    <div class="trend-footer-grid">
-                        <div class="trend-col-left">
-                            <div id="trend-label">On Track</div>
-                            <div class="label-tiny">
-                                Active Days:
-                                <span id="active-30-val">0/30</span>
+                        <div class="trend-footer-grid">
+                            <div class="trend-col-left">
+                                <div id="trend-label">On Track</div>
+                                <div class="label-tiny">
+                                    Active Days:
+                                    <span id="active-30-val">0/30</span>
+                                </div>
+                                <div class="label-tiny">
+                                    <span id="avg-30">0/day</span>
+                                </div>
                             </div>
-                            <div class="label-tiny">
-                                <span id="avg-30">0/day</span>
+                            <div class="trend-col-right">
+                                <div class="label-tiny">30-Day Goal:</div>
+                                <div class="label-tiny">
+                                    <span id="thirty-goal-val">0</span> -
+                                    <span id="thirty-improv-val">0</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="trend-col-right">
-                            <div class="label-tiny">30-Day Goal:</div>
-                            <div class="label-tiny">
-                                <span id="thirty-goal-val">0</span> -
-                                <span id="thirty-improv-val">0</span>
-                            </div>
+                    </div>
+
+                    <div class="trend-chart-view">
+                        <div class="chart-container" style="position: relative; height: 140px; width: 100%;">
+                            <canvas id="trendChartCanvas"></canvas>
                         </div>
                     </div>
                 </div>

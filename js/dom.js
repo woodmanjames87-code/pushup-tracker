@@ -109,6 +109,9 @@ export const elements = {
         unitLabels: document.querySelectorAll(".unit-label"),
         bgPrimary: document.getElementById("bg-primary"),
         bgSecondary: document.getElementById("bg-secondary"),
+        trendCard30: document.getElementById("trend-card-30"),
+        trendSummaryView: document.querySelector(".trend-summary-view"),
+        trendChartView: document.querySelector(".trend-chart-view"),
     },
 
     // The Auto-Generated Stat Map
