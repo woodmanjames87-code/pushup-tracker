@@ -15,7 +15,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet" />
 
-        <link rel="manifest" href="manifest.json" />
+        <link rel="manifest" href="webmanifest.json" />
         
         <link rel="apple-touch-icon" sizes="180x180" href="img/dailygrind-icon.PNG" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -135,8 +135,8 @@
 
                 <h3>30-Day Performance Trend</h3>
                 <div id="trend-card-30" class="widget-card trend-section">
-                    <span style="position: absolute; top: 1px; right: 5px; opacity: 0.5; font-size: 1.1rem;">
-                        ◎
+                    <span class="tap-icon">
+                        ◉
                     </span>
                     <div class="trend-summary-view">
                         <p class="label-tiny">
@@ -173,7 +173,7 @@
                     </div>
 
                     <div class="trend-chart-view">
-                        <div class="chart-container" style="position: relative; height: 140px; width: 100%;">
+                        <div class="chart-container">
                             <canvas id="trendChartCanvas"></canvas>
                         </div>
                     </div>

@@ -1,0 +1,34 @@
+{
+    "name": "DailyGrind: Bodyweight Workout Tracker",
+    "short_name": "DailyGrind",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#1e1e1e",
+    "theme_color": "#1e1e1e",
+    "description": "Log your daily reps, compete on the leaderboard, and build your fitness legacy.",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "img/dailygrind-icon.PNG",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "img/dailygrind-icon.PNG",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "img/screenshot-mobile.png",
+            "sizes": "1170x2532",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Daily Workout Tracker"
+        }
+    ]
+}
+

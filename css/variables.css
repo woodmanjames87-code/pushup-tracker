@@ -13,6 +13,7 @@
     /* Glass/Blur */
     --glass-blur: blur(12px);
     --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+    --border-color: rgba(255, 255, 255, 0.08);
 
     /* Shadow Ramp: Growing size + Growing "Rim Light" (1px border) */
     --shadow-1: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -52,6 +53,7 @@
 
     --glass-blur: blur(10px);
     --glass-border: 1px solid rgba(0, 123, 255, 0.08);
+    --border-color: rgba(0, 0, 0, 0.08);
 
     /* Shadow Ramp: Purely shadow-based depth */
     --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);

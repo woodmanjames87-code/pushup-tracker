@@ -134,9 +134,16 @@ function closeLogModal() {
 }
 
 function renderTrendLineChart(labels, values) {
-    // 1. Find the highest rep count in the provided values array
+    // 1. Grab the computed styles from the root element
+    const rootStyles = getComputedStyle(document.documentElement);
+    // 2. Pull the color values (replace these with your exact CSS variable names)
+    const lineColor = rootStyles.getPropertyValue('--fitness-green').trim();
+    const gridColor = rootStyles.getPropertyValue('--border-color').trim();
+    const textColor = rootStyles.getPropertyValue('--text-muted').trim();
+
+    // Find the highest rep count in the provided values array
     const realMax = Math.max(...values);
-    const dynamicCeiling = Math.max(realMax + 10, 50);
+    const dynamicCeiling = Math.max(realMax + 10, 60);
 
     const canvas = document.getElementById('trendChartCanvas');
     if (!canvas) return;
@@ -157,7 +164,7 @@ function renderTrendLineChart(labels, values) {
             datasets: [{
                 label: 'Daily Reps',
                 data: values,
-                borderColor: '#39e639',
+                borderColor: lineColor,
                 borderWidth: 2,
                 pointRadius: 0,
                 hoverRadius: 4,
@@ -177,8 +184,8 @@ function renderTrendLineChart(labels, values) {
                 y: {
                     beginAtZero: true,
                     max: dynamicCeiling,
-                    grid: { color: 'rgba(128, 128, 128, 0.06)' },
-                    ticks: { maxTicksLimit: 4 }
+                    grid: { color: gridColor },
+                    ticks: { maxTicksLimit: 4, color: textColor },
                 }
             }
         }
