@@ -134,6 +134,10 @@ function closeLogModal() {
 }
 
 function renderTrendLineChart(labels, values) {
+    // 1. Find the highest rep count in the provided values array
+    const realMax = Math.max(...values);
+    const dynamicCeiling = Math.max(realMax + 10, 50);
+
     const canvas = document.getElementById('trendChartCanvas');
     if (!canvas) return;
 
@@ -172,6 +176,7 @@ function renderTrendLineChart(labels, values) {
                 },
                 y: {
                     beginAtZero: true,
+                    max: dynamicCeiling,
                     grid: { color: 'rgba(128, 128, 128, 0.06)' },
                     ticks: { maxTicksLimit: 4 }
                 }
