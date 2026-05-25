@@ -516,7 +516,7 @@ export function computeStats(exerciseId = state.currentExercise) {
 
     // 8. Lifetime Metrics
     const diffTime = Math.abs(today - firstDateObj);
-    const totalDaysElapsed = Math.ceil(diffTime / 86400000) || 1;
+    const totalDaysElapsed = Math.round(diffTime / 86400000) + 1 || 1;
     const lifetimeAvg = Math.round(allTimeTotal / totalDaysElapsed);
 
     // If 14 days have passed, it's 14 - active.
