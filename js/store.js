@@ -386,6 +386,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         active30 = 0;
     let expectedDateStr = "";
     let active14 = 0;
+    let exerciseFirstDateStr = "";
 
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 29);
@@ -396,6 +397,10 @@ export function computeStats(exerciseId = state.currentExercise) {
     allKeys.forEach((dateKey) => {
         const val = getDayTotal(data, dateKey, exerciseId);
         if (val <= 0) return; // Skip days with 0 reps for this specific exercise
+
+        if (!exerciseFirstDateStr) {
+            exerciseFirstDateStr = dateKey;
+        }
 
         // 1. Accumulate all historical totals
         allTimeTotal += val;
@@ -504,7 +509,7 @@ export function computeStats(exerciseId = state.currentExercise) {
     if (trendPct >= currentGoals.improveRatio) trend = { label: "Improving", color: "#007aff" };
     else if (trendPct >= currentGoals.onTrackRatio) trend = { label: "On Track", color: "#34c759" };
 
-    const firstDateObj = allKeys.length ? new Date(allKeys[0] + "T00:00:00") : today;
+    const firstDateObj = exerciseFirstDateStr ? new Date(exerciseFirstDateStr + "T00:00:00") : today;
     const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase();
     const startOfYear = new Date(today.getFullYear(), 0, 1);
     const daysInYearSoFar = Math.max(Math.ceil((today - startOfYear) / 86400000), 1);

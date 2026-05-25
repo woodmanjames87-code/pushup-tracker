@@ -514,12 +514,28 @@ function updateTrackerDisplay() {
         if (elements.ui.pillSolid) elements.ui.pillSolid.style.width = (s.solidVol / total) * 100 + "%";
         if (elements.ui.pillLight) elements.ui.pillLight.style.width = (s.lightVol / total) * 100 + "%";
     } else {
-        ["legacy-projected", "legacy-since", "stat-all-time", "stat-pb", "stat-ytd"].forEach((id) => {
-            updateText(
-                id,
-                id.includes("projected") ? "NO DATA YET" : id.includes("since") ? "START TRACKING TODAY" : "0",
-            );
+        [
+            "legacy-projected", 
+            "legacy-since", 
+            "legacy-active-days", 
+            "stat-all-time", 
+            "stat-pb", 
+            "stat-ytd", 
+            "stat-century", 
+            "stat-avg"
+        ].forEach((id) => {
+            let fallbackText = "0";
+            if (id.includes("projected") || id.includes("active-days")) {
+                fallbackText = "NO DATA YET";
+            } else if (id.includes("since")) {
+                fallbackText = "START TRACKING TODAY";
+            }
+
+            updateText(id, fallbackText);
         });
+
+        // Reset next milestone label text back to its starting anchor
+        updateText("label-next-milestone", "NEXT MILESTONE: 5,000");
 
         if (elements.ui.milestoneFill) elements.ui.milestoneFill.style.width = "0%";
         [elements.ui.pillElite, elements.ui.pillSolid, elements.ui.pillLight].forEach((el) => {
