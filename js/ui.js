@@ -143,7 +143,9 @@ function renderTrendLineChart(labels, values, dailyGoal) {
 
     // 🧠 Dynamic scaling anchored to the user's daily goal
     const realMax = values.length > 0 ? Math.max(...values) : 0;
-    const dynamicCeiling = Math.max(realMax + 10, (dailyGoal || 50) + 5);
+    const rawCeiling = realMax * 1.10;
+    const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
+    const dynamicCeiling = Math.max(paddedCeiling, dailyGoal || 20);
 
     const canvas = document.getElementById('trendChartCanvas');
     if (!canvas) return;
