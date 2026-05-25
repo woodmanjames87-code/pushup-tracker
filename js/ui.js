@@ -133,17 +133,17 @@ function closeLogModal() {
     delete elements.modal.container.dataset.activeContext;
 }
 
-function renderTrendLineChart(labels, values) {
+function renderTrendLineChart(labels, values, dailyGoal) {
     // 1. Grab the computed styles from the root element
     const rootStyles = getComputedStyle(document.documentElement);
-    // 2. Pull the color values (replace these with your exact CSS variable names)
+    // 2. Pull the color values
     const lineColor = rootStyles.getPropertyValue('--fitness-green').trim();
     const gridColor = rootStyles.getPropertyValue('--border-color').trim();
     const textColor = rootStyles.getPropertyValue('--text-muted').trim();
 
-    // Find the highest rep count in the provided values array
-    const realMax = Math.max(...values);
-    const dynamicCeiling = Math.max(realMax + 10, 60);
+    // 🧠 Dynamic scaling anchored to the user's daily goal
+    const realMax = values.length > 0 ? Math.max(...values) : 0;
+    const dynamicCeiling = Math.max(realMax + 10, (dailyGoal || 50) + 5);
 
     const canvas = document.getElementById('trendChartCanvas');
     if (!canvas) return;
@@ -465,7 +465,7 @@ function updateTrackerDisplay() {
 
     // --- 3.5. 30-DAY LINE CHART ---
     if (elements.ui.trendChartView && elements.ui.trendChartView.style.display === 'block') {
-        renderTrendLineChart(s.chart30Labels || [], s.chart30Values || []);
+        renderTrendLineChart(s.chart30Labels || [], s.chart30Values || [], s.dailyGoal);
     }
 
     // --- 4. MONTHLY CHART (6-Month Optimized) ---

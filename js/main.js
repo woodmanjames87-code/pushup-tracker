@@ -172,7 +172,7 @@ function setupEventListeners() {
                 
                 // Recompute dynamic stats and fire up Chart.js
                 const stats = computeStats(state.currentExercise);
-                UI.renderTrendLineChart(stats?.chart30Labels || [], stats?.chart30Values || []);
+                UI.renderTrendLineChart(stats?.chart30Labels || [], stats?.chart30Values || [], stats?.dailyGoal);
             } else {
                 if (summaryView) summaryView.style.display = 'block';
                 if (chartView) chartView.style.display = 'none';
