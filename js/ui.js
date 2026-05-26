@@ -1,4 +1,4 @@
-import './vendor/chart.js';
+import "./vendor/chart.js";
 // prettier-ignore
 import { auth, db, collection, query, orderBy, limit, getDocs, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
@@ -9,6 +9,7 @@ import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadDa
  * NAVIGATION
  *************************************************/
 function showPage(pageId) {
+    state.selectedEditDate = null;
     const indexMap = { overview: 0, tracker: 1, leaderboard: 2, settings: 3 };
     const newIndex = indexMap[pageId];
     if (newIndex === state.currentPageIndex && document.readyState === "complete") return; // Don't animate if already here
@@ -53,8 +54,10 @@ function showPage(pageId) {
     state.currentPageIndex = newIndex;
 
     // 2. Update Nav Bar Button Colors
-    elements.navButtons.forEach((btn, idx) => {
-        btn.classList.toggle("active", idx === indexMap[pageId]);
+    elements.navButtons.forEach((btn) => {
+        const targetPage = btn.getAttribute("data-target");
+        // Add the active class if this button matches the current page ID
+        btn.classList.toggle("active", targetPage === pageId);
     });
 
     if (pageId === "overview") {
@@ -66,31 +69,31 @@ function showPage(pageId) {
     }
     // 3. Special logic: Refresh leaderboard based on active view mode
     if (pageId === "leaderboard") {
-        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
-        const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active");
+        const activeMode = activeModeBtn ? activeModeBtn.getAttribute("data-mode") : "single";
 
-        if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+        if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
             // Find which sub-filter is active ("weekly" or "yearly")
-            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
-            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
-            
+            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
+            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute("data-matrix-filter") : "weekly";
+
             fetchAndRenderMatrix(matrixTimeframe);
-        } else if (typeof fetchLeaderboard === 'function') {
+        } else if (typeof fetchLeaderboard === "function") {
             // Fall back to single mode refresh
             fetchLeaderboard();
         }
     }
 
-    // 4. Floating log button logic
-    const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
-
-    elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
-
-    // 5. Settings‑page setup
+    // 4. Settings‑page setup
     if (pageId === "settings") {
         loadCurrentUsername();
         renderEditList();
     }
+
+    // 5. Floating log button logic
+    const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
+
+    elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
 
     // 6. Podium Cleanup: Hide immediately if we aren't on Leaderboard
     if (elements.leaderboard.podiumOverlay && pageId !== "leaderboard") {
@@ -101,6 +104,36 @@ function showPage(pageId) {
                 elements.leaderboard.podiumOverlay.hidden = true;
             }
         }, 1000); // Adjust to match your CSS transition time
+    }
+}
+
+function refreshActivePage() {
+    const pageId = location.hash.substring(1).replace("-page", "");
+
+    if (pageId === "overview") {
+        renderOverview();
+    }
+    if (pageId === "tracker") {
+        updateTrackerDisplay();
+    }
+    if (pageId === "settings") {
+        loadCurrentUsername();
+        renderEditList();
+    }
+    if (pageId === "leaderboard") {
+        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active");
+        const activeMode = activeModeBtn ? activeModeBtn.getAttribute("data-mode") : "single";
+
+        if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
+            // Find which sub-filter is active ("weekly" or "yearly")
+            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
+            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute("data-matrix-filter") : "weekly";
+
+            fetchAndRenderMatrix(matrixTimeframe);
+        } else if (typeof fetchLeaderboard === "function") {
+            // Fall back to single mode refresh
+            fetchLeaderboard();
+        }
     }
 }
 
@@ -137,20 +170,20 @@ function renderTrendLineChart(labels, values, dailyGoal) {
     // 1. Grab the computed styles from the root element
     const rootStyles = getComputedStyle(document.documentElement);
     // 2. Pull the color values
-    const lineColor = rootStyles.getPropertyValue('--fitness-green').trim();
-    const gridColor = rootStyles.getPropertyValue('--border-color').trim();
-    const textColor = rootStyles.getPropertyValue('--text-muted').trim();
+    const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
+    const gridColor = rootStyles.getPropertyValue("--border-color").trim();
+    const textColor = rootStyles.getPropertyValue("--text-muted").trim();
 
     // 🧠 Dynamic scaling anchored to the user's daily goal
     const realMax = values.length > 0 ? Math.max(...values) : 0;
-    const rawCeiling = realMax * 1.10;
+    const rawCeiling = realMax * 1.1;
     const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
     const dynamicCeiling = Math.max(paddedCeiling, dailyGoal || 20);
 
-    const canvas = document.getElementById('trendChartCanvas');
+    const canvas = document.getElementById("trendChartCanvas");
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // 🔒 Fully centralized cleanup: Wipe previous engine instance using your global state object
@@ -160,20 +193,22 @@ function renderTrendLineChart(labels, values, dailyGoal) {
 
     // Assign directly to your shared global state registry
     state.trendChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: "line",
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Daily Reps',
-                data: values,
-                borderColor: lineColor,
-                borderWidth: 2,
-                pointRadius: 0,
-                hoverRadius: 4,
-                tension: 0.2,
-                fill: true,
-                backgroundColor: '#39e63933', // 20% opacity for the fill
-            }]
+            datasets: [
+                {
+                    label: "Daily Reps",
+                    data: values,
+                    borderColor: lineColor,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    hoverRadius: 4,
+                    tension: 0.2,
+                    fill: true,
+                    backgroundColor: "#39e63933", // 20% opacity for the fill
+                },
+            ],
         },
         options: {
             responsive: true,
@@ -188,9 +223,9 @@ function renderTrendLineChart(labels, values, dailyGoal) {
                     max: dynamicCeiling,
                     grid: { color: gridColor },
                     ticks: { maxTicksLimit: 4, color: textColor },
-                }
-            }
-        }
+                },
+            },
+        },
     });
 }
 
@@ -375,16 +410,19 @@ function refreshStateAndUI() {
                 // Silent Leaderboard refresh if active
                 const pageId = location.hash.substring(1).replace("-page", "");
                 if (pageId === "leaderboard") {
-                    const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
-                    const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
+                    const activeModeBtn = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active");
+                    const activeMode = activeModeBtn ? activeModeBtn.getAttribute("data-mode") : "single";
 
-                    if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
+                    if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
                         // Find which sub-filter is active ("weekly" or "yearly")
-                        const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
-                        const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
-                        
+                        const activeMatrixBtn =
+                            elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
+                        const matrixTimeframe = activeMatrixBtn
+                            ? activeMatrixBtn.getAttribute("data-matrix-filter")
+                            : "weekly";
+
                         fetchAndRenderMatrix(matrixTimeframe);
-                    } else if (typeof fetchLeaderboard === 'function') {
+                    } else if (typeof fetchLeaderboard === "function") {
                         // Fall back to single mode refresh
                         fetchLeaderboard();
                     }
@@ -466,7 +504,7 @@ function updateTrackerDisplay() {
     }
 
     // --- 3.5. 30-DAY LINE CHART ---
-    if (elements.ui.trendChartView && elements.ui.trendChartView.style.display === 'block') {
+    if (elements.ui.trendChartView && elements.ui.trendChartView.style.display === "block") {
         renderTrendLineChart(s.chart30Labels || [], s.chart30Values || [], s.dailyGoal);
     }
 
@@ -517,14 +555,14 @@ function updateTrackerDisplay() {
         if (elements.ui.pillLight) elements.ui.pillLight.style.width = (s.lightVol / total) * 100 + "%";
     } else {
         [
-            "legacy-projected", 
-            "legacy-since", 
-            "legacy-active-days", 
-            "stat-all-time", 
-            "stat-pb", 
-            "stat-ytd", 
-            "stat-century", 
-            "stat-avg"
+            "legacy-projected",
+            "legacy-since",
+            "legacy-active-days",
+            "stat-all-time",
+            "stat-pb",
+            "stat-ytd",
+            "stat-century",
+            "stat-avg",
         ].forEach((id) => {
             let fallbackText = "0";
             if (id.includes("projected") || id.includes("active-days")) {
@@ -1153,17 +1191,17 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
         // Generate Rows
         rows.forEach((userRow) => {
             const isMe = userRow.uid === auth?.currentUser?.uid;
-            
+
             // 2. TRUNCATE THE NAME
             const formattedName = truncateUsername(userRow.name);
 
             html += `<tr class="${isMe ? "is-me" : ""}">`;
             html += `<td>${formattedName}</td>`; // Use the newly formatted name here
-            
+
             // Generate individual cells with logic for zeros and crowns
             exercises.forEach((ex) => {
                 const val = userRow.measures[ex] || 0;
-                
+
                 if (val === 0) {
                     // Muted zero styling
                     html += `<td><span class="matrix-value-zero">0</span></td>`;
@@ -1172,13 +1210,13 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
                     const isWinner = val === highScores[ex];
                     html += `
                         <td>
-                            ${isWinner ? '<span class="matrix-crown">👑</span>' : ''}
+                            ${isWinner ? '<span class="matrix-crown">👑</span>' : ""}
                             ${Number(val).toLocaleString()}
                         </td>
                     `;
                 }
             });
-            
+
             html += `<td><strong>${userRow.total.toLocaleString()}</strong></td>`;
             html += `</tr>`;
         });
@@ -1324,29 +1362,30 @@ function triggerHaptic(type = "success") {
  */
 function truncateUsername(username, maxChar = 12) {
     if (!username) return "Anonymous";
-    
+
     const cleanName = username.trim();
-    
+
     // If the name is already short enough, leave it exactly as they styled it
     if (cleanName.length <= maxChar) return cleanName;
-    
+
     // Split into parts by space
     const parts = cleanName.split(/\s+/);
-    
+
     // If it's just one massive single word, slice it and add an ellipsis
     if (parts.length === 1) {
         return `${cleanName.substring(0, maxChar)}...`;
     }
-    
+
     // Grab the first name, and the first letter of the last name
     const firstName = parts[0];
     const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
-    
+
     return `${firstName} ${lastInitial}.`;
 }
 
 export {
     showPage,
+    refreshActivePage,
     openLogModal,
     closeLogModal,
     renderTrendLineChart,

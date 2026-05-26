@@ -1,6 +1,7 @@
 // prettier-ignore
 import { auth, db, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
 import { showToast, triggerHaptic } from "./ui.js";
+import { elements } from "./dom.js";
 
 /*************************************************
  * 1. CONSTANTS & CONFIG (Immutable)
@@ -129,6 +130,22 @@ export function migrateToMultiExercise(data) {
 /*************************************************
  * LOGGING & DATA ACTIONS
  *************************************************/
+export function prepareModalState() {
+    if (typeof getDateKey === "function") {
+        state.selectedEditDate = getDateKey();
+    }
+}
+export function handleModalSubmission(reps) {
+    let targetDate = state.selectedEditDate;
+    if (!targetDate && getDateKey) {
+        targetDate = getDateKey();
+    }
+    // Pull the exact context from the modal element
+    const activeExerciseId = elements.modal.container.dataset.activeContext || state.currentExercise;
+    // Perform the Save (Pass the activeExerciseId explicitly as the 3rd argument)
+    addSetToDate(targetDate, reps, activeExerciseId);
+}
+
 export function addSetToDate(dateKey, reps, exerciseId = state.currentExercise) {
     const data = loadData();
 
@@ -464,13 +481,13 @@ export function computeStats(exerciseId = state.currentExercise) {
     // 3.5. Rolling 30-Day Performance Timeline (Streamlined)
     let chart30Values = [];
     let chart30Labels = []; // Kept as empty spaces just to anchor the plot points
-    
+
     for (let i = 29; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        
+
         const v = getDayTotal(data, d, exerciseId);
-        
+
         chart30Values.push(v);
         chart30Labels.push(""); // An empty string for every single day
     }
@@ -575,17 +592,17 @@ export function getQuickWeekly(exerciseId) {
     const data = loadData();
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     let weeklyData = [];
     let maxVal = 0;
 
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        
+
         // Use your existing getDayTotal utility
         const v = getDayTotal(data, d, exerciseId);
-        
+
         weeklyData.push(v);
         if (v > maxVal) maxVal = v;
     }
@@ -593,7 +610,7 @@ export function getQuickWeekly(exerciseId) {
     return {
         exerciseId,
         weeklyData,
-        maxVal: maxVal || 10 // Fallback to avoid division by zero in CSS
+        maxVal: maxVal || 10, // Fallback to avoid division by zero in CSS
     };
 }
 
