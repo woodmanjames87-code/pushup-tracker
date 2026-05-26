@@ -83,6 +83,7 @@ export const elements = {
         editDatePicker: document.getElementById("edit-date-picker"),
         versionEl: document.getElementById("app-version"),
         updateAppBtn: document.getElementById("btn-update-app"),
+        importBtn: document.getElementById("import-btn"),
         importInput: document.getElementById("import-input"),
         themeButtons: document.getElementById("theme-selector")?.querySelectorAll(".seg-btn") || [],
         exerciseCheckboxList: document.getElementById("exercise-checkbox-list"),

@@ -46,28 +46,13 @@ async function initApp() {
  * 3. EVENT LISTENERS SETUP
  *************************************************/
 function setupEventListeners() {
-    // --- Overview Page Listeners ---
     setupOverviewListeners();
-
-    // --- Modal Listeners (Preserved as originally written) ---
     setupModalListeners();
-
-    //  Global Menu Toggle
     setupGlobalMenuListeners();
-
-    // --- 30-DAY TREND CARD TOGGLE ---
     setup30DayTrendToggle();
-
-    // --- Settings / Accordion Logic ---
     setupSettingsAccordionListeners();
-
-    // --- Leaderboard Filter Toggle ---
     setupLeaderboardListeners();
-
-    // --- Settings Page Listeners ---
     setupSettingsListeners();
-
-    // --- Pull to Refresh ---
     setupPullToRefresh();
 }
 
@@ -121,7 +106,8 @@ function setupModalListeners() {
         const reps = parseInt(elements.modal.input.value);
 
         if (reps > 0) {
-            Store.handleModalSubmission(reps);
+            const shortcutContext = elements.modal.container.dataset.activeContext;
+            Store.handleModalSubmission(reps, shortcutContext);
 
             UI.triggerHaptic("success");
             UI.closeLogModal();
@@ -249,15 +235,7 @@ function setupLeaderboardListeners() {
         const activeMode = btn.getAttribute("data-mode");
 
         if (activeMode === "matrix") {
-            // 🚀 FIX: Slide down and hide the podium immediately when entering Matrix View!
-            if (lb.podiumOverlay) {
-                lb.podiumOverlay.classList.remove("active");
-                setTimeout(() => {
-                    if (!lb.podiumOverlay.classList.contains("active")) {
-                        lb.podiumOverlay.hidden = true;
-                    }
-                }, 1000); // Matches your CSS transition time
-            }
+            UI.hidePodiumOverlay();
 
             lb.filterContainer.style.display = "none";
             lb.matrixFilterContainer.style.display = "flex";
@@ -267,13 +245,6 @@ function setupLeaderboardListeners() {
 
             lb.matrixFilterButtons[0]?.click();
         } else {
-            // 🚀 FIX: Bring the podium back smoothly if they toggle back to Single View!
-            if (lb.podiumOverlay) {
-                lb.podiumOverlay.hidden = false;
-                void lb.podiumOverlay.offsetWidth; // Force DOM reflow so transition plays smoothly
-                lb.podiumOverlay.classList.add("active");
-            }
-
             lb.matrixFilterContainer.style.display = "none";
             lb.filterContainer.style.display = "flex";
 
@@ -485,13 +456,16 @@ function setupSettingsListeners() {
     });
 
     // --- 6. DATA BACKUP LOGIC (JSON BACKUPS) ---
+    elements.settings.importBtn.onclick = function () {
+        elements.settings.importInput.click();
+    };
     settings.importInput.onchange = function (e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = function (evt) {
-            Store.smartImport(evt.target.result);
+            Store.smartImport(evt.target.result); // ⚠️ Capital "Store"
         };
         reader.readAsText(file);
     };
@@ -622,7 +596,10 @@ async function initPWAUtils() {
             }
         };
     }
+    setupInstallBannerListeners();
+}
 
+function setupInstallBannerListeners() {
     // --- Install Banner Logic (The Conductor) ---
     let deferredPrompt;
 

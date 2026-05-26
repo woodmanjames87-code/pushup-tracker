@@ -20,6 +20,7 @@ function showPage(pageId) {
     window.scrollTo(0, 0);
     location.hash = `${pageId}-page`;
 
+    // --- 1. PAGE TRANSITION TRANSFORMS & ANIMATIONS ---
     pageIds.forEach((id) => {
         const el = document.getElementById(`${id}-page`);
         if (!el) return;
@@ -38,7 +39,6 @@ function showPage(pageId) {
         } else if (el.classList.contains("slide-active")) {
             // --- OUTGOING PAGE ---
             el.classList.remove("slide-active");
-            // Slide out in the opposite direction
             el.classList.add(direction === "right" ? "exit-left" : "exit-right");
 
             // Wait for animation to finish before hiding
@@ -53,57 +53,24 @@ function showPage(pageId) {
 
     state.currentPageIndex = newIndex;
 
-    // 2. Update Nav Bar Button Colors
+    // --- 2. UPDATE BOTTOM NAV ACTIVE CLASSES ---
     elements.navButtons.forEach((btn) => {
         const targetPage = btn.getAttribute("data-target");
-        // Add the active class if this button matches the current page ID
         btn.classList.toggle("active", targetPage === pageId);
     });
 
-    if (pageId === "overview") {
-        renderOverview();
-    }
+    // --- 3. LIFECYCLE EXECUTION: TRIGGER DATA FETCHES & RENDERERS ---
+    refreshActivePage();
 
-    if (pageId === "tracker") {
-        updateTrackerDisplay();
-    }
-    // 3. Special logic: Refresh leaderboard based on active view mode
-    if (pageId === "leaderboard") {
-        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active");
-        const activeMode = activeModeBtn ? activeModeBtn.getAttribute("data-mode") : "single";
-
-        if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
-            // Find which sub-filter is active ("weekly" or "yearly")
-            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
-            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute("data-matrix-filter") : "weekly";
-
-            fetchAndRenderMatrix(matrixTimeframe);
-        } else if (typeof fetchLeaderboard === "function") {
-            // Fall back to single mode refresh
-            fetchLeaderboard();
-        }
-    }
-
-    // 4. Settings‑page setup
-    if (pageId === "settings") {
-        loadCurrentUsername();
-        renderEditList();
-    }
-
-    // 5. Floating log button logic
+    // --- 4. FLOATING LOG BUTTON COMPONENT TOGGLE ---
     const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
+    if (elements.modal?.floatingLogBtn) {
+        elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
+    }
 
-    elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
-
-    // 6. Podium Cleanup: Hide immediately if we aren't on Leaderboard
-    if (elements.leaderboard.podiumOverlay && pageId !== "leaderboard") {
-        elements.leaderboard.podiumOverlay.classList.remove("active");
-        // We use a timeout to hide it completely so the slide-down animation can finish
-        setTimeout(() => {
-            if (!elements.leaderboard.podiumOverlay.classList.contains("active")) {
-                elements.leaderboard.podiumOverlay.hidden = true;
-            }
-        }, 1000); // Adjust to match your CSS transition time
+    // --- 5. PODIUM OVERLAY EXIT CLEANUP ---
+    if (pageId !== "leaderboard") {
+        hidePodiumOverlay();
     }
 }
 
@@ -164,69 +131,6 @@ function closeLogModal() {
         }
     }
     delete elements.modal.container.dataset.activeContext;
-}
-
-function renderTrendLineChart(labels, values, dailyGoal) {
-    // 1. Grab the computed styles from the root element
-    const rootStyles = getComputedStyle(document.documentElement);
-    // 2. Pull the color values
-    const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
-    const gridColor = rootStyles.getPropertyValue("--border-color").trim();
-    const textColor = rootStyles.getPropertyValue("--text-muted").trim();
-
-    // 🧠 Dynamic scaling anchored to the user's daily goal
-    const realMax = values.length > 0 ? Math.max(...values) : 0;
-    const rawCeiling = realMax * 1.1;
-    const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
-    const dynamicCeiling = Math.max(paddedCeiling, dailyGoal || 20);
-
-    const canvas = document.getElementById("trendChartCanvas");
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // 🔒 Fully centralized cleanup: Wipe previous engine instance using your global state object
-    if (state.trendChartInstance) {
-        state.trendChartInstance.destroy();
-    }
-
-    // Assign directly to your shared global state registry
-    state.trendChartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: "Daily Reps",
-                    data: values,
-                    borderColor: lineColor,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    hoverRadius: 4,
-                    tension: 0.2,
-                    fill: true,
-                    backgroundColor: "#39e63933", // 20% opacity for the fill
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: {
-                    display: false,
-                },
-                y: {
-                    beginAtZero: true,
-                    max: dynamicCeiling,
-                    grid: { color: gridColor },
-                    ticks: { maxTicksLimit: 4, color: textColor },
-                },
-            },
-        },
-    });
 }
 
 function updateFloatingBtn() {
@@ -584,9 +488,69 @@ function updateTrackerDisplay() {
     }
 }
 
-/**
- * Renders the multi-card overview grid
- */
+function renderTrendLineChart(labels, values, dailyGoal) {
+    // 1. Grab the computed styles from the root element
+    const rootStyles = getComputedStyle(document.documentElement);
+    // 2. Pull the color values
+    const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
+    const gridColor = rootStyles.getPropertyValue("--border-color").trim();
+    const textColor = rootStyles.getPropertyValue("--text-muted").trim();
+
+    // 🧠 Dynamic scaling anchored to the user's daily goal
+    const realMax = values.length > 0 ? Math.max(...values) : 0;
+    const rawCeiling = realMax * 1.1;
+    const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
+    const dynamicCeiling = Math.max(paddedCeiling, dailyGoal || 20);
+
+    const canvas = document.getElementById("trendChartCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // 🔒 Fully centralized cleanup: Wipe previous engine instance using your global state object
+    if (state.trendChartInstance) {
+        state.trendChartInstance.destroy();
+    }
+
+    // Assign directly to your shared global state registry
+    state.trendChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Daily Reps",
+                    data: values,
+                    borderColor: lineColor,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    hoverRadius: 4,
+                    tension: 0.2,
+                    fill: true,
+                    backgroundColor: "#39e63933", // 20% opacity for the fill
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    display: false,
+                },
+                y: {
+                    beginAtZero: true,
+                    max: dynamicCeiling,
+                    grid: { color: gridColor },
+                    ticks: { maxTicksLimit: 4, color: textColor },
+                },
+            },
+        },
+    });
+}
+
 function renderOverview() {
     console.log("Rendering overview...");
     const container = document.getElementById("overview-content");
@@ -1090,6 +1054,20 @@ function drawPodium(winners, filterType) {
     });
 }
 
+function hidePodiumOverlay() {
+    const { podiumOverlay } = elements.leaderboard;
+    if (!podiumOverlay) return;
+
+    podiumOverlay.classList.remove("active");
+
+    // Smoothly hide the structural node once the slide-down completes
+    setTimeout(() => {
+        if (!podiumOverlay.classList.contains("active")) {
+            podiumOverlay.hidden = true;
+        }
+    }, 1000); // Matches the CSS transition length
+}
+
 // New: Matrix fetch and render for All Exercises view
 async function fetchAndRenderMatrix(matrixTimeframe) {
     console.log("fetchAndRenderMatrix triggered...", matrixTimeframe);
@@ -1354,12 +1332,6 @@ function triggerHaptic(type = "success") {
     }
 }
 
-/**
- * Safely shortens a username to First Name + Last Initial if it's too long.
- * @param {string} username - The raw user name string from Firestore
- * @param {number} maxChar - Max characters allowed before splitting (default 12)
- * @return {string} The truncated name
- */
 function truncateUsername(username, maxChar = 12) {
     if (!username) return "Anonymous";
 
@@ -1401,6 +1373,7 @@ export {
     loadCurrentUsername,
     getDisplayUsername,
     fetchLeaderboard,
+    hidePodiumOverlay,
     fetchAndRenderMatrix,
     setTheme,
     showUnifiedInstallBanner,
