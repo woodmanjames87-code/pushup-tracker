@@ -1,3 +1,7 @@
+/* =================================================
+   COMPONENTS & WIDGET STYLES
+   ================================================= */
+
 .page-header .divider {
     border: 0;
     border-top: var(--glass-border);
@@ -325,18 +329,6 @@
     width: 85%;
     max-width: 360px;
     z-index: 100;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    font-size: 1.6rem;
-    cursor: pointer;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    position: relative;
-    z-index: 101;
 }
 
 .btn-log-quick {
@@ -1370,23 +1362,6 @@ input:checked + .slider:before {
     to {
         transform: rotate(360deg);
     }
-}
-
-.icon-svg {
-    width: 24px;
-    height: 24px;
-    fill: none; /* Usually SVGs use stroke for this 'outline' look */
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 0.2s ease;
-}
-
-/* When the tab is active, make the icon pop */
-.nav-item.active .icon-svg {
-    filter: drop-shadow(0 0 8px var(--accent-color));
-    transform: scale(1.1);
 }
 
 .loading-state {
