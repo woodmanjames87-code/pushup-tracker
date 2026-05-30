@@ -1,17 +1,15 @@
 // prettier-ignore
-import { auth, db, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener } from "./init-firebase.js";
+import { auth, db, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 import * as UI from "./ui.js";
-// prettier-ignore
-import { state, migrateToMultiExercise, EXERCISE_LIB, deleteSet, loadData, saveData, computeStats, addSetToDate, getDateKey, exportData } from "./store.js";
-
+import * as Store from "./store.js";
 /*************************************************
  * 2. initApp (The Entry Point)
  *************************************************/
 async function initApp() {
     if (document.visibilityState === "hidden") return;
 
-    if (!state.appInitialized) {
+    if (!Store.state.appInitialized) {
         console.log("App initialization triggered...");
         // --- Group A: Fast/Required immediately ---
         setupEventListeners();
@@ -21,11 +19,11 @@ async function initApp() {
         // --- Group B: Heavy/Background tasks ---
         setTimeout(() => {
             // Only run migration if the structure looks 'flat' (legacy)
-            migrateToMultiExercise();
+            Store.migrateToMultiExercise();
             UI.buildExerciseToggles();
             UI.buildExerciseMenu();
             initAuthListener();
-            state.appInitialized = true;
+            Store.state.appInitialized = true;
         }, 0);
         UI.triggerFeatureAnnouncement(
             "v5.0.2.0",
@@ -34,32 +32,72 @@ async function initApp() {
                 "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
                 "📈 <strong>7-Day Trends:</strong> Scannable weekly charts.",
                 "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
-                "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings."
-            ]
+                "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings.",
+            ],
         );
         return;
     }
     // --- 2. Wake-up Refresh ---
     console.log("App wake-up refresh triggered...");
     UI.refreshStateAndUI();
-
 }
 
 /*************************************************
  * 3. EVENT LISTENERS SETUP
  *************************************************/
 function setupEventListeners() {
+    setupOverviewListeners();
+    setupModalListeners();
+    setupGlobalMenuListeners();
+    setup30DayTrendToggle();
+    setupSettingsAccordionListeners();
+    setupLeaderboardListeners();
+    setupSettingsListeners();
+    setupPullToRefresh();
+}
+
+function setupOverviewListeners() {
+    const overviewContent = document.getElementById("overview-content");
+
+    if (overviewContent) {
+        overviewContent.addEventListener("click", (e) => {
+            const logBtn = e.target.closest(".btn-log-quick");
+
+            // 1. Log Button Logic
+            if (logBtn) {
+                const card = logBtn.closest(".overview-card");
+                const exId = card?.dataset.exercise;
+                if (exId && typeof UI.openLogModal === "function") {
+                    UI.openLogModal(exId);
+                }
+                return;
+            }
+
+            // 2. Card Body Click Logic (Navigate to Tracker)
+            const card = e.target.closest(".overview-card");
+            if (card) {
+                const clickedExId = card.dataset.exercise;
+
+                if (clickedExId) {
+                    if (typeof UI.setActiveExercise === "function") {
+                        UI.setActiveExercise(clickedExId);
+                    }
+
+                    // Smoothly slide over to the tracker screen now that the UI has updated
+                    if (typeof UI.showPage === "function") {
+                        UI.showPage("tracker");
+                    }
+                }
+            }
+        });
+    }
+}
+
+function setupModalListeners() {
     // --- 1. OPENING THE MODAL ---
     elements.modal.floatingLogBtn.onclick = () => {
-        // 1. Check the Store (Logic)
-        if (getDateKey) {
-            state.selectedEditDate = getDateKey();
-        }
-        
-        // 2. Pass the current exercise ID to the open function!
-        if (typeof UI.openLogModal === "function") {
-            UI.openLogModal(state.currentExercise);
-        }
+        Store.prepareModalState();
+        UI.openLogModal(Store.state.currentExercise);
     };
 
     // --- 2. SUBMITTING THE DATA ---
@@ -67,47 +105,14 @@ function setupEventListeners() {
         e.preventDefault();
         const reps = parseInt(elements.modal.input.value);
 
-        if (reps > 0 && addSetToDate) {
-            // 1. Resolve the Date (Logic)
-            let targetDate = state.selectedEditDate;
-            if (!targetDate && getDateKey) {
-                targetDate = getDateKey();
-            }
+        if (reps > 0) {
+            const shortcutContext = elements.modal.container.dataset.activeContext;
+            Store.handleModalSubmission(reps, shortcutContext);
 
-            // NEW: Pull the exact context from the modal element
-            const activeExerciseId = elements.modal.container.dataset.activeContext || state.currentExercise;
-
-            // 2. Perform the Save (Pass the activeExerciseId explicitly as the 3rd argument)
-            addSetToDate(targetDate, reps, activeExerciseId);
             UI.triggerHaptic("success");
-
-            // 3. Update the Visuals (UI)
             UI.closeLogModal();
-            UI.updateTrackerDisplay();
 
-            const pageId = location.hash.substring(1).replace("-page", "");
-
-            if (pageId === "overview") {
-                UI.renderOverview();
-            }
-            if (pageId === "settings") {
-                UI.renderEditList();
-            }
-            if (pageId === "leaderboard") {
-                const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
-                const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
-
-                if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
-                    // Find which sub-filter is active ("weekly" or "yearly")
-                    const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
-                    const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
-                    
-                    fetchAndRenderMatrix(matrixTimeframe);
-                } else if (typeof fetchLeaderboard === 'function') {
-                    // Fall back to single mode refresh
-                    fetchLeaderboard();
-                }
-            }
+            UI.refreshActivePage();
 
             scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -132,165 +137,191 @@ function setupEventListeners() {
     // Because it's type="submit", the logForm.onsubmit handles it.
 
     // --- NAV BUTTONS TRIGGER ---
-    if (elements.navButtons.length >= 4) {
-        elements.navButtons[0].onclick = () => UI.showPage("overview");
-        elements.navButtons[1].onclick = () => UI.showPage("tracker");
-        elements.navButtons[2].onclick = () => UI.showPage("leaderboard");
-        elements.navButtons[3].onclick = () => UI.showPage("settings");
-    }
+    elements.navButtons.forEach((btn) => {
+        const targetPage = btn.getAttribute("data-target");
 
-    //  Global Menu Toggle
-    elements.menu.btn.addEventListener("click", (e) => {
+        if (targetPage) {
+            btn.onclick = () => UI.showPage(targetPage);
+        }
+    });
+}
+
+function setupGlobalMenuListeners() {
+    const { btn, items } = elements.menu;
+
+    // 🛡️ Guard Clause: If the menu elements don't exist in the current DOM,
+    // exit immediately and safely without crashing the app boot sequence.
+    if (!btn || !items) return;
+
+    // 1. Toggle Menu Visibility
+    btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        elements.menu.items.classList.toggle("show");
+        items.classList.toggle("show");
     });
 
-    // Close menu if user clicks anywhere else on the screen
+    // 2. Global "Click Outside" Dismissal
     document.addEventListener("click", (e) => {
-        const menu = elements.menu.items;
-        const btn = elements.menu.btn;
+        // If the menu is currently shown and the user clicked outside of it, hide it
+        if (items.classList.contains("show") && !items.contains(e.target) && !btn.contains(e.target)) {
+            items.classList.remove("show");
+        }
+    });
+}
 
-        if (!menu.contains(e.target) && !btn.contains(e.target)) {
-            menu.classList.remove("show");
+function setup30DayTrendToggle() {
+    if (elements.ui.trendCard30) {
+        elements.ui.trendCard30.addEventListener("click", function () {
+            // 1. Toggle the master state class on the card container itself
+            const isShowingChart = this.classList.toggle("showing-chart");
+
+            // 2. Find the live views directly inside the clicked card right now
+            const summaryView = this.querySelector(".trend-summary-view");
+            const chartView = this.querySelector(".trend-chart-view");
+
+            // 3. Switch their displays explicitly
+            if (isShowingChart) {
+                if (summaryView) summaryView.style.display = "none";
+                if (chartView) chartView.style.display = "block";
+
+                // Recompute dynamic stats and fire up Chart.js
+                const stats = Store.computeStats(Store.state.currentExercise);
+                UI.renderTrendLineChart(stats?.chart30Labels || [], stats?.chart30Values || [], stats?.dailyGoal);
+            } else {
+                if (summaryView) summaryView.style.display = "block";
+                if (chartView) chartView.style.display = "none";
+            }
+        });
+    }
+}
+
+function setupLeaderboardListeners() {
+    const lb = elements.leaderboard;
+    if (!lb) return; // Guard clause
+
+    // --- 1. SINGLE-MODE LEADERBOARD FILTERS (Refactored to Event Delegation) ---
+    // Instead of a brittle .forEach loop on elements that might get swapped, we use the parent container
+    lb.filterContainer?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".seg-btn");
+        if (!btn) return;
+
+        // Visual Active Toggle across siblings
+        lb.filterButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // Show Loader immediately
+        if (lb.list) lb.list.innerHTML = '<div class="loader"></div>';
+
+        // Update Range Text Label instantly
+        if (lb.rangeText) {
+            const label = btn.innerText;
+            lb.rangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
+        }
+
+        // Trigger Fetch with the specific filter
+        const filterValue = btn.getAttribute("data-filter");
+        if (typeof UI.fetchLeaderboard === "function") {
+            UI.fetchLeaderboard(filterValue);
         }
     });
 
-    // --- 30-DAY TREND CARD TOGGLE ---
-    if (elements.ui.trendCard30) {
-        elements.ui.trendCard30.addEventListener('click', function() {
-            // 1. Toggle the master state class on the card container itself
-            const isShowingChart = this.classList.toggle('showing-chart');
-            
-            // 2. Find the live views directly inside the clicked card right now
-            const summaryView = this.querySelector('.trend-summary-view');
-            const chartView = this.querySelector('.trend-chart-view');
-            
-            // 3. Switch their displays explicitly
-            if (isShowingChart) {
-                if (summaryView) summaryView.style.display = 'none';
-                if (chartView) chartView.style.display = 'block';
-                
-                // Recompute dynamic stats and fire up Chart.js
-                const stats = computeStats(state.currentExercise);
-                UI.renderTrendLineChart(stats?.chart30Labels || [], stats?.chart30Values || [], stats?.dailyGoal);
-            } else {
-                if (summaryView) summaryView.style.display = 'block';
-                if (chartView) chartView.style.display = 'none';
-            }
-        });
-    }
+    // --- 2. MASTER MODE SELECTOR ---
+    lb.modeSelector?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".seg-btn");
+        if (!btn || btn.classList.contains("active")) return;
 
-    // --- Settings / Accordion Logic ---
-    elements.settings.accordionHeaders.forEach((header) => {
-        header.addEventListener("click", () => {
-            const currentItem = header.parentElement;
-            const isAlreadyOpen = currentItem.classList.contains("active");
+        lb.modeSelector.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
 
-            // Close others
-            elements.settings.accordionItems.forEach((item) => {
-                if (item !== currentItem) {
-                    item.classList.remove("active");
-                    // 🚀 Instant access via the shortcut
-                    if (item._card) {
-                        item._card.classList.replace("expanded", "collapsed");
-                    }
-                }
-            });
+        const activeMode = btn.getAttribute("data-mode");
 
-            // Toggle the clicked one
-            if (!isAlreadyOpen) {
-                currentItem.classList.add("active");
-                if (currentItem._card) currentItem._card.classList.replace("collapsed", "expanded");
-            } else {
-                currentItem.classList.remove("active");
-                if (currentItem._card) currentItem._card.classList.replace("expanded", "collapsed");
-            }
-        });
-    });
+        if (activeMode === "matrix") {
+            UI.hidePodiumOverlay();
 
-    // --- Leaderboard Filter Toggle ---
-    elements.leaderboard.filterButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-            // 1. Visual Active Toggle
-            elements.leaderboard.filterButtons.forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
+            lb.filterContainer.style.display = "none";
+            lb.matrixFilterContainer.style.display = "flex";
 
-            // 2. Show Loader immediately so user knows it's working
-            if (elements.leaderboard.list) elements.leaderboard.list.innerHTML = '<div class="loader"></div>';
-
-            // 3. Update Label instantly
-            if (elements.leaderboard.rangeText) {
-                const label = btn.innerText;
-                elements.leaderboard.rangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
-            }
-
-            // 4. Trigger Fetch with the specific filter
-            const filterValue = btn.getAttribute("data-filter");
-            if (UI.fetchLeaderboard) {
-                UI.fetchLeaderboard(filterValue);
-            }
-        });
-    });
-
-    const lb = elements.leaderboard;
-    // Master Mode Selector Logic
-    lb.modeSelector?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.seg-btn');
-        if (!btn || btn.classList.contains('active')) return;
-
-        lb.modeSelector.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const activeMode = btn.getAttribute('data-mode');
-
-        if (activeMode === 'matrix') {
-            lb.filterContainer.style.display = 'none';
-            lb.matrixFilterContainer.style.display = 'flex';
-            
             if (lb.singleViewContainer) lb.singleViewContainer.hidden = true;
             if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = false;
 
-            // Automatically click default 'weekly' matrix button
             lb.matrixFilterButtons[0]?.click();
         } else {
-            lb.matrixFilterContainer.style.display = 'none';
-            lb.filterContainer.style.display = 'flex';
-            
+            lb.matrixFilterContainer.style.display = "none";
+            lb.filterContainer.style.display = "flex";
+
             if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = true;
             if (lb.singleViewContainer) lb.singleViewContainer.hidden = false;
 
-            // Automatically click default 'daily' button
             lb.filterButtons[0]?.click();
         }
     });
 
-    // Standalone Matrix Sub-Filter Listener
-    lb.matrixFilterContainer?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.seg-btn');
+    // --- 3. STANDALONE MATRIX SUB-FILTER LISTENER (Preserved Exactly as Written) ---
+    lb.matrixFilterContainer?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".seg-btn");
         if (!btn) return;
 
-        // Clear active state across all matrix filter buttons and set current active
-        lb.matrixFilterButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        lb.matrixFilterButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
 
-        const timeframe = btn.getAttribute('data-matrix-filter');
-        
-        // Update the range text using the cached element reference
+        const timeframe = btn.getAttribute("data-matrix-filter");
+
         if (lb.rangeText) {
-            lb.rangeText.innerText = timeframe === 'weekly' 
-                ? "Current Week - All Movements" 
-                : "Year To Date - All Movements";
+            lb.rangeText.innerText =
+                timeframe === "weekly" ? "Current Week - All Movements" : "Year To Date - All Movements";
         }
 
-        UI.fetchAndRenderMatrix(timeframe);
+        if (typeof UI.fetchAndRenderMatrix === "function") {
+            UI.fetchAndRenderMatrix(timeframe);
+        }
     });
+}
 
-    // --- Update Display Name ---
-    elements.settings.updateNameBtn.onclick = async () => {
-        const newName = elements.settings.nameInput.value.trim();
+function setupSettingsAccordionListeners() {
+    const container = document.getElementById("settings-page");
+    if (!container) return;
+
+    container.addEventListener("click", (e) => {
+        const header = e.target.closest(".accordion-header");
+        if (!header) return;
+
+        const currentItem = header.parentElement;
+        if (!currentItem) return;
+
+        const isAlreadyOpen = currentItem.classList.contains("active");
+        const allItems = container.querySelectorAll(".accordion-item");
+
+        // Close others
+        allItems.forEach((item) => {
+            if (item !== currentItem) {
+                item.classList.remove("active");
+                if (item._card) {
+                    // 🎯 FIXED: Non-clicked cards should slide shut into "collapsed"
+                    item._card.classList.replace("expanded", "collapsed");
+                }
+            }
+        });
+
+        // Toggle the clicked one
+        if (!isAlreadyOpen) {
+            currentItem.classList.add("active");
+            if (currentItem._card) currentItem._card.classList.replace("collapsed", "expanded");
+        } else {
+            currentItem.classList.remove("active");
+            if (currentItem._card) currentItem._card.classList.replace("expanded", "collapsed");
+        }
+    });
+}
+
+function setupSettingsListeners() {
+    const settingsPage = document.getElementById("settings-page");
+    const { settings } = elements;
+    if (!settingsPage || !settings) return; // Defensive guard clause
+
+    // --- 1. PROFILE & DISPLAY NAME UPDATES ---
+    settings.updateNameBtn.onclick = async () => {
+        const newName = settings.nameInput.value.trim();
         const user = auth?.currentUser;
 
-        // Validation
         if (!user) {
             UI.triggerHaptic?.("warning");
             UI.showToast("Please log in to change your name.");
@@ -302,23 +333,18 @@ function setupEventListeners() {
             return;
         }
 
-        // UI State: Loading
-        elements.settings.updateNameBtn.innerText = "Saving...";
-        elements.settings.updateNameBtn.disabled = true;
+        settings.updateNameBtn.innerText = "Saving...";
+        settings.updateNameBtn.disabled = true;
 
         try {
             const userRef = doc(db, "users", user.uid);
-
-            // 1. Update Firestore (Source of truth for Leaderboard)
             await setDoc(userRef, { username: newName }, { merge: true });
 
-            // 2. Update Local Storage via the Store
-            const data = loadData();
+            const data = Store.loadData();
             if (!data.settings) data.settings = {};
             data.settings.username = newName;
-            saveData(data);
+            Store.saveData(data);
 
-            // 3. Update Firebase Auth Profile
             if (updateProfile) {
                 await updateProfile(user, { displayName: newName });
             }
@@ -330,197 +356,122 @@ function setupEventListeners() {
             UI.triggerHaptic?.("warning");
             UI.showToast("Failed to update name.");
         } finally {
-            elements.settings.updateNameBtn.innerText = "Update";
-            elements.settings.updateNameBtn.disabled = false;
+            settings.updateNameBtn.innerText = "Update";
+            settings.updateNameBtn.disabled = false;
         }
     };
 
-    // --- Date Picker ---
-    elements.settings.editDatePicker.addEventListener("change", (e) => {
-        state.selectedEditDate = e.target.value;
-        UI.renderEditList();
+    // --- 2. THEME SELECTOR BUTTONS ---
+    settings.themeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const selectedTheme = btn.getAttribute("data-theme");
+            UI.setTheme(selectedTheme);
+            settings.themeButtons.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+        });
     });
 
-    // --- Goal Mode Toggle (Exercise Specific) ---
-    elements.settings.goalModeToggle.addEventListener("change", (e) => {
-        const data = loadData();
-        const exId = state.currentExercise; // The active exercise
+    // --- 3. EXERCISE GOALS & CUSTOM THRESHOLDS ---
+    settings.goalModeToggle.addEventListener("change", (e) => {
+        const data = Store.loadData();
+        const exId = Store.state.currentExercise;
 
         if (!data.settings) data.settings = {};
         if (!data.settings.goals) data.settings.goals = {};
         if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
 
-        // Update the specific exercise setting
         data.settings.goals[exId].goalMode = e.target.checked ? "auto" : "manual";
-
-        saveData(data);
-
-        // Update UI visibility and stats
+        Store.saveData(data);
         UI.renderExerciseSettings();
     });
 
-    // --- Manual Goal Input (Exercise Specific) ---
-    elements.settings.manualGoalInput.addEventListener("change", (e) => {
-        const exId = state.currentExercise;
+    settings.manualGoalInput.addEventListener("change", (e) => {
+        const exId = Store.state.currentExercise;
         let val = parseInt(e.target.value);
 
-        // If they leave it blank or type gibberish, then we fall back to minGoal
         if (isNaN(val)) {
             const config = EXERCISE_LIB[exId] || { minGoal: 1 };
             val = config.minGoal;
             e.target.value = val;
         }
 
-        const data = loadData();
+        const data = Store.loadData();
         if (!data.settings.goals) data.settings.goals = {};
         if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
 
         data.settings.goals[exId].manualGoal = val;
-
-        saveData(data);
+        Store.saveData(data);
     });
 
-    // --- Threshold Mode (Exercise specific Setting) ---
-    elements.settings.thresholdModeToggle?.addEventListener("change", (e) => {
-        // 1. Get a fresh copy of data
-        const data = loadData();
-        const exId = state.currentExercise;
+    settings.thresholdModeToggle?.addEventListener("change", (e) => {
+        const data = Store.loadData();
+        const exId = Store.state.currentExercise;
         if (!data.settings) data.settings = {};
         if (!data.settings.goals) data.settings.goals = {};
         if (!data.settings.goals[exId]) data.settings.goals[exId] = {};
 
         data.settings.goals[exId].thresholdMode = e.target.checked ? "recommended" : "custom";
+        Store.saveData(data);
 
-        // 5. Save
-        saveData(data);
-
-        // 6. Conditional Render
-        // Only re-render if the function exists AND we need to update
-        // other fields (like hiding/showing the custom input box)
         if (typeof UI.renderExerciseSettings === "function") {
             UI.renderExerciseSettings();
         }
     });
 
-    // Plus and Minus Button Listeners for On Track Days
-    elements.settings.onTrackMinusBtn.addEventListener("click", () => {
-        UI.adjustOnTrack(-1);
+    // --- 4. STEP INCREMENTS FOR ON-TRACK METRICS ---
+    settings.onTrackMinusBtn.addEventListener("click", () => UI.adjustOnTrack(-1));
+    settings.onTrackPlusBtn.addEventListener("click", () => UI.adjustOnTrack(1));
+
+    settings.onTrackInput?.addEventListener("input", (e) => {
+        const val = parseInt(e.target.value);
+        if (settings.improveDisplay) settings.improveDisplay.innerText = val + 1;
     });
 
-    elements.settings.onTrackPlusBtn.addEventListener("click", () => {
-        UI.adjustOnTrack(1);
+    // --- 5. LOGGING PAST WORKOUTS & SET DELETIONS ---
+    settings.editDatePicker.addEventListener("change", (e) => {
+        Store.state.selectedEditDate = e.target.value;
+        UI.renderEditList();
     });
 
-    // --- Theme / Display Mode Selector ---
-    elements.settings.themeButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-            const selectedTheme = btn.getAttribute("data-theme");
-
-            // 1. Call the Painter to change the actual CSS colors
-            UI.setTheme(selectedTheme);
-
-            // 2. Update visual button states
-            elements.settings.themeButtons.forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-        });
-    });
-
-    // --- Add Set to Past Date (Settings Page) ---
-    elements.settings.addPastBtn.onclick = () => {
-        // 1. Get the date (Local time check)
+    settings.addPastBtn.onclick = () => {
         const selectedDate =
-            elements.settings.editDatePicker && elements.settings.editDatePicker.value
-                ? elements.settings.editDatePicker.value
-                : getDateKey
-                ? getDateKey()
-                : new Date().toISOString().split("T")[0];
+            settings.editDatePicker?.value ||
+            (typeof Store.getDateKey === "function" ? Store.getDateKey() : new Date().toISOString().split("T")[0]);
 
-        // 2. Set the global state for the OK button
-        state.selectedEditDate = selectedDate;
-
-        // 3. Open the modal cleanly using the context-aware function
+        Store.state.selectedEditDate = selectedDate;
         if (typeof UI.openLogModal === "function") {
-            UI.openLogModal(state.currentExercise);
+            UI.openLogModal(Store.state.currentExercise);
         }
     };
 
-    // --- Delete Set buttons ---
-    elements.settings.editSetsList.addEventListener("click", (e) => {
-        // Check if the clicked element (or its parent) is a delete button
+    // Delete Set buttons (Event Delegation)
+    settings.editSetsList.addEventListener("click", (e) => {
         const deleteBtn = e.target.closest(".btn-delete");
-
         if (deleteBtn) {
             const index = parseInt(deleteBtn.dataset.index);
-
-            // 1. Perform the data deletion
-            const success = deleteSet(index);
-
-            // 2. Refresh the UI if successful
-            if (success) {
+            if (Store.deleteSet(index)) {
                 UI.renderEditList();
             }
         }
     });
-    // Listen for file selection
-    elements.settings.importInput.onchange = function (e) {
+
+    // --- 6. DATA BACKUP LOGIC (JSON BACKUPS) ---
+    elements.settings.importBtn.onclick = function () {
+        elements.settings.importInput.click();
+    };
+    settings.importInput.onchange = function (e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const content = e.target.result;
-            smartImport(content);
+        reader.onload = function (evt) {
+            Store.smartImport(evt.target.result); // ⚠️ Capital "Store"
         };
         reader.readAsText(file);
     };
 
-    // Update the "Improve" hint when the user changes the number
-    elements.settings.onTrackInput?.addEventListener("input", (e) => {
-        const val = parseInt(e.target.value);
-        elements.settings.improveDisplay.innerText = val + 1;
-    });
-
-    // --- Pull to Refresh (Leaderboard) ---
-    setupPullToRefresh();
-
-    // --- Export Data Button ---
-    elements.settings.exportDataBtn.onclick = () => {
-        exportData();
-    };
-
-    const overviewContent = document.getElementById("overview-content");
-
-    if (overviewContent) {
-        overviewContent.addEventListener("click", (e) => {
-            const logBtn = e.target.closest(".btn-log-quick");
-            
-            // 1. Log Button Logic (Phase 2)
-            if (logBtn) {
-                const card = logBtn.closest(".overview-card");
-                const exId = card?.dataset.exercise;
-                if (exId && typeof UI.openLogModal === "function") {
-                    UI.openLogModal(exId);
-                }
-                return; 
-            }
-
-            // 2. Card Body Click Logic (Phase 4 Refined)
-            const card = e.target.closest(".overview-card");
-            if (card) {
-                const clickedExId = card.dataset.exercise;
-                
-                if (clickedExId) {
-                    if (typeof UI.setActiveExercise === "function") {
-                        UI.setActiveExercise(clickedExId);
-                    }
-
-                    // Smoothly slide over to the tracker screen now that the UI has updated
-                    if (typeof UI.showPage === "function") {
-                        UI.showPage("tracker");
-                    }
-                }
-            }
-        });
+    settings.exportDataBtn.onclick = () => {
+        Store.exportData();
     };
 }
 
@@ -565,23 +516,8 @@ function setupPullToRefresh() {
             // 🚀 SMART SYNC
             await reconcileData();
 
-            // 🏆 REFRESH LEADERBOARD (if visible)
-            const pageId = location.hash.substring(1).replace("-page", "");
-            if (pageId === "leaderboard") {
-                const activeModeBtn = elements.leaderboard.modeSelector?.querySelector('.seg-btn.active');
-                const activeMode = activeModeBtn ? activeModeBtn.getAttribute('data-mode') : 'single';
-
-                if (activeMode === 'matrix' && typeof fetchAndRenderMatrix === 'function') {
-                    // Find which sub-filter is active ("weekly" or "yearly")
-                    const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector('.seg-btn.active');
-                    const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute('data-matrix-filter') : 'weekly';
-                    
-                    fetchAndRenderMatrix(matrixTimeframe);
-                } else if (typeof fetchLeaderboard === 'function') {
-                    // Fall back to single mode refresh
-                    fetchLeaderboard();
-                }
-            }
+            // 🏆 REFRESH Active Page)
+            UI.refreshActivePage();
 
             // Snap back
             setTimeout(() => {
@@ -603,7 +539,7 @@ async function initPWAUtils() {
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker
             .register("./sw.js")
-            .then(() => console.log("DailyGrind: Offline Mode Active"))
+            .then(() => console.log("DailyGrind: Offline Mode Available"))
             .catch((err) => console.log("SW Registration Failed", err));
     }
 
@@ -660,7 +596,10 @@ async function initPWAUtils() {
             }
         };
     }
+    setupInstallBannerListeners();
+}
 
+function setupInstallBannerListeners() {
     // --- Install Banner Logic (The Conductor) ---
     let deferredPrompt;
 

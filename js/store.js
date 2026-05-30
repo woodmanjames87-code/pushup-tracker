@@ -1,6 +1,7 @@
 // prettier-ignore
 import { auth, db, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
 import { showToast, triggerHaptic } from "./ui.js";
+import { elements } from "./dom.js";
 
 /*************************************************
  * 1. CONSTANTS & CONFIG (Immutable)
@@ -39,18 +40,82 @@ export const state = {
 };
 
 /*************************************************
- * LOAD AND SAVE
+ * 3. CORE UTILITIES & DATE GENERATORS
+ *************************************************/
+export function getDateKey(date = new Date()) {
+    const d = date instanceof Date ? date : new Date(date);
+
+    // Safety fallback if a bad date argument gets passed in
+    if (isNaN(d.getTime())) {
+        return getTodayId();
+    }
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+export function getTodayId() {
+    // 🎯 Kept strictly local! Grabs your real device date right now.
+    return getDateKey(new Date());
+}
+
+export function getYesterdayId() {
+    // 🎯 Kept strictly local! Steps back exactly 24 hours in local time.
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return getDateKey(d);
+}
+
+export function getWeekId(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - d.getDay()); // Snap directly to Sunday locally
+    return `${d.getFullYear()}-W-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+export function getMonthId(date) {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function getYearId(date) {
+    return String(new Date(date).getFullYear());
+}
+
+export function getPreviousPeriodId(type, currentId) {
+    const date = new Date();
+    const t = type.toLowerCase();
+
+    if (t.includes("week")) {
+        date.setDate(date.getDate() - 7);
+        return getWeekId(date);
+    }
+    if (t.includes("month")) {
+        date.setDate(1); // Block monthly overflow traps (e.g., Feb 31st bugs)
+        date.setMonth(date.getMonth() - 1);
+        return getMonthId(date);
+    }
+    if (t.includes("year")) {
+        date.setFullYear(date.getFullYear() - 1);
+        return getYearId(date);
+    }
+    return null;
+}
+
+/*************************************************
+ * 4. IO PERSISTENCE & DATA MANAGEMENT
  *************************************************/
 export function loadData() {
-    let raw = localStorage.getItem(STORAGE_KEY);
-    let data = raw ? JSON.parse(raw) : {};
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const data = raw ? JSON.parse(raw) : {};
 
     if (!data.settings) data.settings = {};
     if (!data.settings.goals) data.settings.goals = {};
 
     state.enabledExercises.forEach((exId) => {
         if (!data.settings.goals[exId]) {
-            // 🚩 FIX: Use the library baseline instead of a hardcoded 60
             const libEntry = EXERCISE_LIB[exId] || { minGoal: 10 };
             data.settings.goals[exId] = {
                 manualGoal: libEntry.minGoal,
@@ -64,21 +129,16 @@ export function loadData() {
     return data;
 }
 
-// This handles the LOCAL SAVE + triggers the Cloud Push
 export async function saveData(data, exerciseId = state.currentExercise) {
-    // 1. Mark the data with the current time
-    data.lastUpdated = new Date().toISOString();
-    // 2. Save locally (Immediate)
+    data.lastUpdated = new Date().toISOString(); // ISO here is fine for metadata syncing!
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    // 3. Trigger Cloud Sync (Background)
+
     const user = auth?.currentUser;
     if (user && !state.isReconciling) {
-        // We pass the userId plus the explicit exercise context to sync
         await syncLocalToCloud(user.uid, {}, exerciseId);
     }
 }
 
-//-------- DEBOUNCE UTILITY (for inputs like on-track days) --------
 let saveTimeout;
 export function debounceSave(callback, delay = 500) {
     clearTimeout(saveTimeout);
@@ -86,21 +146,14 @@ export function debounceSave(callback, delay = 500) {
 }
 
 export function migrateToMultiExercise(data) {
-    // 🛡️ CRITICAL GUARD: If data is null/undefined, return an empty object immediately
     if (!data) return {};
 
-    // Ensure the structure exists without overwriting existing data
     data.settings = data.settings || {};
     data.settings.goals = data.settings.goals || {};
 
-    let needsSave = false;
-
-    // Check for old "Flat" settings (Legacy)
-    // We check for 'manualGoal' because it was the anchor of the old system
     if (data.settings.hasOwnProperty("manualGoal") && !data.settings.goals.pushups) {
         console.log("🛠 Migrating legacy pushup goals...");
 
-        // Use ?? instead of || to allow a goal of 0
         data.settings.goals.pushups = {
             manualGoal: data.settings.manualGoal ?? 60,
             goalMode: data.settings.goalMode ?? "auto",
@@ -108,14 +161,8 @@ export function migrateToMultiExercise(data) {
             thresholdMode: data.settings.thresholdMode ?? "recommended",
         };
 
-        // Cleanup: Remove legacy keys now that they are safely in the new object
-        const legacyKeys = ["manualGoal", "goalMode", "thresholdMode", "onTrackDays"];
-        legacyKeys.forEach((key) => delete data.settings[key]);
+        ["manualGoal", "goalMode", "thresholdMode", "onTrackDays"].forEach((key) => delete data.settings[key]);
 
-        needsSave = true;
-    }
-
-    if (needsSave) {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             console.log("✅ Migration committed to storage.");
@@ -123,40 +170,41 @@ export function migrateToMultiExercise(data) {
             console.error("❌ Migration save failed:", e);
         }
     }
-
     return data;
 }
 /*************************************************
- * LOGGING & DATA ACTIONS
+ * 5. DATA ACTIONS & ENTRY MODIFIERS
  *************************************************/
+export function prepareModalState() {
+    state.selectedEditDate = getTodayId();
+}
+
+export function handleModalSubmission(reps, exerciseId = null) {
+    const targetDate = state.selectedEditDate || getTodayId();
+
+    // 🎯 Use the specific shortcut context passed in, or fallback to main exercise
+    const activeExerciseId = exerciseId || state.currentExercise;
+
+    addSetToDate(targetDate, reps, activeExerciseId);
+}
+
 export function addSetToDate(dateKey, reps, exerciseId = state.currentExercise) {
     const data = loadData();
 
-    // 1. Ensure the Date entry exists
-    if (!data[dateKey]) {
-        data[dateKey] = {};
-    }
+    if (!data[dateKey]) data[dateKey] = {};
 
-    // 🛡️ LEGACY PROTECTION:
-    // If the data for this date is an Array (old style),
-    // move that array into the 'pushups' key before proceeding.
+    // Legacy fallback check: Converts old array-only days to the multi-exercise object format
     if (Array.isArray(data[dateKey])) {
         const oldSets = data[dateKey];
-        data[dateKey] = {
-            pushups: oldSets, // Preserve the history in the new format
-        };
+        data[dateKey] = { pushups: oldSets };
         console.log(`📦 Converted legacy array for ${dateKey} to object format.`);
     }
 
-    // 2. Ensure the specific exercise array exists within that date object
     if (!data[dateKey][exerciseId]) {
         data[dateKey][exerciseId] = [];
     }
 
-    // 3. Add the new set
     data[dateKey][exerciseId].push(Number(reps));
-
-    // 4. Save and Sync
     saveData(data, exerciseId);
 
     console.log(`✅ Added ${reps} ${EXERCISE_LIB[exerciseId].unit} to ${exerciseId}`);
@@ -168,38 +216,20 @@ export function deleteSet(index, dateKey = state.selectedEditDate, exerciseId = 
     if (data[dateKey] && data[dateKey][exerciseId]) {
         data[dateKey][exerciseId].splice(index, 1);
 
-        // Housekeeping: remove empty dates/exercises
         if (data[dateKey][exerciseId].length === 0) delete data[dateKey][exerciseId];
         if (Object.keys(data[dateKey]).length === 0) delete data[dateKey];
 
         saveData(data, exerciseId);
-        console.log(`🗑️ Deleted set ${index} - Syncing mirror...`);
+        console.log(`🗑️ Deleted set ${index}`);
         return true;
     }
+    console.log(`🗑️ Failed to delete set ${index}`);
     return false;
 }
 
 /*************************************************
- * STATS ENGINE
+ * 6. STATS METRIC COMPILATION HUB
  *************************************************/
-export function getDateKey(date = new Date()) {
-    // 🛡️ THE FIX: If 'date' is a string (e.g., "2026-03-27"),
-    // convert it back to a Date Object so .getFullYear() works.
-    const d = date instanceof Date ? date : new Date(date);
-
-    // Fallback: If the string was totally mangled, use today's date
-    if (isNaN(d.getTime())) {
-        const today = new Date();
-        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    }
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-}
-
 function getDayTotal(data, date, exerciseId) {
     const dateKey = date instanceof Date ? getDateKey(date) : date;
     const dayEntry = data[dateKey];
@@ -207,77 +237,7 @@ function getDayTotal(data, date, exerciseId) {
     if (!dayEntry || !dayEntry[exerciseId]) return 0;
 
     const sets = dayEntry[exerciseId];
-
-    // If it's an array of numbers, sum them up
-    if (Array.isArray(sets)) {
-        return sets.reduce((sum, val) => sum + (Number(val) || 0), 0);
-    }
-
-    // Fallback if it's already a single number
-    return Number(sets) || 0;
-}
-
-export function getTodayId() {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-}
-
-export function getYesterdayId() {
-    const d = new Date();
-    d.setDate(d.getDate() - 1); // Subtract one day
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-}
-
-export function getWeekId(date) {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    // Find the Sunday of this week
-    d.setDate(d.getDate() - d.getDay());
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    // Returns a string like "2026-W-Feb-8"
-    return `${year}-W-${month}-${day}`;
-}
-export function getMonthId(date) {
-    const d = new Date(date);
-    // Returns "2026-02"
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-export function getYearId(date) {
-    return String(new Date(date).getFullYear());
-}
-
-export function getPreviousPeriodId(type, currentId) {
-    // We create a fresh date object right here to avoid any scope issues
-    const date = new Date();
-
-    // Normalize type to lowercase to avoid "Weekly" vs "weekly" bugs
-    const t = type.toLowerCase();
-
-    if (t.includes("week")) {
-        date.setDate(date.getDate() - 7);
-        return getWeekId(date);
-    }
-
-    if (t.includes("month")) {
-        // 1. Force the date to the 1st of the month to avoid day-overflow (like Feb 29)
-        date.setDate(1);
-        date.setMonth(date.getMonth() - 1);
-        return getMonthId(date);
-    }
-
-    if (t.includes("year")) {
-        date.setFullYear(date.getFullYear() - 1);
-        return getYearId(date);
-    }
-
-    return null;
+    return Array.isArray(sets) ? sets.reduce((sum, val) => sum + (Number(val) || 0), 0) : Number(sets) || 0;
 }
 
 function calculateDailyGoal(data, exerciseId) {
@@ -291,45 +251,41 @@ function calculateDailyGoal(data, exerciseId) {
     let activeValues = [];
     const today = new Date();
 
+    // Loop back through the last 30 days until we collect up to 14 active workout days
     for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
         const d = new Date();
         d.setDate(today.getDate() - i);
 
-        // Passing 'data' through to the next function
         const v = getDayTotal(data, d, exerciseId);
         if (v > 0) activeValues.push(v);
     }
 
     if (activeValues.length === 0) return libEntry.minGoal;
 
+    // 🎯 Your custom logic: Compare median vs average to filter out drastic rest day drops
     const sorted = [...activeValues].sort((a, b) => a - b);
     const sum = activeValues.reduce((a, b) => a + b, 0);
     const avg = sum / activeValues.length;
+
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 
+    // Round up to the nearest multiple of 5
     const rounded = Math.ceil(Math.max(avg, median) / 5) * 5;
     return Math.max(libEntry.minGoal, rounded);
 }
 
 function getGoals(data, exerciseId = state.currentExercise) {
-    const settings = data.settings || {};
-
-    // Look for settings specific to THIS exercise
-    const exSettings = settings.goals?.[exerciseId] || {};
-
-    // 1. Check mode
-    const mode = exSettings.thresholdMode || settings.thresholdMode || "recommended";
+    const exSettings = data.settings?.goals?.[exerciseId] || {};
+    const mode = exSettings.thresholdMode || data.settings?.thresholdMode || "recommended";
     const isRecommended = mode !== "custom";
 
-    // 2. Determine the baseline (Priority: Exercise -> Global -> Default)
     const ON_TRACK = isRecommended ? 4 : exSettings.onTrackDays || 4;
-
     const IMPROVE = ON_TRACK + 1;
     const DAYS_PER_WEEK = 7;
 
     return {
-        DAYS_PER_WEEK: DAYS_PER_WEEK,
+        DAYS_PER_WEEK,
         ON_TRACK_DAYS: ON_TRACK,
         IMPROVE_DAYS: IMPROVE,
         WINDOW_DAYS: 30,
@@ -340,32 +296,26 @@ function getGoals(data, exerciseId = state.currentExercise) {
 
 export function computeStats(exerciseId = state.currentExercise) {
     if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
-    const data = loadData ? loadData() : {};
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const data = loadData();
+
+    // Normalize today to local midnight to prevent timestamp bleeding
+    const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     const todayStr = getDateKey(today);
     const currentYearStr = today.getFullYear().toString();
+    const yestStr = getYesterdayId();
 
-    // 1. Contextual Dates & IDs
-    const yest = new Date(today);
-    yest.setDate(yest.getDate() - 1);
-    const yestStr = getDateKey(yest);
-
-    const diffToSunday = today.getDay();
     const sunday = new Date(today);
-    sunday.setDate(today.getDate() - diffToSunday);
+    sunday.setDate(today.getDate() - today.getDay());
     const sundayStr = getDateKey(sunday);
 
     const fourteenDaysAgo = new Date(today);
     fourteenDaysAgo.setDate(today.getDate() - 13);
-    const fourteenDaysAgoStr = getDateKey(fourteenDaysAgo);
 
-    // IDs for Database Sync/Organization
-    const weekId = getWeekId ? getWeekId(today) : null;
-    const monthId = getMonthId ? getMonthId(today) : null;
-    const yearId = getYearId ? getYearId(today) : null;
+    const weekId = getWeekId(today);
+    const monthId = getMonthId(today);
+    const yearId = getYearId(today);
 
-    // 2. Prepare Accumulators
+    // Filter down to cleanly formatted date keys and sort them chronologically
     const allKeys = Object.keys(data)
         .filter((k) => k.match(/^\d{4}-\d{2}-\d{2}$/))
         .sort();
@@ -393,21 +343,20 @@ export function computeStats(exerciseId = state.currentExercise) {
     const thirtyDaysAgoStr = getDateKey(thirtyDaysAgo);
 
     // --- THE ONE LOOP ---
-
     allKeys.forEach((dateKey) => {
         const val = getDayTotal(data, dateKey, exerciseId);
-        if (val <= 0) return; // Skip days with 0 reps for this specific exercise
+        if (val <= 0) return; // Skip rest days for this specific exercise
 
         if (!exerciseFirstDateStr) {
             exerciseFirstDateStr = dateKey;
         }
 
-        // 1. Accumulate all historical totals
         allTimeTotal += val;
         activeDays++;
         lastActiveDateStr = dateKey;
         if (val > pb) pb = val;
 
+        // Categorize training volume benchmarks
         if (val >= 100) {
             centuryDays++;
             eliteVol += val;
@@ -424,8 +373,7 @@ export function computeStats(exerciseId = state.currentExercise) {
             active30++;
         }
 
-        // 2. STREAK LOGIC (The Fix)
-        // If this date is exactly 1 day after the previous one, continue streak
+        // STREAK LOGIC (The Fix)
         if (expectedDateStr === "" || dateKey === expectedDateStr) {
             currentStreakCount++;
         } else {
@@ -439,18 +387,17 @@ export function computeStats(exerciseId = state.currentExercise) {
 
         bestStreak = Math.max(bestStreak, currentStreakCount);
 
-        if (dateKey >= fourteenDaysAgoStr && dateKey <= todayStr) {
+        if (dateKey >= getDateKey(fourteenDaysAgo) && dateKey <= todayStr) {
             active14++;
         }
     });
 
-    // 3. Check if the "Live" streak is still valid today or yesterday
-    // If you haven't worked out today OR yesterday, the live streak is 0
+    // Break streak if no activity recorded today or yesterday
     if (lastActiveDateStr !== todayStr && lastActiveDateStr !== yestStr) {
         currentStreakCount = 0;
     }
 
-    // 3. Weekly Chart Data (The 7-Day Array)
+    // Weekly Chart Data (The 7-Day Array)
     let weeklyData = [];
     let weeklyTotal = 0;
     for (let i = 6; i >= 0; i--) {
@@ -461,27 +408,22 @@ export function computeStats(exerciseId = state.currentExercise) {
         weeklyTotal += v;
     }
 
-    // 3.5. Rolling 30-Day Performance Timeline (Streamlined)
+    // Rolling 30-Day Performance Timeline
     let chart30Values = [];
-    let chart30Labels = []; // Kept as empty spaces just to anchor the plot points
-    
+    let chart30Labels = [];
     for (let i = 29; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        
-        const v = getDayTotal(data, d, exerciseId);
-        
-        chart30Values.push(v);
-        chart30Labels.push(""); // An empty string for every single day
+        chart30Values.push(getDayTotal(data, d, exerciseId));
+        chart30Labels.push("");
     }
 
-    // 4. Specific Totals & Goals
     const todayTotal = getDayTotal(data, todayStr, exerciseId);
     const yesterdayTotal = getDayTotal(data, yestStr, exerciseId);
     const dailyGoal = calculateDailyGoal(data, exerciseId);
     const currentGoals = getGoals(data, exerciseId);
 
-    // 5. Monthly Trend Calculation
+    // Monthly Trend Calculation
     const monthlyData = {};
     let currentMonthLabel = "";
     for (let i = 5; i >= 0; i--) {
@@ -495,14 +437,14 @@ export function computeStats(exerciseId = state.currentExercise) {
             .reduce((s, date) => s + getDayTotal(data, date, exerciseId), 0);
     }
 
-    // 6. Rest Streak Math
+    // Rest Streak Math
     let restStreak = 0;
     if (lastActiveDateStr && todayTotal === 0) {
         const lastDate = new Date(lastActiveDateStr + "T00:00:00");
         restStreak = Math.floor((today - lastDate) / 86400000);
     }
 
-    // 7. Trends & Milestones
+    // Trends & Milestones
     const avg30 = Number((total30 / 30).toFixed(1));
     const trendPct = avg30 / dailyGoal;
     let trend = { label: "Below Target", color: "#ff3b30" };
@@ -514,13 +456,10 @@ export function computeStats(exerciseId = state.currentExercise) {
     const startOfYear = new Date(today.getFullYear(), 0, 1);
     const daysInYearSoFar = Math.max(Math.ceil((today - startOfYear) / 86400000), 1);
 
-    // 8. Lifetime Metrics
-    const diffTime = Math.abs(today - firstDateObj);
-    const totalDaysElapsed = Math.round(diffTime / 86400000) + 1 || 1;
+    // Lifetime Metrics
+    const totalDaysElapsed = Math.round(Math.abs(today - firstDateObj) / 86400000) + 1 || 1;
     const lifetimeAvg = Math.round(allTimeTotal / totalDaysElapsed);
 
-    // If 14 days have passed, it's 14 - active.
-    // If it's a new account, we use totalDaysElapsed (up to 14).
     const windowSize = Math.min(14, totalDaysElapsed);
     const rest14 = Math.max(0, windowSize - active14);
 
@@ -531,8 +470,8 @@ export function computeStats(exerciseId = state.currentExercise) {
         yearId,
         todayTotal,
         yesterdayTotal,
-        weeklyTotal, // Rolling 7-day total
-        calendarWeeklyTotal, // Sun-Sat total
+        weeklyTotal,
+        calendarWeeklyTotal,
         monthlyTotal: monthlyData[currentMonthLabel] || 0,
         total30,
         chart30Labels,
@@ -566,35 +505,22 @@ export function computeStats(exerciseId = state.currentExercise) {
     };
 }
 
-/**
- * LIGHTWEIGHT OVERVIEW HELPER
- * Returns only the 7-day array for a specific exercise.
- * No historical loops, no streak math.
- */
 export function getQuickWeekly(exerciseId) {
     const data = loadData();
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+    const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
     let weeklyData = [];
     let maxVal = 0;
 
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        
-        // Use your existing getDayTotal utility
         const v = getDayTotal(data, d, exerciseId);
-        
         weeklyData.push(v);
         if (v > maxVal) maxVal = v;
     }
 
-    return {
-        exerciseId,
-        weeklyData,
-        maxVal: maxVal || 10 // Fallback to avoid division by zero in CSS
-    };
+    return { exerciseId, weeklyData, maxVal: maxVal || 10 };
 }
 
 /*************************************************
@@ -626,54 +552,55 @@ window.clearLocalData = function () {
     }
 };
 
-window.smartImport = function (jsonString) {
+export function smartImport(jsonString) {
     try {
         const imported = JSON.parse(jsonString);
         const current = loadData();
         let newEntries = 0;
         let mergedEntries = 0;
 
-        // 1. Filter for valid date keys only
+        // 1. Filter out metadata keys to focus strictly on valid date tracking items
         const dateKeys = Object.keys(imported).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
 
         dateKeys.forEach((date) => {
-            let incomingData = imported[date];
-            let normalizedDay = {};
+            const incomingDay = imported[date];
 
-            // --- STEP A: NORMALIZE FORMAT ---
-            if (Array.isArray(incomingData)) {
-                // Current Format: [10, 15] -> Move to pushups
-                normalizedDay = { pushups: incomingData };
-            } else if (typeof incomingData === "object" && incomingData !== null) {
-                // New Expansion Format: { pushups: [], squats: [] }
-                normalizedDay = incomingData;
-            } else {
-                return; // Skip invalid formats (like the "Very Old" number format)
-            }
+            // Safety fallback check to confirm it's an object structure
+            if (!incomingDay || typeof incomingDay !== "object" || Array.isArray(incomingDay)) return;
 
-            // --- STEP B: MERGE ---
+            // --- CASE 1: BRAND NEW DATE KEY ---
             if (!current[date]) {
-                current[date] = normalizedDay;
+                current[date] = incomingDay;
                 newEntries++;
-            } else {
+            }
+            // --- CASE 2: EXISTING DATE KEY (SMART MERGE) ---
+            else {
                 let dateWasUpdated = false;
 
-                // Loop through exercises in the incoming day
-                Object.keys(normalizedDay).forEach((exId) => {
-                    const incomingSets = normalizedDay[exId];
+                Object.keys(incomingDay).forEach((exId) => {
+                    const incomingSets = incomingDay[exId];
+                    if (!Array.isArray(incomingSets)) return;
 
+                    // If local data doesn't have this exercise yet, drop the sets right in
                     if (!current[date][exId]) {
-                        current[date][exId] = incomingSets;
+                        current[date][exId] = [...incomingSets];
                         dateWasUpdated = true;
-                    } else {
-                        // Compare totals to avoid simple duplicates
-                        const currentTotal = current[date][exId].reduce((a, b) => a + b, 0);
-                        const importTotal = incomingSets.reduce((a, b) => a + b, 0);
+                    }
+                    // Otherwise, merge individual sets carefully to eliminate duplicates
+                    else {
+                        incomingSets.forEach((setVolume) => {
+                            const numVolume = Number(setVolume);
 
-                        if (currentTotal !== importTotal) {
-                            current[date][exId].push(...incomingSets);
-                            dateWasUpdated = true;
-                        }
+                            // Find out how many times this exact rep count exists locally vs incoming
+                            const localCount = current[date][exId].filter((v) => v === numVolume).length;
+                            const incomingCount = incomingSets.filter((v) => v === numVolume).length;
+
+                            // Only push the set if the local data has fewer instances of it than the incoming file
+                            if (localCount < incomingCount) {
+                                current[date][exId].push(numVolume);
+                                dateWasUpdated = true;
+                            }
+                        });
                     }
                 });
 
@@ -681,15 +608,15 @@ window.smartImport = function (jsonString) {
             }
         });
 
-        // 2. Finalize
+        // 2. Commit back to local systems, alert, and refresh layout state
         saveData(current);
-        alert(`Import Complete! \nAdded: ${newEntries} new days \nUpdated: ${mergedEntries} existing days.`);
+        alert(`Import Complete!\nAdded: ${newEntries} new days\nUpdated: ${mergedEntries} existing days.`);
         location.reload();
     } catch (e) {
         alert("Invalid file format.");
-        console.error(e);
+        console.error("❌ Import Failed:", e);
     }
-};
+}
 
 export async function exportData() {
     // 1. Grab everything from local storage
