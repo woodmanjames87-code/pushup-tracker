@@ -12,6 +12,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
     getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
     doc,
     setDoc,
     getDoc,
@@ -38,7 +41,12 @@ const firebaseConfig = {
 // 1. Initialize Instances
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// 🎯 Configure native Firestore offline cache layers
+export const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager() // Keeps sync unified if you open multiple PWA browser tabs
+    })
+});
 export const googleProvider = new GoogleAuthProvider();
 
 // 2. Export methods directly so other files can import them
