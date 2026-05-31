@@ -15,6 +15,7 @@ export const EXERCISE_LIB = {
     squats: { name: "Squats", iconId: "#icon-squats", unit: "reps", minGoal: 60, target: "Legs" },
     lunges: { name: "Lunges", iconId: "#icon-lunges", unit: "reps", minGoal: 60, target: "Legs" },
     dips: { name: "Dips", iconId: "#icon-dips", unit: "reps", minGoal: 30, target: "Triceps" },
+    plank: { name: "Plank", iconId: "#icon-plank", unit: "seconds", minGoal: 60, target: "Core" },
 };
 
 /*************************************************

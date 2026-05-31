@@ -48,19 +48,24 @@ async function initApp() {
 
 function finishAppInitialization(startTime) {
     const initScreen = document.getElementById('app-init-screen');
+    const appWrapper = document.getElementById('app-wrapper'); // 🎯 Grab the master wrapper
+    
     if (!initScreen) return;
 
-    const MIN_DISPLAY_TIME = 200; // 🎯 Total target display time in milliseconds
+    const MIN_DISPLAY_TIME = 250; // Our fine-tuned snappy 250ms hold
     const elapsedTime = Date.now() - startTime;
-    
-    // Calculate how much remaining time we need to hold to hit our target
     const remainingHoldTime = Math.max(0, MIN_DISPLAY_TIME - elapsedTime);
 
-    // Enforce the hold before triggering the CSS opacity fade-out
     setTimeout(() => {
+        // 1. Drop the curtain
         initScreen.classList.add('fade-out');
         
-        // Clean up the DOM completely once the 300ms CSS transition ends
+        // 2. Unveil the fully loaded app shell underneath
+        if (appWrapper) {
+            appWrapper.classList.add('visible');
+        }
+        
+        // Clean up the DOM completely once the CSS transition ends
         setTimeout(() => initScreen.remove(), 300);
     }, remainingHoldTime);
 }
