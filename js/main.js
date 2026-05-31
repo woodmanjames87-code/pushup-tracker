@@ -11,6 +11,7 @@ async function initApp() {
 
     if (!Store.state.appInitialized) {
         console.log("App initialization triggered...");
+        const initStartTime = Date.now(); // ⏱️ Start the entry clock
         // --- Group A: Fast/Required immediately ---
         setupEventListeners();
         initPWAUtils();
@@ -26,7 +27,7 @@ async function initApp() {
             Store.state.appInitialized = true;
 
             // 🎯 Lift the curtain now that Group B UI renders and Firebase listeners are bound!
-            finishAppInitialization();
+            finishAppInitialization(initStartTime);
         }, 0);
         UI.triggerFeatureAnnouncement(
             "v5.0.2.0",
@@ -45,13 +46,23 @@ async function initApp() {
     UI.refreshStateAndUI();
 }
 
-function finishAppInitialization() {
+function finishAppInitialization(startTime) {
     const initScreen = document.getElementById('app-init-screen');
-    if (initScreen) {
+    if (!initScreen) return;
+
+    const MIN_DISPLAY_TIME = 200; // 🎯 Total target display time in milliseconds
+    const elapsedTime = Date.now() - startTime;
+    
+    // Calculate how much remaining time we need to hold to hit our target
+    const remainingHoldTime = Math.max(0, MIN_DISPLAY_TIME - elapsedTime);
+
+    // Enforce the hold before triggering the CSS opacity fade-out
+    setTimeout(() => {
         initScreen.classList.add('fade-out');
-        // Optional: Remove it entirely from the DOM after the fade transition ends
+        
+        // Clean up the DOM completely once the 300ms CSS transition ends
         setTimeout(() => initScreen.remove(), 300);
-    }
+    }, remainingHoldTime);
 }
 /*************************************************
  * 3. EVENT LISTENERS SETUP
