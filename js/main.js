@@ -24,6 +24,9 @@ async function initApp() {
             UI.buildExerciseMenu();
             initAuthListener();
             Store.state.appInitialized = true;
+
+            // 🎯 Lift the curtain now that Group B UI renders and Firebase listeners are bound!
+            finishAppInitialization();
         }, 0);
         UI.triggerFeatureAnnouncement(
             "v5.0.2.0",
@@ -42,6 +45,14 @@ async function initApp() {
     UI.refreshStateAndUI();
 }
 
+function finishAppInitialization() {
+    const initScreen = document.getElementById('app-init-screen');
+    if (initScreen) {
+        initScreen.classList.add('fade-out');
+        // Optional: Remove it entirely from the DOM after the fade transition ends
+        setTimeout(() => initScreen.remove(), 300);
+    }
+}
 /*************************************************
  * 3. EVENT LISTENERS SETUP
  *************************************************/
