@@ -1,7 +1,8 @@
 {
     "name": "DailyGrind: Bodyweight Workout Tracker",
     "short_name": "DailyGrind",
-    "start_url": "index.html",
+    "start_url": "/pushup-tracker/",
+    "scope": "/pushup-tracker/",
     "display": "standalone",
     "background_color": "#1e1e1e",
     "theme_color": "#1e1e1e",
