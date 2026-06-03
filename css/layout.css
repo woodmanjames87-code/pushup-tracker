@@ -54,6 +54,7 @@
 #app-wrapper {
     opacity: 0;
     visibility: hidden;
+    will-change: opacity;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
