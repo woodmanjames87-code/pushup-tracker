@@ -104,6 +104,13 @@ function refreshActivePage() {
     }
 }
 
+// Scoped tracking properties for the built-in modal stopwatch
+let modalTimerInterval = null;
+let modalTimerSeconds = 0;
+
+// Add a global tracking state for the active mode
+let isManualTimerMode = false;
+
 function openLogModal(exId) {
     const config = EXERCISE_LIB[exId] || { name: "Exercise", unit: "reps" };
     if (!config) {
@@ -111,16 +118,160 @@ function openLogModal(exId) {
         return;
     }
 
-    // 2. Inject dynamic text
+    resetModalTimer();
+    isManualTimerMode = false; // Always default back to the interactive stopwatch on open
+
     elements.modal.title.innerText = `Log ${config.name}`;
     elements.modal.prompt.innerText = `How many ${config.unit} did you do?`;
     elements.modal.container.dataset.activeContext = exId;
 
-    elements.modal.container.style.display = "flex";
-    if (elements.modal.input) {
-        elements.modal.input.value = "";
-        elements.modal.input.focus();
+    const timerContainer = document.getElementById('modal-timer-container');
+
+    if (config.unit === "seconds" || config.unit === "sec") {
+        if (timerContainer) timerContainer.classList.remove('hidden');
+        
+        // Setup initial stopwatch UI state
+        setTimerUIMode(false); 
+    } else {
+        // Standard reps tracking setup
+        if (timerContainer) timerContainer.classList.add('hidden');
+        if (elements.modal.input) {
+            elements.modal.input.classList.remove('hidden');
+            elements.modal.input.required = true;
+            elements.modal.input.value = "";
+            elements.modal.input.focus();
+        }
+        const okBtn = document.getElementById('modal-ok');
+        if (okBtn) okBtn.disabled = false;
     }
+
+    elements.modal.container.style.display = "flex";
+}
+
+// Helper to clean switch between the physical stopwatch and a manual number box
+function setTimerUIMode(useManualInput) {
+    isManualTimerMode = useManualInput;
+    
+    const display = document.getElementById('modal-timer-display');
+    const btnRow = document.querySelector('.timer-btn-row');
+    const okBtn = document.getElementById('modal-ok');
+    const numInput = elements.modal.input;
+
+    if (useManualInput) {
+        // Stop any active clock tracking
+        if (modalTimerInterval) toggleModalTimer(); 
+
+        if (display) display.classList.add('hidden');
+        if (btnRow) btnRow.classList.add('hidden');
+        
+        if (numInput) {
+            numInput.classList.remove('hidden');
+            numInput.required = true;
+            // Seed the input with whatever the stopwatch left off at so they can modify it
+            numInput.value = modalTimerSeconds > 0 ? modalTimerSeconds : ""; 
+            numInput.placeholder = "Enter seconds";
+            numInput.focus();
+        }
+        if (okBtn) okBtn.disabled = false;
+    } else {
+        if (display) display.classList.remove('hidden');
+        if (btnRow) btnRow.classList.remove('hidden');
+        
+        if (numInput) {
+            numInput.classList.add('hidden');
+            numInput.required = false;
+        }
+        // If the stopwatch is zeroed out, keep OK disabled until it runs
+        if (okBtn) okBtn.disabled = (modalTimerSeconds === 0);
+    }
+}
+
+let wakeLock = null;
+
+// Request the screen stay awake
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Screen Wake Lock is active 🔋');
+        } catch (err) {
+            console.warn(`Wake Lock failed: ${err.message}`);
+        }
+    }
+}
+
+// Release the screen so it can sleep normally
+function releaseWakeLock() {
+    if (wakeLock !== null) {
+        wakeLock.release()
+            .then(() => {
+                wakeLock = null;
+                console.log('Screen Wake Lock released 💤');
+            });
+    }
+}
+
+function toggleModalTimer() {
+    const toggleBtn = document.getElementById('modal-timer-toggle');
+    const display = document.getElementById('modal-timer-display');
+    const okBtn = document.getElementById('modal-ok');
+
+    if (!toggleBtn || !display) return;
+
+    if (modalTimerInterval === null) {
+        // 🚀 START TIMER
+        toggleBtn.innerText = "Pause";
+        toggleBtn.classList.add('running');
+        if (okBtn) okBtn.disabled = true;
+
+        // 🎯 Lock the device screen ON immediately
+        requestWakeLock();
+
+        modalTimerInterval = setInterval(() => {
+            modalTimerSeconds++;
+            const m = String(Math.floor(modalTimerSeconds / 60)).padStart(2, '0');
+            const s = String(Math.floor(modalTimerSeconds % 60)).padStart(2, '0');
+            display.innerText = `${m}:${s}`;
+            
+            if (elements.modal.input) {
+                elements.modal.input.value = modalTimerSeconds;
+            }
+        }, 1000);
+    } else {
+        // ⏸️ PAUSE TIMER
+        clearInterval(modalTimerInterval);
+        modalTimerInterval = null;
+        toggleBtn.innerText = "Resume";
+        toggleBtn.classList.remove('running');
+        
+        // 🎯 Release the screen block so battery isn't wasted if they walk away
+        releaseWakeLock();
+
+        if (okBtn && modalTimerSeconds > 0) okBtn.disabled = false;
+    }
+}
+
+// Ensure clean background releases if they close or reset
+function resetModalTimer() {
+    if (modalTimerInterval) {
+        clearInterval(modalTimerInterval);
+        modalTimerInterval = null;
+    }
+    modalTimerSeconds = 0;
+    
+    // Safety release
+    releaseWakeLock();
+
+    const display = document.getElementById('modal-timer-display');
+    const toggleBtn = document.getElementById('modal-timer-toggle');
+    const modeSwitchLink = document.getElementById('modal-timer-mode-switch');
+    
+    if (display) display.innerText = "00:00";
+    if (toggleBtn) {
+        toggleBtn.innerText = "Start";
+        toggleBtn.classList.remove('running');
+    }
+    if (modeSwitchLink) modeSwitchLink.innerText = "Keyboard Entry";
 }
 
 function closeLogModal() {
@@ -343,18 +494,22 @@ function updateTrackerDisplay() {
         return;
     }
 
-    // Helper: Now uses the cached 'stats' map from dom.js
+    // Helper: Now simply calls your global clean formatter
     const updateText = (id, val) => {
         const el = elements.stats[id];
-        if (el) el.innerText = val;
+        if (el) el.innerText = formatExerciseVolume(val, s.isSeconds);
     };
 
     // --- 1. DAILY STATS & PROGRESS ---
     updateText("today-val", s.todayTotal);
     updateText("yest-val", s.yesterdayTotal);
-    updateText("goal-text", `Goal: ${s.dailyGoal}`);
-    updateText("streak-val", s.streak);
-    updateText("rest-val", s.rest14);
+    updateText("goal-text", `Goal: ${formatExerciseVolume(s.dailyGoal, s.isSeconds)}`);
+    
+    // Streak and rest items are raw counts of days, so update text directly without formatting as volume
+    const elStreak = elements.stats["streak-val"];
+    if (elStreak) elStreak.innerText = s.streak;
+    const elRest = elements.stats["rest-val"];
+    if (elRest) elRest.innerText = s.rest14;
 
     const pct = s.todayTotal / s.dailyGoal;
     if (elements.ui.greenBar) elements.ui.greenBar.style.width = Math.min(pct, 1) * 100 + "%";
@@ -362,13 +517,25 @@ function updateTrackerDisplay() {
 
     if (elements.ui.restStreakTag) {
         elements.ui.restStreakTag.style.display = s.restStreak > 1 ? "inline-flex" : "none";
-        if (s.restStreak > 0) updateText("rest-streak-val", s.restStreak);
+        if (s.restStreak > 0) {
+            const elRestStreak = elements.stats["rest-streak-val"];
+            if (elRestStreak) elRestStreak.innerText = s.restStreak;
+        }
     }
 
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     updateText("total-30-val", s.total30);
-    updateText("active-30-val", `${s.active30}/30`);
-    updateText("avg-30", `Avg: ${s.avg30}/day`);
+    
+    const elActive30 = elements.stats["active-30-val"];
+    if (elActive30) elActive30.innerText = `${s.active30}/30`;
+    
+    const elAvg30 = elements.stats["avg-30"];
+    if (elAvg30) {
+        elAvg30.innerText = s.isSeconds 
+            ? `Avg: ${formatExerciseVolume(Math.round(s.avg30), true)}/day` 
+            : `Avg: ${s.avg30}/day`;
+    }
+    
     updateText("thirty-goal-val", s.thirtyGoal);
     updateText("thirty-improv-val", s.thirtyImprov);
 
@@ -388,9 +555,10 @@ function updateTrackerDisplay() {
         const maxVal = Math.max(...s.weeklyData, 1);
         const midVal = Math.round(maxVal / 2);
 
-        ["axis-max-l", "axis-max-r", "axis-mid-l", "axis-mid-r"].forEach((id) =>
-            updateText(id, id.includes("max") ? maxVal : midVal),
-        );
+        updateText("axis-max-l", maxVal);
+        updateText("axis-max-r", maxVal);
+        updateText("axis-mid-l", midVal);
+        updateText("axis-mid-r", midVal);
 
         s.weeklyData.forEach((v, i) => {
             if (bars[i]) {
@@ -404,7 +572,9 @@ function updateTrackerDisplay() {
                 labels[i].innerText = days[d.getDay()];
             }
         });
-        updateText("weekly-title", `Total: ${s.weeklyTotal}`);
+        
+        const elWeeklyTitle = elements.stats["weekly-title"];
+        if (elWeeklyTitle) elWeeklyTitle.innerText = `Total: ${formatExerciseVolume(s.weeklyTotal, s.isSeconds)}`;
     }
 
     // --- 3.5. 30-DAY LINE CHART ---
@@ -415,7 +585,7 @@ function updateTrackerDisplay() {
     // --- 4. MONTHLY CHART (6-Month Optimized) ---
     if (elements.ui.monthlyChart) {
         const containers = elements.ui.monthlyChart.querySelectorAll(".monthly-bar-container");
-        const monthEntries = Object.entries(s.monthlyData).slice(-6); // Only take last 6
+        const monthEntries = Object.entries(s.monthlyData).slice(-6);
         const maxMonth = Math.max(...monthEntries.map(([_, v]) => v), 1);
 
         monthEntries.forEach(([label, val], i) => {
@@ -430,7 +600,7 @@ function updateTrackerDisplay() {
                     bar.style.setProperty("--bar-h", `${hPct}%`);
                     bar.style.opacity = val > 0 ? "1" : "0.2";
                 }
-                if (valLabel) valLabel.innerText = val > 0 ? val : "";
+                if (valLabel) valLabel.innerText = val > 0 ? formatExerciseVolume(val, s.isSeconds) : "";
                 if (nameLabel) nameLabel.innerText = label;
             }
         });
@@ -438,16 +608,28 @@ function updateTrackerDisplay() {
 
     // --- 5. LEGACY INSIGHTS (ALL-TIME) ---
     if (s.allTimeTotal > 0) {
-        updateText("legacy-projected", `${s.currentYearStr} PROJECTION: ${s.projectedYearly.toLocaleString()}`);
-        updateText("legacy-since", `STARTED ${s.firstDateStr}`);
-        updateText("legacy-active-days", `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`);
-        updateText("stat-all-time", s.allTimeTotal.toLocaleString());
-        updateText("stat-pb", s.pb.toLocaleString());
-        updateText("stat-ytd", s.ytdTotal.toLocaleString());
-        updateText("stat-century", s.centuryDays);
-        updateText("stat-avg", `${s.lifetimeAvg}/day`);
+        const elProj = elements.stats["legacy-projected"];
+        if (elProj) elProj.innerText = `${s.currentYearStr} PROJECTION: ${formatExerciseVolume(s.projectedYearly, s.isSeconds)}`;
+        
+        const elSince = elements.stats["legacy-since"];
+        if (elSince) elSince.innerText = `STARTED ${s.firstDateStr}`;
+        
+        const elActDays = elements.stats["legacy-active-days"];
+        if (elActDays) elActDays.innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
 
-        updateText("label-next-milestone", `NEXT MILESTONE: ${s.nextMilestone.toLocaleString()}`);
+        updateText("stat-all-time", s.allTimeTotal);
+        updateText("stat-pb", s.pb);
+        updateText("stat-ytd", s.ytdTotal);
+        
+        const elCentury = elements.stats["stat-century"];
+        if (elCentury) elCentury.innerText = s.centuryDays;
+        
+        const elAvg = elements.stats["stat-avg"];
+        if (elAvg) elAvg.innerText = `${formatExerciseVolume(s.lifetimeAvg, s.isSeconds)}/day`;
+
+        const elMilestone = elements.stats["label-next-milestone"];
+        if (elMilestone) elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.nextMilestone, s.isSeconds)}`;
+        
         if (elements.ui.milestoneFill) {
             const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
             elements.ui.milestoneFill.style.width = Math.min(milestonePct, 100) + "%";
@@ -473,13 +655,16 @@ function updateTrackerDisplay() {
                 fallbackText = "NO DATA YET";
             } else if (id.includes("since")) {
                 fallbackText = "START TRACKING TODAY";
+            } else if (id === "stat-avg" && s.isSeconds) {
+                fallbackText = "0s/day";
             }
 
-            updateText(id, fallbackText);
+            const el = elements.stats[id];
+            if (el) el.innerText = fallbackText;
         });
 
-        // Reset next milestone label text back to its starting anchor
-        updateText("label-next-milestone", "NEXT MILESTONE: 5,000");
+        const elMilestone = elements.stats["label-next-milestone"];
+        if (elMilestone) elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.isSeconds ? 10000 : 5000, s.isSeconds)}`;
 
         if (elements.ui.milestoneFill) elements.ui.milestoneFill.style.width = "0%";
         [elements.ui.pillElite, elements.ui.pillSolid, elements.ui.pillLight].forEach((el) => {
@@ -1355,6 +1540,26 @@ function truncateUsername(username, maxChar = 12) {
     return `${firstName} ${lastInitial}.`;
 }
 
+// Translates raw database seconds (like 95) into a clean tracking string (1:35)
+function formatExerciseVolume(val, isSeconds) {
+    if (!isSeconds) return Number(val).toLocaleString(); // e.g., 25
+
+    const totalSecs = Number(val);
+    if (isNaN(totalSecs) || totalSecs <= 0) return "0s";
+
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+
+    if (hrs > 0) {
+        return `${hrs}h ${String(mins).padStart(2, '0')}m`; // e.g., 1h 05m
+    }
+    if (mins > 0) {
+        return `${mins}m ${String(secs).padStart(2, '0')}s`; // e.g., 1m 30s
+    }
+    return `${secs}s`; // e.g., 45s
+}
+
 export {
     showPage,
     refreshActivePage,
@@ -1380,4 +1585,5 @@ export {
     triggerFeatureAnnouncement,
     showToast,
     triggerHaptic,
+    formatExerciseVolume,
 };

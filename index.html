@@ -567,6 +567,17 @@
                     <p id="modal-prompt">How many reps did you do?</p>
 
                     <form id="log-form" action="#">
+                        <div id="modal-timer-container" class="hidden">
+                            <div id="modal-timer-display">00:00</div>
+                            
+                            <div class="timer-btn-row">
+                                <button id="modal-timer-toggle" class="btn-secondary" type="button">Start</button>
+                                <button id="modal-timer-reset" class="btn-secondary-outline" type="button">Reset</button>
+                            </div>
+                            
+                            <span id="modal-timer-mode-switch" class="timer-mode-link">Keyboard Entry</span>
+                        </div>
+
                         <input
                             type="text"
                             id="modal-input"

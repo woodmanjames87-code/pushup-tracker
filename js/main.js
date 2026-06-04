@@ -81,6 +81,34 @@ function setupEventListeners() {
     setupLeaderboardListeners();
     setupSettingsListeners();
     setupPullToRefresh();
+    
+    // Add these bindings inside your event listeners setup block
+    const timerToggle = document.getElementById('modal-timer-toggle');
+    const timerReset = document.getElementById('modal-timer-reset');
+    const modalCancel = document.getElementById('modal-cancel');
+
+    if (timerToggle) timerToggle.addEventListener('click', toggleModalTimer);
+    if (timerReset) timerReset.addEventListener('click', resetModalTimer);
+
+    // Make sure cancelling out clears any background clock tasks cleanly
+    if (modalCancel) {
+        modalCancel.addEventListener('click', () => {
+            resetModalTimer();
+            // Include your existing close modal visibility code block here
+        });
+    }
+    const modeSwitchLink = document.getElementById('modal-timer-mode-switch');
+    if (modeSwitchLink) {
+        modeSwitchLink.addEventListener('click', () => {
+            if (!isManualTimerMode) {
+                modeSwitchLink.innerText = "Switch to Stopwatch";
+                setTimerUIMode(true);
+            } else {
+                modeSwitchLink.innerText = "Keyboard Entry";
+                setTimerUIMode(false);
+            }
+        });
+    }
 }
 
 function setupOverviewListeners() {

@@ -298,6 +298,10 @@ function getGoals(data, exerciseId = state.currentExercise) {
 export function computeStats(exerciseId = state.currentExercise) {
     if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
     const data = loadData();
+    
+    // 🎯 Grab the config to know if this exercise is tracked in seconds
+    const config = EXERCISE_LIB[exerciseId];
+    const isSeconds = (config.unit === "seconds" || config.unit === "sec");
 
     // Normalize today to local midnight to prevent timestamp bleeding
     const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -343,6 +347,11 @@ export function computeStats(exerciseId = state.currentExercise) {
     thirtyDaysAgo.setDate(today.getDate() - 29);
     const thirtyDaysAgoStr = getDateKey(thirtyDaysAgo);
 
+    // 🎯 Dynamically establish volume tiers based on the type of exercise
+    // Reps: 100+ is Elite, 50+ is Solid. Seconds (Planks): 300s (5m) is Elite, 120s (2m) is Solid.
+    const eliteThreshold = isSeconds ? 300 : 100;
+    const solidThreshold = isSeconds ? 120 : 50;
+
     // --- THE ONE LOOP ---
     allKeys.forEach((dateKey) => {
         const val = getDayTotal(data, dateKey, exerciseId);
@@ -357,11 +366,11 @@ export function computeStats(exerciseId = state.currentExercise) {
         lastActiveDateStr = dateKey;
         if (val > pb) pb = val;
 
-        // Categorize training volume benchmarks
-        if (val >= 100) {
-            centuryDays++;
+        // Categorize training volume benchmarks using our dynamic thresholds
+        if (val >= eliteThreshold) {
+            centuryDays++; // Keeps track of "Elite Tier Days"
             eliteVol += val;
-        } else if (val >= 50) {
+        } else if (val >= solidThreshold) {
             solidVol += val;
         } else {
             lightVol += val;
@@ -374,7 +383,7 @@ export function computeStats(exerciseId = state.currentExercise) {
             active30++;
         }
 
-        // STREAK LOGIC (The Fix)
+        // STREAK LOGIC
         if (expectedDateStr === "" || dateKey === expectedDateStr) {
             currentStreakCount++;
         } else {
@@ -464,8 +473,12 @@ export function computeStats(exerciseId = state.currentExercise) {
     const windowSize = Math.min(14, totalDaysElapsed);
     const rest14 = Math.max(0, windowSize - active14);
 
+    // 🎯 Dynamically scale your lifetime milestones (e.g., milestone every 5,000 reps OR every 10,000 seconds)
+    const milestoneInterval = isSeconds ? 10000 : 5000;
+
     return {
         exerciseId,
+        isSeconds, // 🎯 Return this flag so your ui.js file knows how to format the display strings easily!
         weekId,
         monthId,
         yearId,
@@ -495,7 +508,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         centuryDays,
         lifetimeAvg,
         totalDaysElapsed,
-        nextMilestone: Math.ceil((allTimeTotal + 1) / 5000) * 5000,
+        nextMilestone: Math.ceil((allTimeTotal + 1) / milestoneInterval) * milestoneInterval,
         projectedYearly: Math.round((ytdTotal / daysInYearSoFar) * 365),
         currentYearStr,
         eliteVol,
