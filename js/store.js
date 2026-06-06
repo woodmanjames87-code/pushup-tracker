@@ -135,10 +135,14 @@ export async function saveData(data, exerciseId = state.currentExercise) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     const user = auth?.currentUser;
-    // 🚀 Only check for a user. Remove !state.isReconciling so the call isn't blocked.
     if (user) { 
-        // Pass {} safely. Your fallback logic inside syncLocalToCloud will handle the rest!
-        await syncLocalToCloud(user.uid, {}, exerciseId); 
+        try {
+            // 🎯 FIX: Pass an empty object for stats, and 'data' as the third argument!
+            await syncLocalToCloud(user.uid, {}, data, {}, exerciseId); 
+            console.log("🚀 Sync to Cloud pushed successfully.");
+        } catch (syncError) {
+            console.error("❌ Direct upload sync failed:", syncError);
+        }
     }
 }
 
