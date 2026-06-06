@@ -13,18 +13,18 @@ import {
 import {
     getFirestore,
     initializeFirestore,
-    persistentLocalCache,
-    persistentMultipleTabManager,
+    persistentLocalCache, // 🚀 Keeps background upload queueing active
     doc,
     setDoc,
     getDoc,
     deleteDoc,
+    writeBatch,           // 🚀 Preserves your original batch code
     collection,
     query,
     orderBy,
     limit,
     getDocs,
-    getDocsFromServer, // 🎯 ADDED FOR SURGICAL LEADERBOARD BYPASS
+    getDocsFromServer,    // 🚀 Added to force leaderboard cloud-bypassing
     where,
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
@@ -42,11 +42,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// 🎯 Configure native Firestore offline cache layers
+// 🎯 THE REAL FIX: Use persistentLocalCache for corporate Wi-Fi queueing,
+// but REMOVE persistentMultipleTabManager() so connection pipelines never freeze.
 export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager() // Keeps sync unified across multiple PWA browser tabs
-    })
+    localCache: persistentLocalCache()
 });
 export const googleProvider = new GoogleAuthProvider();
 
@@ -60,12 +59,13 @@ export {
     setDoc,
     getDoc,
     deleteDoc,
+    writeBatch,
     collection,
     query,
     orderBy,
     limit,
     getDocs,
-    getDocsFromServer, // 🎯 EXPOSED FOR LEADERBOARD CONTROLLER
+    getDocsFromServer, // 🎯 Exposed for leaderboard bypass
     where,
 };
 
@@ -164,25 +164,22 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     const data = (localData && Object.keys(localData).length > 0) ? localData : storeModule.loadData();
     if (!data.lastUpdated && !extraData.isInitialSetup) return;
 
+    // 🚀 BACK TO BATCH WRITING: Reverting to original atomic batch operations
+    const batch = writeBatch(db);
     const confirmedUsername = data.settings?.username || getDisplayUsername(extraData);
-    const syncPromises = [];
 
-    // 1. User Profile Sync via Explicit Set Doc
     const userRef = doc(db, "users", userId);
-    syncPromises.push(
-        setDoc(userRef, {
-            uid: userId,
-            username: confirmedUsername,
-            workouts: data,
-            lastUpdated: data.lastUpdated || new Date().toISOString(),
-            ...extraData,
-        }, { merge: true })
-    );
+    batch.set(userRef, {
+        uid: userId,
+        username: confirmedUsername,
+        workouts: data,
+        lastUpdated: data.lastUpdated || new Date().toISOString(),
+        ...extraData,
+    }, { merge: true });
 
     const localTodayStr = storeModule.getTodayId();
     const localYesterdayStr = storeModule.getYesterdayId();
 
-    // 2. Build explicit parallel sync operations for rankings arrays
     const periods = [
         { id: stats.todayTotal ? localTodayStr : "", score: stats.todayTotal, type: "daily", sid: `daily_${exerciseId}_${userId}` },
         { id: stats.weekId, score: stats.calendarWeeklyTotal, type: "weekly", sid: `${stats.weekId}_${exerciseId}_${userId}` },
@@ -193,7 +190,7 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     periods.forEach((p) => {
         const ref = doc(db, "standings", p.sid);
         if (p.score === undefined || p.score === null || p.score === 0) {
-            syncPromises.push(deleteDoc(ref)); 
+            batch.delete(ref);
         } else {
             const standingsPayload = {
                 uid: userId,
@@ -209,14 +206,13 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
                 standingsPayload.yestScore = stats.yesterdayTotal || 0;
                 standingsPayload.yestId = localYesterdayStr;
             }
-            syncPromises.push(setDoc(ref, standingsPayload, { merge: true }));
+            batch.set(ref, standingsPayload, { merge: true });
         }
     });
 
     try {
-        // Run updates in parallel to clear the persistent caching transaction channel cleanly
-        await Promise.all(syncPromises);
-        console.log(`✅ Cloud Synced Coreboard: ${exerciseId}`);
+        await batch.commit();
+        console.log(`✅ Cloud Synced Coreboard (Batch): ${exerciseId}`);
     } catch (err) {
         console.error("❌ Sync Error:", err);
     }
