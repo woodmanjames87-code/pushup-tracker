@@ -19,14 +19,13 @@ import {
     setDoc,
     getDoc,
     deleteDoc,
-    writeBatch,
     collection,
     query,
     orderBy,
     limit,
     getDocs,
+    getDocsFromServer, // 🎯 ADDED FOR SURGICAL LEADERBOARD BYPASS
     where,
-    getDocsFromServer,
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -42,10 +41,11 @@ const firebaseConfig = {
 // 1. Initialize Instances
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
 // 🎯 Configure native Firestore offline cache layers
 export const db = initializeFirestore(app, {
     localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager() // Keeps sync unified if you open multiple PWA browser tabs
+        tabManager: persistentMultipleTabManager() // Keeps sync unified across multiple PWA browser tabs
     })
 });
 export const googleProvider = new GoogleAuthProvider();
@@ -60,14 +60,13 @@ export {
     setDoc,
     getDoc,
     deleteDoc,
-    writeBatch,
     collection,
     query,
     orderBy,
     limit,
     getDocs,
+    getDocsFromServer, // 🎯 EXPOSED FOR LEADERBOARD CONTROLLER
     where,
-    getDocsFromServer,
 };
 
 console.log("Firebase module initialized.");
@@ -87,7 +86,6 @@ export async function initAuthListener() {
                     if (confirm("Sign out?")) auth.signOut();
                 };
 
-                // 🎯 KEY UNIFICATION FIX: Read storage key dynamically directly from storeModule
                 const storeModule = await import("./store.js");
                 const storageKey = storeModule.STORAGE_KEY || "workout-data";
                 
@@ -166,23 +164,25 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     const data = (localData && Object.keys(localData).length > 0) ? localData : storeModule.loadData();
     if (!data.lastUpdated && !extraData.isInitialSetup) return;
 
-    const batch = writeBatch(db);
     const confirmedUsername = data.settings?.username || getDisplayUsername(extraData);
+    const syncPromises = [];
 
-    // 1. User Profile Sync
+    // 1. User Profile Sync via Explicit Set Doc
     const userRef = doc(db, "users", userId);
-    batch.set(userRef, {
-        uid: userId,
-        username: confirmedUsername,
-        workouts: data,
-        lastUpdated: data.lastUpdated || new Date().toISOString(),
-        ...extraData,
-    });
+    syncPromises.push(
+        setDoc(userRef, {
+            uid: userId,
+            username: confirmedUsername,
+            workouts: data,
+            lastUpdated: data.lastUpdated || new Date().toISOString(),
+            ...extraData,
+        }, { merge: true })
+    );
 
     const localTodayStr = storeModule.getTodayId();
     const localYesterdayStr = storeModule.getYesterdayId();
 
-    // 2. Leaderboards / Standings Engine
+    // 2. Build explicit parallel sync operations for rankings arrays
     const periods = [
         { id: stats.todayTotal ? localTodayStr : "", score: stats.todayTotal, type: "daily", sid: `daily_${exerciseId}_${userId}` },
         { id: stats.weekId, score: stats.calendarWeeklyTotal, type: "weekly", sid: `${stats.weekId}_${exerciseId}_${userId}` },
@@ -193,7 +193,7 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     periods.forEach((p) => {
         const ref = doc(db, "standings", p.sid);
         if (p.score === undefined || p.score === null || p.score === 0) {
-            batch.delete(ref); 
+            syncPromises.push(deleteDoc(ref)); 
         } else {
             const standingsPayload = {
                 uid: userId,
@@ -209,13 +209,14 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
                 standingsPayload.yestScore = stats.yesterdayTotal || 0;
                 standingsPayload.yestId = localYesterdayStr;
             }
-            batch.set(ref, standingsPayload, { merge: true });
+            syncPromises.push(setDoc(ref, standingsPayload, { merge: true }));
         }
     });
 
     try {
-        await batch.commit();
-        console.log(`✅ Cloud Synced Scoreboard: ${exerciseId}`);
+        // Run updates in parallel to clear the persistent caching transaction channel cleanly
+        await Promise.all(syncPromises);
+        console.log(`✅ Cloud Synced Coreboard: ${exerciseId}`);
     } catch (err) {
         console.error("❌ Sync Error:", err);
     }
@@ -251,7 +252,6 @@ export async function reconcileData() {
                 merged.settings = { ...(local.settings || {}), ...(cloud.settings || cloud.workouts?.settings || {}) };
                 merged.lastUpdated = cloud.lastUpdated;
 
-                // 🎯 KEY UNIFICATION FIX: Saved using unified storeModule key reference
                 localStorage.setItem(storageKey, JSON.stringify(merged));
                 refreshStateAndUI();
             } else if (localTime > cloudTime) {
