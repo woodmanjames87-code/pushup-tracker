@@ -1,6 +1,6 @@
 import "./vendor/chart.js";
 // prettier-ignore
-import { auth, db, collection, query, orderBy, limit, getDocs, getDocsFromServer, where, reconcileData, onSnapshot } from "./init-firebase.js";
+import { auth, db, collection, query, orderBy, limit, getDocs, getDocsFromServer, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 // prettier-ignore
 import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
