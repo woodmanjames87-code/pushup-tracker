@@ -26,6 +26,7 @@ import {
     limit,
     getDocs,
     where,
+    getDocsFromServer,
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -66,6 +67,7 @@ export {
     limit,
     getDocs,
     where,
+    getDocsFromServer,
 };
 
 console.log("Firebase module initialized.");

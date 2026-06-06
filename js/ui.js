@@ -1,6 +1,6 @@
 import "./vendor/chart.js";
 // prettier-ignore
-import { auth, db, collection, query, orderBy, limit, getDocs, where, reconcileData } from "./init-firebase.js";
+import { auth, db, collection, query, orderBy, limit, getDocs, getDocsFromServer, where, reconcileData, onSnapshot } from "./init-firebase.js";
 import { elements } from "./dom.js";
 // prettier-ignore
 import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
@@ -811,6 +811,8 @@ function updateBgImage(exId) {
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
+let leaderboardUnsubscribe = null;
+
 async function fetchLeaderboard(passedFilter = null) {
     console.log("fetchLeaderboard triggered...");
     // Hide the staggered podium by default (will be shown if data exists)
@@ -885,7 +887,7 @@ async function fetchLeaderboard(passedFilter = null) {
                 limit(30),
             );
 
-            const [snapToday, snapYest] = await Promise.all([getDocs(qToday), getDocs(qYest)]);
+            const [snapToday, snapYest] = await Promise.all([getDocsFromServer(qToday), getDocsFromServer(qYest)]);
             const userMap = new Map();
 
             // 1. First, add everyone who was active YESTERDAY
@@ -949,7 +951,7 @@ async function fetchLeaderboard(passedFilter = null) {
                 limit(20),
             );
 
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocsFromServer(q);
 
             querySnapshot.forEach((doc) => {
                 const d = doc.data();
@@ -1002,7 +1004,7 @@ async function fetchPreviousPodium(type, currentPeriodId) {
         limit(3),
     );
 
-    const snap = await getDocs(q);
+    const snap = await getDocsFromServer(q);
     return snap.docs.map((doc) => doc.data());
 }
 // Leaderboard Podium Render
@@ -1118,7 +1120,7 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
         const standingsRef = collection(db, "standings");
         const q = query(standingsRef, where("periodId", "==", idValue), where("type", "==", typeKey));
 
-        const snap = await getDocs(q);
+        const snap = await getDocsFromServer(q);
 
         snap.forEach((doc) => {
             const d = doc.data();
