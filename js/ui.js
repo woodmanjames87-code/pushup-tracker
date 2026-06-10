@@ -1586,4 +1586,7 @@ export {
     showToast,
     triggerHaptic,
     formatExerciseVolume,
+    toggleModalTimer,
+    resetModalTimer,
+    setTimerUIMode,
 };

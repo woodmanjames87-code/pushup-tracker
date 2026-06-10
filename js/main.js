@@ -87,13 +87,13 @@ function setupEventListeners() {
     const timerReset = document.getElementById('modal-timer-reset');
     const modalCancel = document.getElementById('modal-cancel');
 
-    if (timerToggle) timerToggle.addEventListener('click', toggleModalTimer);
-    if (timerReset) timerReset.addEventListener('click', resetModalTimer);
+    if (timerToggle) timerToggle.addEventListener('click', UI.toggleModalTimer);
+    if (timerReset) timerReset.addEventListener('click', UI.resetModalTimer);
 
     // Make sure cancelling out clears any background clock tasks cleanly
     if (modalCancel) {
         modalCancel.addEventListener('click', () => {
-            resetModalTimer();
+            UI.resetModalTimer();
             // Include your existing close modal visibility code block here
         });
     }
@@ -102,10 +102,10 @@ function setupEventListeners() {
         modeSwitchLink.addEventListener('click', () => {
             if (!isManualTimerMode) {
                 modeSwitchLink.innerText = "Switch to Stopwatch";
-                setTimerUIMode(true);
+                UI.setTimerUIMode(true);
             } else {
                 modeSwitchLink.innerText = "Keyboard Entry";
-                setTimerUIMode(false);
+                UI.setTimerUIMode(false);
             }
         });
     }
