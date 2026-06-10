@@ -13,18 +13,18 @@ import {
 import {
     getFirestore,
     initializeFirestore,
-    persistentLocalCache,
-    persistentMultipleTabManager,
+    persistentLocalCache, // 🚀 Keeps background upload queueing active
     doc,
     setDoc,
     getDoc,
     deleteDoc,
-    writeBatch,
+    writeBatch,           // 🚀 Preserves your original batch code
     collection,
     query,
     orderBy,
     limit,
     getDocs,
+    getDocsFromServer,    // 🚀 Added to force leaderboard cloud-bypassing
     where,
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
@@ -41,11 +41,11 @@ const firebaseConfig = {
 // 1. Initialize Instances
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// 🎯 Configure native Firestore offline cache layers
+
+// 🎯 THE REAL FIX: Use persistentLocalCache for corporate Wi-Fi queueing,
+// but REMOVE persistentMultipleTabManager() so connection pipelines never freeze.
 export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager() // Keeps sync unified if you open multiple PWA browser tabs
-    })
+    localCache: persistentLocalCache()
 });
 export const googleProvider = new GoogleAuthProvider();
 
@@ -65,6 +65,7 @@ export {
     orderBy,
     limit,
     getDocs,
+    getDocsFromServer, // 🎯 Exposed for leaderboard bypass
     where,
 };
 
@@ -85,7 +86,6 @@ export async function initAuthListener() {
                     if (confirm("Sign out?")) auth.signOut();
                 };
 
-                // 🎯 KEY UNIFICATION FIX: Read storage key dynamically directly from storeModule
                 const storeModule = await import("./store.js");
                 const storageKey = storeModule.STORAGE_KEY || "workout-data";
                 
@@ -164,10 +164,10 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     const data = (localData && Object.keys(localData).length > 0) ? localData : storeModule.loadData();
     if (!data.lastUpdated && !extraData.isInitialSetup) return;
 
+    // 🚀 BACK TO BATCH WRITING: Reverting to original atomic batch operations
     const batch = writeBatch(db);
     const confirmedUsername = data.settings?.username || getDisplayUsername(extraData);
 
-    // 1. User Profile Sync
     const userRef = doc(db, "users", userId);
     batch.set(userRef, {
         uid: userId,
@@ -175,12 +175,11 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
         workouts: data,
         lastUpdated: data.lastUpdated || new Date().toISOString(),
         ...extraData,
-    });
+    }, { merge: true });
 
     const localTodayStr = storeModule.getTodayId();
     const localYesterdayStr = storeModule.getYesterdayId();
 
-    // 2. Leaderboards / Standings Engine
     const periods = [
         { id: stats.todayTotal ? localTodayStr : "", score: stats.todayTotal, type: "daily", sid: `daily_${exerciseId}_${userId}` },
         { id: stats.weekId, score: stats.calendarWeeklyTotal, type: "weekly", sid: `${stats.weekId}_${exerciseId}_${userId}` },
@@ -191,7 +190,7 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     periods.forEach((p) => {
         const ref = doc(db, "standings", p.sid);
         if (p.score === undefined || p.score === null || p.score === 0) {
-            batch.delete(ref); 
+            batch.delete(ref);
         } else {
             const standingsPayload = {
                 uid: userId,
@@ -213,7 +212,7 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
 
     try {
         await batch.commit();
-        console.log(`✅ Cloud Synced Scoreboard: ${exerciseId}`);
+        console.log(`✅ Cloud Synced Coreboard (Batch): ${exerciseId}`);
     } catch (err) {
         console.error("❌ Sync Error:", err);
     }
@@ -249,7 +248,6 @@ export async function reconcileData() {
                 merged.settings = { ...(local.settings || {}), ...(cloud.settings || cloud.workouts?.settings || {}) };
                 merged.lastUpdated = cloud.lastUpdated;
 
-                // 🎯 KEY UNIFICATION FIX: Saved using unified storeModule key reference
                 localStorage.setItem(storageKey, JSON.stringify(merged));
                 refreshStateAndUI();
             } else if (localTime > cloudTime) {

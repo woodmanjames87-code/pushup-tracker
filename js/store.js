@@ -131,12 +131,18 @@ export function loadData() {
 }
 
 export async function saveData(data, exerciseId = state.currentExercise) {
-    data.lastUpdated = new Date().toISOString(); // ISO here is fine for metadata syncing!
+    data.lastUpdated = new Date().toISOString(); 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     const user = auth?.currentUser;
-    if (user && !state.isReconciling) {
-        await syncLocalToCloud(user.uid, {}, exerciseId);
+    if (user) { 
+        try {
+            // 🎯 FIX: Pass an empty object for stats, and 'data' as the third argument!
+            await syncLocalToCloud(user.uid, {}, data, {}, exerciseId); 
+            console.log("🚀 Sync to Cloud pushed successfully.");
+        } catch (syncError) {
+            console.error("❌ Direct upload sync failed:", syncError);
+        }
     }
 }
 
