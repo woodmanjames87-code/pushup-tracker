@@ -2,24 +2,26 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="theme-color" content="#1e1e1e">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="DailyGrind">
-        <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="theme-color" content="#1e1e1e" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="DailyGrind" />
+        <meta
+            name="viewport"
+            content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
         <title>DailyGrind</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet" />
 
         <link rel="manifest" href="webmanifest.json" />
-        
+
         <link rel="apple-touch-icon" sizes="180x180" href="img/dailygrind-icon.PNG" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 
         <link rel="stylesheet" href="css/variables.css" />
         <link rel="stylesheet" href="css/base.css" />
@@ -34,9 +36,8 @@
                 <div class="init-spinner"></div>
             </div>
         </div>
-        
-        <div id="app-wrapper">
 
+        <div id="app-wrapper">
             <div id="pull-to-refresh">
                 <div class="spinner"></div>
             </div>
@@ -52,7 +53,7 @@
                         <span class="hamburger-icon">☰</span>
                         <span id="active-exercise-name"></span>
                     </button>
-                    
+
                     <div class="exercise-menu-list" id="menu-items"></div>
                 </nav>
 
@@ -65,8 +66,7 @@
             <!-- TRACKER PAGE -->
             <section id="tracker-page" class="app-container" data-page="tracker">
                 <header class="page-header">
-                    <div class="header-content">
-                    </div>
+                    <div class="header-content"></div>
                 </header>
 
                 <main>
@@ -143,9 +143,7 @@
 
                     <h3>30-Day Performance Trend</h3>
                     <div id="trend-card-30" class="widget-card trend-section">
-                        <span class="tap-icon">
-                            ◉
-                        </span>
+                        <span class="tap-icon"> ◉ </span>
                         <div class="trend-summary-view">
                             <p class="label-tiny">
                                 Total:
@@ -221,7 +219,7 @@
                             <div class="monthly-bar-container">
                                 <div class="monthly-bar-wrapper">
                                     <span class="chart-value-label"></span>
-                                    <div class="bar-unit legacy" ></div>
+                                    <div class="bar-unit legacy"></div>
                                 </div>
                                 <span class="month-name-label">-</span>
                             </div>
@@ -232,7 +230,6 @@
                                 </div>
                                 <span class="month-name-label">-</span>
                             </div>
-
                         </div>
                     </div>
 
@@ -255,30 +252,22 @@
                             </div>
                             <div>
                                 <div class="label-tiny">PERSONAL BEST</div>
-                                <div id="stat-pb">
-                                    0
-                                </div>
+                                <div id="stat-pb">0</div>
                             </div>
                             <div>
                                 <div id="label-ytd" class="label-tiny">YTD TOTAL</div>
-                                <div id="stat-ytd">
-                                    0
-                                </div>
+                                <div id="stat-ytd">0</div>
                             </div>
                             <div>
                                 <div class="label-tiny">100+ CLUB</div>
-                                <div id="stat-century">
-                                    0
-                                </div>
+                                <div id="stat-century">0</div>
                             </div>
                             <div>
                                 <div class="label-tiny">LIFETIME AVG</div>
                                 <div id="stat-avg">0/day</div>
                             </div>
                             <div>
-                                <div id="label-next-milestone" class="label-tiny">
-                                    NEXT MILESTONE: 0
-                                </div>
+                                <div id="label-next-milestone" class="label-tiny">NEXT MILESTONE: 0</div>
                                 <div class="progress-container mini-bar">
                                     <div id="milestone-fill" class="bar-fill green"></div>
                                 </div>
@@ -305,14 +294,13 @@
             <!-- SETTINGS PAGE -->
             <section id="settings-page" class="app-container" data-page="settings" hidden>
                 <header class="page-header">
-                    <div class="header-content">
-                    </div>
+                    <div class="header-content"></div>
                 </header>
 
                 <main>
                     <section class="settings-section">
                         <h1>Settings</h1>
-                        <hr class="divider accordion"/>
+                        <hr class="divider accordion" />
 
                         <div class="accordion-item">
                             <div class="accordion-header">
@@ -395,16 +383,28 @@
                                     <div id="custom-threshold-container" class="setting-row" style="display: none">
                                         <label for="on-track-input">Custom Weekly Target:</label>
                                         <div class="number-stepper">
-                                            <button type="button" id="btn-ontrack-minus" class="stepper-btn" type="button">-</button>
+                                            <button
+                                                type="button"
+                                                id="btn-ontrack-minus"
+                                                class="stepper-btn"
+                                                type="button">
+                                                -
+                                            </button>
                                             <input type="number" id="on-track-input" readonly value="4" />
-                                            <button type="button" id="btn-ontrack-plus" class="stepper-btn" type="button">+</button>
+                                            <button
+                                                type="button"
+                                                id="btn-ontrack-plus"
+                                                class="stepper-btn"
+                                                type="button">
+                                                +
+                                            </button>
                                         </div>
                                     </div>
 
                                     <p class="label-tiny">
                                         Status: <strong>On Track</strong> at
-                                        <span id="on-track-display-hint">4</span> days/week. <strong>Improving</strong> at
-                                        <span id="improve-display">5</span>+.
+                                        <span id="on-track-display-hint">4</span> days/week.
+                                        <strong>Improving</strong> at <span id="improve-display">5</span>+.
                                     </p>
                                 </div>
                             </div>
@@ -440,16 +440,24 @@
                             </div>
                             <div class="widget-card collapsed">
                                 <div class="import-export-section">
-                                    <button id="export-data-btn" class="btn-secondary" type="button">Export Backup (.json)</button>
+                                    <button id="export-data-btn" class="btn-secondary" type="button">
+                                        Export Backup (.json)
+                                    </button>
                                     <input type="file" id="import-input" hidden accept=".json" />
                                     <button id="import-btn" class="btn-secondary" type="button">
                                         Import Data (.json)
                                     </button>
                                 </div>
                                 <div class="danger-zone">
-                                    <button onclick="clearLocalData()" class="btn-danger" type="button">Clear All Local Data</button>
+                                    <button onclick="nukeExerciseCloudData()" class="btn-danger" type="button">
+                                        CLEAR <span class="settings-exercise-name">CURRENT EXERCISE</span> DATA <br />
+                                        (Keeps other exercises and user info intact)
+                                    </button>
+                                    <button onclick="clearLocalData()" class="btn-danger" type="button">
+                                        Clear All Local Data
+                                    </button>
                                     <button onclick="window.nukeCloudData()" class="btn-danger" type="button">
-                                        CLEAR CLOUD + LOCAL DATA <br>
+                                        CLEAR CLOUD + LOCAL DATA <br />
                                         DELETE EVERYTHING
                                     </button>
                                 </div>
@@ -458,9 +466,7 @@
                         <hr class="divider accordion" />
 
                         <div class="update-app-section">
-                            <button id="btn-update-app" class="btn-secondary" type="button">
-                                Check for Updates
-                            </button>
+                            <button id="btn-update-app" class="btn-secondary" type="button">Check for Updates</button>
                             <div id="app-version" class="label-tiny">Version --</div>
                         </div>
 
@@ -468,12 +474,15 @@
                             <h3 class="label-danger">🛠️ Debug Operations</h3>
                             <p class="label-tiny">Current User: <span id="debug-uid"></span></p>
                             <div class="danger-zone">
-                                    <button onclick="injectMockLeaderboard()" class="btn-secondary" type="button">
-                                        Mock Leaderboard
-                                    </button>
-                                    <button onclick="seedTestData()" class="btn-secondary" type="button">Seed Pushup Data</button>
-                                    <button onclick="location.reload()" class="btn-secondary" type="button">Force Reload</button>
-                                </div>
+                                <button onclick="injectMockLeaderboard()" class="btn-secondary" type="button">
+                                    Mock Leaderboard
+                                </button>
+                                <button onclick="seedTestData()" class="btn-secondary" type="button">
+                                    Seed Pushup Data
+                                </button>
+                                <button onclick="location.reload()" class="btn-secondary" type="button">
+                                    Force Reload
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -483,8 +492,7 @@
             <!--LEADERBOARD PAGE-->
             <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
                 <header class="page-header">
-                    <div class="header-content">
-                    </div>
+                    <div class="header-content"></div>
                 </header>
 
                 <div class="leaderboard-nav">
@@ -500,7 +508,7 @@
                         <button class="seg-btn" data-filter="stats.year" type="button">Year</button>
                     </div>
 
-                    <div class="segmented-control" id="matrix-filter" style="display: none;">
+                    <div class="segmented-control" id="matrix-filter" style="display: none">
                         <button class="seg-btn active" data-matrix-filter="weekly" type="button">This Week</button>
                         <button class="seg-btn" data-matrix-filter="yearly" type="button">YTD</button>
                     </div>
@@ -516,23 +524,20 @@
                     </div>
                 </div>
 
-                <div id="leaderboard-matrix-view" hidden>
-                    </div>
+                <div id="leaderboard-matrix-view" hidden></div>
             </section>
 
             <!-- OVERVIEW PAGE -->
             <section id="overview-page" class="app-container" data-page="overview" hidden>
                 <header class="page-header">
-                    <div class="header-content">
-                    </div>
+                    <div class="header-content"></div>
                 </header>
                 <main>
                     <div id="overview-content" class="overview-grid">
-                        <!-- Exercise cards will be injected here -->   
+                        <!-- Exercise cards will be injected here -->
                     </div>
                 </main>
             </section>
-
 
             <!-- MINI PODIUM OVERLAY -->
             <div id="mini-podium-overlay" class="mini-podium" hidden>
@@ -567,6 +572,17 @@
                     <p id="modal-prompt">How many reps did you do?</p>
 
                     <form id="log-form" action="#">
+                        <div id="modal-timer-container" class="hidden">
+                            <span id="modal-timer-mode-switch" class="timer-mode-link btn-secondary">⌨</span>
+
+                            <div id="modal-timer-display">00:00</div>
+
+                            <div class="timer-btn-row">
+                                <button id="modal-timer-toggle" class="btn-secondary" type="button">Start</button>
+                                <!-- <button id="modal-timer-reset" class="btn-secondary-outline" type="button">Reset</button> -->
+                            </div>
+                        </div>
+
                         <input
                             type="text"
                             id="modal-input"
@@ -593,7 +609,8 @@
             <nav class="bottom-nav">
                 <button class="nav-item" type="button" data-target="overview">
                     <svg viewBox="0 -960 960 960" class="nav-icon">
-                        <path d="M520-600v-240h320v240H520Zm-400 160v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Z"/>
+                        <path
+                            d="M520-600v-240h320v240H520Zm-400 160v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Z" />
                     </svg>
                     <small>Overview</small>
                 </button>
@@ -626,8 +643,7 @@
             <div id="reusable-tour-modal" class="modal-overlay">
                 <div class="modal-content">
                     <h2 class="tour-title"></h2>
-                    <ul class="tour-features-list">
-                        </ul>
+                    <ul class="tour-features-list"></ul>
                     <button class="tour-close-btn btn-primary-small">Awesome, Let's Go!</button>
                 </div>
             </div>
@@ -637,14 +653,18 @@
                 <div class="install-content">
                     <span id="install-text"></span>
                     <div class="install-actions">
-                        <button id="btn-install-now" class="btn-primary-small" title="Install app" type="button"></button>
+                        <button
+                            id="btn-install-now"
+                            class="btn-primary-small"
+                            title="Install app"
+                            type="button"></button>
                         <button id="btn-install-close" title="Close Banner" type="button">✕</button>
                     </div>
                 </div>
             </div>
 
             <div id="toast-container"></div>
-            
+
             <!-- Overview Template -->
             <template id="exercise-card-template">
                 <div class="widget-card overview-card" data-exercise="">
@@ -689,7 +709,10 @@
                     <button class="btn-log-quick">+ Log Set</button>
                 </div>
             </template>
-        </div> <!-- End of app-wrapper -->
-        <script type="module" src="js/main.js"> defer</script>
+        </div>
+        <!-- End of app-wrapper -->
+        <script type="module" src="js/main.js">
+            defer
+        </script>
     </body>
 </html>

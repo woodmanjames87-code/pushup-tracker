@@ -29,7 +29,7 @@ export const state = {
     enabledExercises: savedEnabled ? JSON.parse(savedEnabled) : Object.keys(EXERCISE_LIB),
     currentPageIndex: 0,
     // UI/App Flow
-    selectedEditDate: "",
+    selectedEditDate: getTodayId(),
     lastInitTime: 0,
     appInitialized: false,
     currentLayer: "primary",
@@ -38,6 +38,7 @@ export const state = {
     weeklyChartTimeout: null,
     monthlyChartTimeout: null,
     trendChartInstance: null,
+    isManualTimerMode: false,
 };
 
 /*************************************************
@@ -131,14 +132,14 @@ export function loadData() {
 }
 
 export async function saveData(data, exerciseId = state.currentExercise) {
-    data.lastUpdated = new Date().toISOString(); 
+    data.lastUpdated = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     const user = auth?.currentUser;
-    if (user) { 
+    if (user) {
         try {
             // 🎯 FIX: Pass an empty object for stats, and 'data' as the third argument!
-            await syncLocalToCloud(user.uid, {}, data, {}, exerciseId); 
+            await syncLocalToCloud(user.uid, {}, data, {}, exerciseId);
             console.log("🚀 Sync to Cloud pushed successfully.");
         } catch (syncError) {
             console.error("❌ Direct upload sync failed:", syncError);
@@ -305,6 +306,10 @@ export function computeStats(exerciseId = state.currentExercise) {
     if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
     const data = loadData();
 
+    // 🎯 Grab the config to know if this exercise is tracked in seconds
+    const config = EXERCISE_LIB[exerciseId];
+    const isSeconds = config.unit === "seconds" || config.unit === "sec";
+
     // Normalize today to local midnight to prevent timestamp bleeding
     const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     const todayStr = getDateKey(today);
@@ -349,6 +354,11 @@ export function computeStats(exerciseId = state.currentExercise) {
     thirtyDaysAgo.setDate(today.getDate() - 29);
     const thirtyDaysAgoStr = getDateKey(thirtyDaysAgo);
 
+    // 🎯 Dynamically establish volume tiers based on the type of exercise
+    // Reps: 100+ is Elite, 50+ is Solid. Seconds (Planks): 300s (5m) is Elite, 120s (2m) is Solid.
+    const eliteThreshold = isSeconds ? 300 : 100;
+    const solidThreshold = isSeconds ? 120 : 50;
+
     // --- THE ONE LOOP ---
     allKeys.forEach((dateKey) => {
         const val = getDayTotal(data, dateKey, exerciseId);
@@ -363,11 +373,11 @@ export function computeStats(exerciseId = state.currentExercise) {
         lastActiveDateStr = dateKey;
         if (val > pb) pb = val;
 
-        // Categorize training volume benchmarks
-        if (val >= 100) {
-            centuryDays++;
+        // Categorize training volume benchmarks using our dynamic thresholds
+        if (val >= eliteThreshold) {
+            centuryDays++; // Keeps track of "Elite Tier Days"
             eliteVol += val;
-        } else if (val >= 50) {
+        } else if (val >= solidThreshold) {
             solidVol += val;
         } else {
             lightVol += val;
@@ -380,7 +390,7 @@ export function computeStats(exerciseId = state.currentExercise) {
             active30++;
         }
 
-        // STREAK LOGIC (The Fix)
+        // STREAK LOGIC
         if (expectedDateStr === "" || dateKey === expectedDateStr) {
             currentStreakCount++;
         } else {
@@ -470,8 +480,12 @@ export function computeStats(exerciseId = state.currentExercise) {
     const windowSize = Math.min(14, totalDaysElapsed);
     const rest14 = Math.max(0, windowSize - active14);
 
+    // 🎯 Dynamically scale your lifetime milestones (e.g., milestone every 5,000 reps OR every 10,000 seconds)
+    const milestoneInterval = isSeconds ? 10000 : 5000;
+
     return {
         exerciseId,
+        isSeconds, // 🎯 Return this flag so your ui.js file knows how to format the display strings easily!
         weekId,
         monthId,
         yearId,
@@ -501,7 +515,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         centuryDays,
         lifetimeAvg,
         totalDaysElapsed,
-        nextMilestone: Math.ceil((allTimeTotal + 1) / 5000) * 5000,
+        nextMilestone: Math.ceil((allTimeTotal + 1) / milestoneInterval) * milestoneInterval,
         projectedYearly: Math.round((ytdTotal / daysInYearSoFar) * 365),
         currentYearStr,
         eliteVol,
@@ -703,6 +717,76 @@ window.nukeCloudData = async function () {
     } catch (err) {
         console.error("❌ Nuke failed:", err);
         showToast("❌ Nuke failed:", err);
+    }
+};
+window.nukeExerciseCloudData = async function (exerciseId) {
+    if (!auth?.currentUser) return (console.error("No user logged in."), showToast("No user logged in."));
+    if (!exerciseId) return;
+
+    const user = auth.currentUser;
+    const exerciseName = EXERCISE_LIB[exerciseId]?.name || exerciseId;
+
+    const confirm1 = confirm(
+        `STOP! This will delete your ENTIRE cloud presence and Leaderboard standings for ${exerciseName}. Are you sure?`,
+    );
+    if (!confirm1) return;
+
+    const confirm2 = prompt(`Type 'DELETE ${exerciseId.toUpperCase()}' to confirm (All caps):`);
+    if (confirm2 !== `DELETE ${exerciseId.toUpperCase()}`) return;
+
+    const uid = user.uid;
+
+    try {
+        console.log(`🧨 Starting Cloud Nuke for ${exerciseName} (UID: ${uid})`);
+
+        // 1. Update the Main User Doc to drop this specific exercise data from the workouts object
+        const userRef = doc(db, "users", uid);
+        const localData = loadData();
+
+        // Strip exercise locally first to create a clean image payload
+        Object.keys(localData).forEach((dateKey) => {
+            if (localData[dateKey] && localData[dateKey][exerciseId]) {
+                delete localData[dateKey][exerciseId];
+            }
+        });
+        localData.lastUpdated = new Date().toISOString();
+
+        // Overwrite the user cloud document with the stripped image
+        await setDoc(userRef, { workouts: localData, lastUpdated: localData.lastUpdated }, { merge: true });
+
+        // 2. Query and delete ONLY the standings documents matching this user AND this exercise
+        const standingsRef = collection(db, "standings");
+        const q = query(standingsRef, where("uid", "==", uid), where("exerciseId", "==", exerciseId));
+        const snapshot = await getDocs(q);
+
+        const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref));
+        await Promise.all(deletePromises);
+
+        console.log(`✅ Cloud wiped for ${exerciseName}. ${snapshot.size} leaderboard documents removed.`);
+        showToast(`✅ Cloud wiped for ${exerciseName}.`);
+
+        // 3. Optional Local Wipe step
+        const confirm3 = confirm(
+            `Do you also want to clear your local device history for ${exerciseName} to stay in sync?`,
+        );
+        if (confirm3) {
+            // Bypass the logged-in safety check by running the logic directly since cloud is already updated
+            Object.keys(localData).forEach((dateKey) => {
+                if (
+                    dateKey !== "settings" &&
+                    dateKey !== "lastUpdated" &&
+                    Object.keys(localData[dateKey]).length === 0
+                ) {
+                    delete localData[dateKey];
+                }
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+            showToast(`Local records for ${exerciseName} cleared.`);
+            if (typeof refreshStateAndUI === "function") refreshStateAndUI();
+        }
+    } catch (err) {
+        console.error(`❌ Exercise cloud nuke failed:`, err);
+        showToast(`❌ Nuke failed.`);
     }
 };
 
