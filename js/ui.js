@@ -131,7 +131,7 @@ function openLogModal(exId) {
     elements.modal.prompt.innerText = `How many ${config.unit} did you do?`;
     elements.modal.container.dataset.activeContext = exId;
 
-    const timerContainer = document.getElementById("modal-timer-container");
+    const timerContainer = elements.modal.timerContainer;
 
     if (config.unit === "seconds" || config.unit === "sec") {
         if (timerContainer) timerContainer.classList.remove("hidden");
@@ -145,10 +145,11 @@ function openLogModal(exId) {
             elements.modal.input.classList.remove("hidden");
             elements.modal.input.required = true;
             elements.modal.input.value = "";
+            elements.modal.input.placeholder = "0";
             elements.modal.input.focus();
         }
-        const okBtn = document.getElementById("modal-ok");
-        if (okBtn) okBtn.disabled = false;
+
+        if (elements.modal.okBtn) elements.modal.okBtn.disabled = false;
     }
 }
 
@@ -156,16 +157,16 @@ function openLogModal(exId) {
 function setTimerUIMode(useManualInput) {
     state.isManualTimerMode = useManualInput;
 
-    const display = document.getElementById("modal-timer-display");
-    const btnRow = document.querySelector(".timer-btn-row");
-    const okBtn = document.getElementById("modal-ok");
+    const timerDisplay = elements.modal.timerDisplay;
+    const btnRow = elements.modal.btnRow;
+    const okBtn = elements.modal.okBtn;
     const numInput = elements.modal.input;
 
     if (useManualInput) {
         // Stop any active clock tracking
         if (modalTimerInterval) toggleModalTimer();
 
-        if (display) display.classList.add("hidden");
+        if (timerDisplay) timerDisplay.classList.add("hidden");
         if (btnRow) btnRow.classList.add("hidden");
 
         if (numInput) {
@@ -178,7 +179,7 @@ function setTimerUIMode(useManualInput) {
         }
         if (okBtn) okBtn.disabled = false;
     } else {
-        if (display) display.classList.remove("hidden");
+        if (timerDisplay) timerDisplay.classList.remove("hidden");
         if (btnRow) btnRow.classList.remove("hidden");
 
         if (numInput) {
@@ -215,26 +216,32 @@ function releaseWakeLock() {
 }
 
 function toggleModalTimer() {
-    const toggleBtn = document.getElementById("modal-timer-toggle");
-    const display = document.getElementById("modal-timer-display");
-    const okBtn = document.getElementById("modal-ok");
+    const toggleBtn = elements.modal.timerToggle;
+    const timerDisplay = elements.modal.timerDisplay;
+    const okBtn = elements.modal.okBtn;
+    const cancelBtn = elements.modal.cancelBtn;
+    const modeSwitch = elements.modal.timerModeSwitch;
 
-    if (!toggleBtn || !display) return;
+    if (!toggleBtn || !timerDisplay) return;
 
     if (modalTimerInterval === null) {
         // 🚀 START TIMER
         toggleBtn.innerText = "Pause";
         toggleBtn.classList.add("running");
+        
+        // 🎯 LOCK DOWN CONTROLS: Disable and fade out competing actions
         if (okBtn) okBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+        if (modeSwitch) modeSwitch.disabled = true;
 
-        // 🎯 Lock the device screen ON immediately
+        // Lock the device screen ON immediately
         requestWakeLock();
 
         modalTimerInterval = setInterval(() => {
             modalTimerSeconds++;
             const m = String(Math.floor(modalTimerSeconds / 60)).padStart(2, "0");
             const s = String(Math.floor(modalTimerSeconds % 60)).padStart(2, "0");
-            display.innerText = `${m}:${s}`;
+            timerDisplay.innerText = `${m}:${s}`;
 
             if (elements.modal.input) {
                 elements.modal.input.value = modalTimerSeconds;
@@ -247,37 +254,60 @@ function toggleModalTimer() {
         toggleBtn.innerText = "Resume";
         toggleBtn.classList.remove("running");
 
-        // 🎯 Release the screen block so battery isn't wasted if they walk away
-        releaseWakeLock();
-
+        // 🎯 RESTORE CONTROLS: Bring back full opacity and clickability
         if (okBtn && modalTimerSeconds > 0) okBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (modeSwitch) modeSwitch.disabled = false;
+
+        // Release the screen block so battery isn't wasted if they walk away
+        releaseWakeLock();
     }
 }
 
 // Ensure clean background releases if they close or reset
 function resetModalTimer() {
+    // 1. Clear the active background interval loop if it's running
     if (modalTimerInterval) {
         clearInterval(modalTimerInterval);
         modalTimerInterval = null;
     }
     modalTimerSeconds = 0;
 
-    // Safety release
+    // 2. Safety release the iOS screen wake lock
     releaseWakeLock();
 
-    const display = document.getElementById("modal-timer-display");
-    const toggleBtn = document.getElementById("modal-timer-toggle");
-    const modeSwitchLink = document.getElementById("modal-timer-mode-switch");
+    // 3. Cache the UI elements needed for the reset
+    const timerDisplay = elements.modal.timerDisplay;
+    const toggleBtn = elements.modal.timerToggle;
+    const modeSwitch = elements.modal.timerModeSwitch;
+    const cancelBtn = elements.modal.cancelBtn;
 
-    if (display) display.innerText = "00:00";
+    // 4. Restore the default text and state baselines
+    if (timerDisplay) timerDisplay.innerText = "00:00";
+    
     if (toggleBtn) {
         toggleBtn.innerText = "Start";
         toggleBtn.classList.remove("running");
     }
-    if (modeSwitchLink) modeSwitchLink.innerText = "⌨";
+    
+    if (modeSwitch) {
+        modeSwitch.innerText = "⌨";
+        modeSwitch.disabled = false; // 🎯 Clean native unlock
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.disabled = false; // 🎯 Clean native unlock
+    }
 }
 
 function closeLogModal() {
+    // 🎯 1. SAFETY GUARD: Refuse to do anything if the timer is ticking
+    if (modalTimerInterval !== null) {
+        console.warn("Cannot close modal: Timer is actively running.");
+        return;
+    }
+
+    // 🎯 2. SUCCESS PATH: The timer is paused or it's a rep exercise. Safe to shut down.
     if (elements.modal.container) {
         elements.modal.container.style.display = "none";
         if (elements.modal.input) {
@@ -285,6 +315,9 @@ function closeLogModal() {
         }
     }
     delete elements.modal.container.dataset.activeContext;
+
+    // 🎯 3. CLEANUP: Now that the window is hidden, safely reset clock/wake-locks
+    resetModalTimer();
 }
 
 function updateFloatingBtn() {

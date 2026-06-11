@@ -1312,7 +1312,7 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* margin: 1.5rem 0; */
+    margin-top: 10px;
 }
 
 #modal-timer-display {
@@ -1323,7 +1323,8 @@ input:checked + .slider:before {
     letter-spacing: 0.05em;
 }
 
-.timer-btn-row {
+/* --- TIMER LAYOUT CONTROLS --- */
+#timer-btn-row {
     display: flex;
     gap: 0.75rem;
     width: 100%;
@@ -1331,19 +1332,25 @@ input:checked + .slider:before {
     margin-bottom: 1rem;
 }
 
-.timer-btn-row button {
+#timer-btn-row button {
     flex: 1;
     padding: 0.6rem 1rem;
     font-weight: 600;
 }
 
+/* --- STOPWATCH TOGGLE COMPONENT --- */
 #modal-timer-toggle {
     background-color: var(--fitness-green);
     color: var(--text);
-    transition: background-color 0.2s ease;
+    font-size: 2rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Active state modifier (No !important needed when placed underneath the base rule) */
 #modal-timer-toggle.running {
-    background-color: var(--danger) !important; /* Visual indicator for pause actions */
+    background-color: var(--danger);
     color: #ffffff;
 }
 
@@ -1351,6 +1358,14 @@ input:checked + .slider:before {
     color: var(--primary-light);
     font-size: 2rem;
     padding: 0px 14px;
+}
+
+#modal-ok:disabled,
+#modal-cancel:disabled,
+#modal-timer-mode-switch:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* --- Feature Announcement Modal Styles --- */

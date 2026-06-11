@@ -75,40 +75,13 @@ function finishAppInitialization(startTime) {
 function setupEventListeners() {
     setupOverviewListeners();
     setupModalListeners();
+    setupNavigationListeners();
     setupGlobalMenuListeners();
     setup30DayTrendToggle();
-    setupSettingsAccordionListeners();
     setupLeaderboardListeners();
+    setupSettingsAccordionListeners();
     setupSettingsListeners();
     setupPullToRefresh();
-
-    // Add these bindings inside your event listeners setup block
-    const timerToggle = document.getElementById("modal-timer-toggle");
-    const timerReset = document.getElementById("modal-timer-reset");
-    const modalCancel = document.getElementById("modal-cancel");
-
-    if (timerToggle) timerToggle.addEventListener("click", UI.toggleModalTimer);
-    if (timerReset) timerReset.addEventListener("click", UI.resetModalTimer);
-
-    // Make sure cancelling out clears any background clock tasks cleanly
-    if (modalCancel) {
-        modalCancel.addEventListener("click", () => {
-            UI.resetModalTimer();
-            // Include your existing close modal visibility code block here
-        });
-    }
-    const modeSwitchLink = document.getElementById("modal-timer-mode-switch");
-    if (modeSwitchLink) {
-        modeSwitchLink.addEventListener("click", () => {
-            if (!Store.state.isManualTimerMode) {
-                modeSwitchLink.innerText = "⏱";
-                UI.setTimerUIMode(true);
-            } else {
-                modeSwitchLink.innerText = "⌨";
-                UI.setTimerUIMode(false);
-            }
-        });
-    }
 }
 
 function setupOverviewListeners() {
@@ -149,49 +122,74 @@ function setupOverviewListeners() {
 }
 
 function setupModalListeners() {
+    // 🎯 THE PRO CLEANUP: Destructure everything we need straight out of elements.modal
+    const { 
+        floatingLogBtn, 
+        form, 
+        input, 
+        cancelBtn, 
+        container, 
+        timerToggle, 
+        timerModeSwitch 
+    } = elements.modal;
+
     // --- 1. OPENING THE MODAL ---
-    elements.modal.floatingLogBtn.onclick = () => {
+    floatingLogBtn.onclick = () => {
         Store.prepareModalState();
         UI.openLogModal(Store.state.currentExercise);
     };
 
     // --- 2. SUBMITTING THE DATA ---
-    elements.modal.form.onsubmit = (e) => {
+    form.onsubmit = (e) => {
         e.preventDefault();
-        const reps = parseInt(elements.modal.input.value);
+        const reps = parseInt(input.value);
 
         if (reps > 0) {
-            const shortcutContext = elements.modal.container.dataset.activeContext;
+            const shortcutContext = container.dataset.activeContext;
             Store.handleModalSubmission(reps, shortcutContext);
 
             UI.triggerHaptic("success");
             UI.closeLogModal();
-
             UI.refreshActivePage();
 
             scrollTo({ top: 0, behavior: "smooth" });
         }
     };
 
-    // --- 3. CANCEL BUTTON (The Dismissal) ---
-    if (elements.modal.cancelBtn) {
-        elements.modal.cancelBtn.onclick = () => {
+    // --- 3. CANCEL BUTTON (The Dismissal & Stopwatch Cleanup) ---
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
             UI.closeLogModal();
         };
     }
 
-    // --- 4. OUTSIDE CLICK (The "Quick Exit") ---
-    // This closes the modal if the user clicks the dark overlay area
+    // --- 4. INTERACTIVE STOPWATCH CONTROLS ---
+    if (timerToggle) {
+        timerToggle.addEventListener("click", UI.toggleModalTimer);
+    }
+
+    if (timerModeSwitch) {
+        timerModeSwitch.addEventListener("click", () => {
+            if (!Store.state.isManualTimerMode) {
+                timerModeSwitch.innerText = "⏱";
+                UI.setTimerUIMode(true);
+            } else {
+                timerModeSwitch.innerText = "⌨";
+                UI.setTimerUIMode(false);
+            }
+        });
+    }
+
+    // --- 5. OUTSIDE CLICK (The "Quick Exit") ---
     addEventListener("click", (e) => {
-        if (e.target === elements.modal.container && UI.closeLogModal) {
+        if (e.target === container && UI.closeLogModal) {
             UI.closeLogModal();
         }
     });
+}
 
-    // NOTE: The "OK" button doesn't need a listener!
-    // Because it's type="submit", the logForm.onsubmit handles it.
-
-    // --- NAV BUTTONS TRIGGER ---
+function setupNavigationListeners() {
+    // --- GLOBAL NAV BUTTONS TRIGGER ---
     elements.navButtons.forEach((btn) => {
         const targetPage = btn.getAttribute("data-target");
 
