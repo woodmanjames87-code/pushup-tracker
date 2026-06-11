@@ -135,7 +135,10 @@ function openLogModal(exId) {
             elements.modal.input.classList.remove("hidden");
             elements.modal.input.required = true;
             elements.modal.input.value = "";
-            elements.modal.input.focus();
+            setTimeout(() => {
+                elements.modal.input.focus();
+                elements.modal.input.setSelectionRange?.(0, 0);
+            }, 50);
         }
         const okBtn = document.getElementById("modal-ok");
         if (okBtn) okBtn.disabled = false;
