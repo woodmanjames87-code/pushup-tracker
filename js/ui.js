@@ -114,6 +114,8 @@ function openLogModal(exId) {
         return;
     }
 
+    elements.modal.container.style.display = "flex";
+
     resetModalTimer();
     state.isManualTimerMode = false; // Always default back to the interactive stopwatch on open
 
@@ -135,16 +137,11 @@ function openLogModal(exId) {
             elements.modal.input.classList.remove("hidden");
             elements.modal.input.required = true;
             elements.modal.input.value = "";
-            setTimeout(() => {
-                elements.modal.input.focus();
-                elements.modal.input.setSelectionRange?.(0, 0);
-            }, 50);
+            elements.modal.input.focus();
         }
         const okBtn = document.getElementById("modal-ok");
         if (okBtn) okBtn.disabled = false;
     }
-
-    elements.modal.container.style.display = "flex";
 }
 
 // Helper to clean switch between the physical stopwatch and a manual number box
