@@ -494,6 +494,11 @@ header {
     padding-top: 15vh; 
 }
 
+.modal-overlay.is-timer-mode {
+    align-items: center !important;
+    padding-top: 0;
+}
+
 .modal-buttons {
     display: flex;
     gap: 12px;

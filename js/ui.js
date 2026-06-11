@@ -114,7 +114,13 @@ function openLogModal(exId) {
         return;
     }
 
-    elements.modal.container.style.display = "flex";
+    if (elements.modal.container) {
+        elements.modal.container.style.display = "flex";
+        
+        // 🎯 THE FIX: Add class to center for timers, remove it to pin high for reps
+        const isSeconds = config.unit === "seconds" || config.unit === "sec";
+        elements.modal.container.classList.toggle("is-timer-mode", isSeconds);
+    }
 
     resetModalTimer();
     state.isManualTimerMode = false; // Always default back to the interactive stopwatch on open
