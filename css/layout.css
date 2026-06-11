@@ -488,6 +488,11 @@ header {
     align-items: center;
     z-index: 1000;
 }
+/* Specific styling overrides for the exercise logging flow */
+#log-modal {
+    align-items: flex-start !important; 
+    padding-top: 15vh; 
+}
 
 .modal-buttons {
     display: flex;
