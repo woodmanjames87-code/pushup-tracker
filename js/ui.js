@@ -16,7 +16,6 @@ function showPage(pageId) {
     const direction = newIndex > state.currentPageIndex ? "right" : "left";
     const pageIds = ["overview", "tracker", "leaderboard", "settings"];
 
-    window.scrollTo(0, 0);
     location.hash = `${pageId}-page`;
 
     // --- 1. PAGE TRANSITION TRANSFORMS & ANIMATIONS ---
@@ -60,6 +59,9 @@ function showPage(pageId) {
 
     // --- 3. LIFECYCLE EXECUTION: TRIGGER DATA FETCHES & RENDERERS ---
     refreshActivePage();
+
+    // --- 3.5 Ensure we start at the top of the page on navigation ---
+    window.scrollTo(0, 0);
 
     // --- 4. FLOATING LOG BUTTON COMPONENT TOGGLE ---
     const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
