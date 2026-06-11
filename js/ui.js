@@ -9,7 +9,6 @@ import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadDa
  * NAVIGATION
  *************************************************/
 function showPage(pageId) {
-    state.selectedEditDate = null;
     const indexMap = { overview: 0, tracker: 1, leaderboard: 2, settings: 3 };
     const newIndex = indexMap[pageId];
     if (newIndex === state.currentPageIndex && document.readyState === "complete") return; // Don't animate if already here
@@ -108,9 +107,6 @@ function refreshActivePage() {
 let modalTimerInterval = null;
 let modalTimerSeconds = 0;
 
-// Add a global tracking state for the active mode
-let isManualTimerMode = false;
-
 function openLogModal(exId) {
     const config = EXERCISE_LIB[exId] || { name: "Exercise", unit: "reps" };
     if (!config) {
@@ -119,29 +115,29 @@ function openLogModal(exId) {
     }
 
     resetModalTimer();
-    isManualTimerMode = false; // Always default back to the interactive stopwatch on open
+    state.isManualTimerMode = false; // Always default back to the interactive stopwatch on open
 
     elements.modal.title.innerText = `Log ${config.name}`;
     elements.modal.prompt.innerText = `How many ${config.unit} did you do?`;
     elements.modal.container.dataset.activeContext = exId;
 
-    const timerContainer = document.getElementById('modal-timer-container');
+    const timerContainer = document.getElementById("modal-timer-container");
 
     if (config.unit === "seconds" || config.unit === "sec") {
-        if (timerContainer) timerContainer.classList.remove('hidden');
-        
+        if (timerContainer) timerContainer.classList.remove("hidden");
+
         // Setup initial stopwatch UI state
-        setTimerUIMode(false); 
+        setTimerUIMode(false);
     } else {
         // Standard reps tracking setup
-        if (timerContainer) timerContainer.classList.add('hidden');
+        if (timerContainer) timerContainer.classList.add("hidden");
         if (elements.modal.input) {
-            elements.modal.input.classList.remove('hidden');
+            elements.modal.input.classList.remove("hidden");
             elements.modal.input.required = true;
             elements.modal.input.value = "";
             elements.modal.input.focus();
         }
-        const okBtn = document.getElementById('modal-ok');
+        const okBtn = document.getElementById("modal-ok");
         if (okBtn) okBtn.disabled = false;
     }
 
@@ -150,39 +146,39 @@ function openLogModal(exId) {
 
 // Helper to clean switch between the physical stopwatch and a manual number box
 function setTimerUIMode(useManualInput) {
-    isManualTimerMode = useManualInput;
-    
-    const display = document.getElementById('modal-timer-display');
-    const btnRow = document.querySelector('.timer-btn-row');
-    const okBtn = document.getElementById('modal-ok');
+    state.isManualTimerMode = useManualInput;
+
+    const display = document.getElementById("modal-timer-display");
+    const btnRow = document.querySelector(".timer-btn-row");
+    const okBtn = document.getElementById("modal-ok");
     const numInput = elements.modal.input;
 
     if (useManualInput) {
         // Stop any active clock tracking
-        if (modalTimerInterval) toggleModalTimer(); 
+        if (modalTimerInterval) toggleModalTimer();
 
-        if (display) display.classList.add('hidden');
-        if (btnRow) btnRow.classList.add('hidden');
-        
+        if (display) display.classList.add("hidden");
+        if (btnRow) btnRow.classList.add("hidden");
+
         if (numInput) {
-            numInput.classList.remove('hidden');
+            numInput.classList.remove("hidden");
             numInput.required = true;
             // Seed the input with whatever the stopwatch left off at so they can modify it
-            numInput.value = modalTimerSeconds > 0 ? modalTimerSeconds : ""; 
-            numInput.placeholder = "Enter seconds";
+            numInput.value = modalTimerSeconds > 0 ? modalTimerSeconds : "";
+            numInput.placeholder = "Seconds";
             numInput.focus();
         }
         if (okBtn) okBtn.disabled = false;
     } else {
-        if (display) display.classList.remove('hidden');
-        if (btnRow) btnRow.classList.remove('hidden');
-        
+        if (display) display.classList.remove("hidden");
+        if (btnRow) btnRow.classList.remove("hidden");
+
         if (numInput) {
-            numInput.classList.add('hidden');
+            numInput.classList.add("hidden");
             numInput.required = false;
         }
         // If the stopwatch is zeroed out, keep OK disabled until it runs
-        if (okBtn) okBtn.disabled = (modalTimerSeconds === 0);
+        if (okBtn) okBtn.disabled = modalTimerSeconds === 0;
     }
 }
 
@@ -190,10 +186,10 @@ let wakeLock = null;
 
 // Request the screen stay awake
 async function requestWakeLock() {
-    if ('wakeLock' in navigator) {
+    if ("wakeLock" in navigator) {
         try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Screen Wake Lock is active 🔋');
+            wakeLock = await navigator.wakeLock.request("screen");
+            console.log("Screen Wake Lock is active 🔋");
         } catch (err) {
             console.warn(`Wake Lock failed: ${err.message}`);
         }
@@ -203,25 +199,24 @@ async function requestWakeLock() {
 // Release the screen so it can sleep normally
 function releaseWakeLock() {
     if (wakeLock !== null) {
-        wakeLock.release()
-            .then(() => {
-                wakeLock = null;
-                console.log('Screen Wake Lock released 💤');
-            });
+        wakeLock.release().then(() => {
+            wakeLock = null;
+            console.log("Screen Wake Lock released 💤");
+        });
     }
 }
 
 function toggleModalTimer() {
-    const toggleBtn = document.getElementById('modal-timer-toggle');
-    const display = document.getElementById('modal-timer-display');
-    const okBtn = document.getElementById('modal-ok');
+    const toggleBtn = document.getElementById("modal-timer-toggle");
+    const display = document.getElementById("modal-timer-display");
+    const okBtn = document.getElementById("modal-ok");
 
     if (!toggleBtn || !display) return;
 
     if (modalTimerInterval === null) {
         // 🚀 START TIMER
         toggleBtn.innerText = "Pause";
-        toggleBtn.classList.add('running');
+        toggleBtn.classList.add("running");
         if (okBtn) okBtn.disabled = true;
 
         // 🎯 Lock the device screen ON immediately
@@ -229,10 +224,10 @@ function toggleModalTimer() {
 
         modalTimerInterval = setInterval(() => {
             modalTimerSeconds++;
-            const m = String(Math.floor(modalTimerSeconds / 60)).padStart(2, '0');
-            const s = String(Math.floor(modalTimerSeconds % 60)).padStart(2, '0');
+            const m = String(Math.floor(modalTimerSeconds / 60)).padStart(2, "0");
+            const s = String(Math.floor(modalTimerSeconds % 60)).padStart(2, "0");
             display.innerText = `${m}:${s}`;
-            
+
             if (elements.modal.input) {
                 elements.modal.input.value = modalTimerSeconds;
             }
@@ -242,8 +237,8 @@ function toggleModalTimer() {
         clearInterval(modalTimerInterval);
         modalTimerInterval = null;
         toggleBtn.innerText = "Resume";
-        toggleBtn.classList.remove('running');
-        
+        toggleBtn.classList.remove("running");
+
         // 🎯 Release the screen block so battery isn't wasted if they walk away
         releaseWakeLock();
 
@@ -258,20 +253,20 @@ function resetModalTimer() {
         modalTimerInterval = null;
     }
     modalTimerSeconds = 0;
-    
+
     // Safety release
     releaseWakeLock();
 
-    const display = document.getElementById('modal-timer-display');
-    const toggleBtn = document.getElementById('modal-timer-toggle');
-    const modeSwitchLink = document.getElementById('modal-timer-mode-switch');
-    
+    const display = document.getElementById("modal-timer-display");
+    const toggleBtn = document.getElementById("modal-timer-toggle");
+    const modeSwitchLink = document.getElementById("modal-timer-mode-switch");
+
     if (display) display.innerText = "00:00";
     if (toggleBtn) {
         toggleBtn.innerText = "Start";
-        toggleBtn.classList.remove('running');
+        toggleBtn.classList.remove("running");
     }
-    if (modeSwitchLink) modeSwitchLink.innerText = "Keyboard Entry";
+    if (modeSwitchLink) modeSwitchLink.innerText = "⌨";
 }
 
 function closeLogModal() {
@@ -431,9 +426,11 @@ function refreshStateAndUI() {
     const isQuickRefresh = now - state.lastInitTime < 10000;
 
     // --- 2. INITIAL STATE (Logic & UI) ---
-    if (!state.selectedEditDate && getDateKey) {
-        state.selectedEditDate = getDateKey();
+    if (elements.settings.editDatePicker) {
         elements.settings.editDatePicker.value = state.selectedEditDate;
+    }
+    if (elements.settings.editSetsDateInput) {
+        elements.settings.editSetsDateInput.value = state.selectedEditDate;
     }
 
     // --- 3. THEME & NAVIGATION ---
@@ -503,8 +500,13 @@ function updateTrackerDisplay() {
     // --- 1. DAILY STATS & PROGRESS ---
     updateText("today-val", s.todayTotal);
     updateText("yest-val", s.yesterdayTotal);
-    updateText("goal-text", `Goal: ${formatExerciseVolume(s.dailyGoal, s.isSeconds)}`);
-    
+
+    // 🎯 FIX: Bypass the helper so the template string doesn't get run through the volume formatter twice
+    const elGoal = elements.stats["goal-text"];
+    if (elGoal) {
+        elGoal.innerText = `Goal: ${formatExerciseVolume(s.dailyGoal, s.isSeconds)}`;
+    }
+
     // Streak and rest items are raw counts of days, so update text directly without formatting as volume
     const elStreak = elements.stats["streak-val"];
     if (elStreak) elStreak.innerText = s.streak;
@@ -525,17 +527,17 @@ function updateTrackerDisplay() {
 
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     updateText("total-30-val", s.total30);
-    
+
     const elActive30 = elements.stats["active-30-val"];
     if (elActive30) elActive30.innerText = `${s.active30}/30`;
-    
+
     const elAvg30 = elements.stats["avg-30"];
     if (elAvg30) {
-        elAvg30.innerText = s.isSeconds 
-            ? `Avg: ${formatExerciseVolume(Math.round(s.avg30), true)}/day` 
+        elAvg30.innerText = s.isSeconds
+            ? `Avg: ${formatExerciseVolume(Math.round(s.avg30), true)}/day`
             : `Avg: ${s.avg30}/day`;
     }
-    
+
     updateText("thirty-goal-val", s.thirtyGoal);
     updateText("thirty-improv-val", s.thirtyImprov);
 
@@ -572,7 +574,7 @@ function updateTrackerDisplay() {
                 labels[i].innerText = days[d.getDay()];
             }
         });
-        
+
         const elWeeklyTitle = elements.stats["weekly-title"];
         if (elWeeklyTitle) elWeeklyTitle.innerText = `Total: ${formatExerciseVolume(s.weeklyTotal, s.isSeconds)}`;
     }
@@ -609,27 +611,29 @@ function updateTrackerDisplay() {
     // --- 5. LEGACY INSIGHTS (ALL-TIME) ---
     if (s.allTimeTotal > 0) {
         const elProj = elements.stats["legacy-projected"];
-        if (elProj) elProj.innerText = `${s.currentYearStr} PROJECTION: ${formatExerciseVolume(s.projectedYearly, s.isSeconds)}`;
-        
+        if (elProj)
+            elProj.innerText = `${s.currentYearStr} PROJECTION: ${formatExerciseVolume(s.projectedYearly, s.isSeconds)}`;
+
         const elSince = elements.stats["legacy-since"];
         if (elSince) elSince.innerText = `STARTED ${s.firstDateStr}`;
-        
+
         const elActDays = elements.stats["legacy-active-days"];
         if (elActDays) elActDays.innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
 
         updateText("stat-all-time", s.allTimeTotal);
         updateText("stat-pb", s.pb);
         updateText("stat-ytd", s.ytdTotal);
-        
+
         const elCentury = elements.stats["stat-century"];
         if (elCentury) elCentury.innerText = s.centuryDays;
-        
+
         const elAvg = elements.stats["stat-avg"];
         if (elAvg) elAvg.innerText = `${formatExerciseVolume(s.lifetimeAvg, s.isSeconds)}/day`;
 
         const elMilestone = elements.stats["label-next-milestone"];
-        if (elMilestone) elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.nextMilestone, s.isSeconds)}`;
-        
+        if (elMilestone)
+            elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.nextMilestone, s.isSeconds)}`;
+
         if (elements.ui.milestoneFill) {
             const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
             elements.ui.milestoneFill.style.width = Math.min(milestonePct, 100) + "%";
@@ -664,7 +668,8 @@ function updateTrackerDisplay() {
         });
 
         const elMilestone = elements.stats["label-next-milestone"];
-        if (elMilestone) elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.isSeconds ? 10000 : 5000, s.isSeconds)}`;
+        if (elMilestone)
+            elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.isSeconds ? 10000 : 5000, s.isSeconds)}`;
 
         if (elements.ui.milestoneFill) elements.ui.milestoneFill.style.width = "0%";
         [elements.ui.pillElite, elements.ui.pillSolid, elements.ui.pillLight].forEach((el) => {
@@ -1554,10 +1559,10 @@ function formatExerciseVolume(val, isSeconds) {
     const secs = totalSecs % 60;
 
     if (hrs > 0) {
-        return `${hrs}h ${String(mins).padStart(2, '0')}m`; // e.g., 1h 05m
+        return `${hrs}h ${String(mins).padStart(2, "0")}m`; // e.g., 1h 05m
     }
     if (mins > 0) {
-        return `${mins}m ${String(secs).padStart(2, '0')}s`; // e.g., 1m 30s
+        return `${mins}m ${String(secs).padStart(2, "0")}s`; // e.g., 1m 30s
     }
     return `${secs}s`; // e.g., 45s
 }

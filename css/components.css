@@ -1312,16 +1312,15 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 1.5rem 0;
+    /* margin: 1.5rem 0; */
 }
 
 #modal-timer-display {
     font-size: 3.8rem;
     font-family: monospace;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text);
     letter-spacing: 0.05em;
-    margin-bottom: 1rem;
 }
 
 .timer-btn-row {
@@ -1329,6 +1328,7 @@ input:checked + .slider:before {
     gap: 0.75rem;
     width: 100%;
     max-width: 260px;
+    margin-bottom: 1rem;
 }
 
 .timer-btn-row button {
@@ -1337,19 +1337,20 @@ input:checked + .slider:before {
     font-weight: 600;
 }
 
+#modal-timer-toggle {
+    background-color: var(--fitness-green);
+    color: var(--text);
+    transition: background-color 0.2s ease;
+}
 #modal-timer-toggle.running {
-    background-color: #dc2626 !important; /* Visual indicator for pause actions */
+    background-color: var(--danger) !important; /* Visual indicator for pause actions */
     color: #ffffff;
 }
 
 .timer-mode-link {
-    display: inline-block;
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #3b82f6; /* Accent UI Blue */
-    text-decoration: underline;
-    cursor: pointer;
-    font-weight: 500;
+    color: var(--primary-light);
+    font-size: 2rem;
+    padding: 0px 14px;
 }
 
 /* --- Feature Announcement Modal Styles --- */

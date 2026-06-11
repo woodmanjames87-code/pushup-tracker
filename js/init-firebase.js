@@ -18,13 +18,13 @@ import {
     setDoc,
     getDoc,
     deleteDoc,
-    writeBatch,           // 🚀 Preserves your original batch code
+    writeBatch, // 🚀 Preserves your original batch code
     collection,
     query,
     orderBy,
     limit,
     getDocs,
-    getDocsFromServer,    // 🚀 Added to force leaderboard cloud-bypassing
+    getDocsFromServer, // 🚀 Added to force leaderboard cloud-bypassing
     where,
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
@@ -45,7 +45,7 @@ export const auth = getAuth(app);
 // 🎯 THE REAL FIX: Use persistentLocalCache for corporate Wi-Fi queueing,
 // but REMOVE persistentMultipleTabManager() so connection pipelines never freeze.
 export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache()
+    localCache: persistentLocalCache(),
 });
 export const googleProvider = new GoogleAuthProvider();
 
@@ -88,7 +88,7 @@ export async function initAuthListener() {
 
                 const storeModule = await import("./store.js");
                 const storageKey = storeModule.STORAGE_KEY || "workout-data";
-                
+
                 const localRaw = localStorage.getItem(storageKey);
                 const localData = localRaw ? JSON.parse(localRaw) : {};
 
@@ -100,7 +100,7 @@ export async function initAuthListener() {
                         localStorage.setItem(storageKey, JSON.stringify(userSnap.data().workouts));
                     }
                 }
-                
+
                 if (typeof refreshStateAndUI === "function") {
                     refreshStateAndUI();
                 }
@@ -130,14 +130,26 @@ async function startCloudSync() {
             const storageKey = storeModule.STORAGE_KEY || "workout-data";
             const localRaw = localStorage.getItem(storageKey);
             const localData = localRaw ? JSON.parse(localRaw) : {};
+
+            if (!localData.settings) localData.settings = {};
+            localData.settings.username = finalAlias;
+            localData.lastUpdated = new Date().toISOString();
+            localStorage.setItem(storageKey, JSON.stringify(localData));
+
             const activeExerciseId = storeModule.state.currentExercise || "pushups";
             const compiledStats = storeModule.computeStats(activeExerciseId);
 
-            await syncLocalToCloud(user.uid, compiledStats, localData, {
-                username: finalAlias,
-                createdAt: new Date().toISOString(),
-                isInitialSetup: true
-            }, activeExerciseId);
+            await syncLocalToCloud(
+                user.uid,
+                compiledStats,
+                localData,
+                {
+                    username: finalAlias,
+                    createdAt: new Date().toISOString(),
+                    isInitialSetup: true,
+                },
+                activeExerciseId,
+            );
         }
 
         await reconcileData();
@@ -155,13 +167,13 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
 
     const storeModule = await import("./store.js");
     const exerciseId = targetExerciseId || storeModule.state.currentExercise || "pushups";
-    
+
     let stats = compiledStats;
     if (!stats || Object.keys(stats).length === 0) {
         stats = storeModule.computeStats(exerciseId);
     }
-    
-    const data = (localData && Object.keys(localData).length > 0) ? localData : storeModule.loadData();
+
+    const data = localData && Object.keys(localData).length > 0 ? localData : storeModule.loadData();
     if (!data.lastUpdated && !extraData.isInitialSetup) return;
 
     // 🚀 BACK TO BATCH WRITING: Reverting to original atomic batch operations
@@ -169,21 +181,40 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     const confirmedUsername = data.settings?.username || getDisplayUsername(extraData);
 
     const userRef = doc(db, "users", userId);
-    batch.set(userRef, {
-        uid: userId,
-        username: confirmedUsername,
-        workouts: data,
-        lastUpdated: data.lastUpdated || new Date().toISOString(),
-        ...extraData,
-    }, { merge: true });
+    batch.set(
+        userRef,
+        {
+            uid: userId,
+            username: confirmedUsername,
+            workouts: data,
+            lastUpdated: data.lastUpdated || new Date().toISOString(),
+            ...extraData,
+        },
+        { merge: true },
+    );
 
     const localTodayStr = storeModule.getTodayId();
     const localYesterdayStr = storeModule.getYesterdayId();
 
     const periods = [
-        { id: stats.todayTotal ? localTodayStr : "", score: stats.todayTotal, type: "daily", sid: `daily_${exerciseId}_${userId}` },
-        { id: stats.weekId, score: stats.calendarWeeklyTotal, type: "weekly", sid: `${stats.weekId}_${exerciseId}_${userId}` },
-        { id: stats.monthId, score: stats.monthlyTotal, type: "monthly", sid: `${stats.monthId}_${exerciseId}_${userId}` },
+        {
+            id: stats.todayTotal ? localTodayStr : "",
+            score: stats.todayTotal,
+            type: "daily",
+            sid: `daily_${exerciseId}_${userId}`,
+        },
+        {
+            id: stats.weekId,
+            score: stats.calendarWeeklyTotal,
+            type: "weekly",
+            sid: `${stats.weekId}_${exerciseId}_${userId}`,
+        },
+        {
+            id: stats.monthId,
+            score: stats.monthlyTotal,
+            type: "monthly",
+            sid: `${stats.monthId}_${exerciseId}_${userId}`,
+        },
         { id: stats.yearId, score: stats.ytdTotal, type: "yearly", sid: `${stats.yearId}_${exerciseId}_${userId}` },
     ];
 
@@ -224,7 +255,7 @@ export async function reconcileData() {
 
     const storeModule = await import("./store.js");
     if (storeModule.state.isReconciling) return;
-    
+
     storeModule.state.isReconciling = true;
     console.log("🔄 Reconciling local and cloud data...");
 

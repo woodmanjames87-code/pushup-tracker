@@ -30,13 +30,13 @@ async function initApp() {
             finishAppInitialization(initStartTime);
         }, 0);
         UI.triggerFeatureAnnouncement(
-            "v5.0.2.0",
-            "Check out the Leaderboard all-new All Exercises View! \n \n New Overview Dashboard Features!",
+            "v5.0.4.2",
+            "⏱\n New Built in Stopwatch for Planks! \n \n Dont forget to check out previously added features:",
             [
                 "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
-                "📈 <strong>7-Day Trends:</strong> Scannable weekly charts.",
                 "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
                 "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings.",
+                "🌟 <strong>Leaderboard Filters:</strong> More ways to compare your progress with the community.",
             ],
         );
         return;
@@ -47,9 +47,9 @@ async function initApp() {
 }
 
 function finishAppInitialization(startTime) {
-    const initScreen = document.getElementById('app-init-screen');
-    const appWrapper = document.getElementById('app-wrapper'); // 🎯 Grab the master wrapper
-    
+    const initScreen = document.getElementById("app-init-screen");
+    const appWrapper = document.getElementById("app-wrapper"); // 🎯 Grab the master wrapper
+
     if (!initScreen) return;
 
     const MIN_DISPLAY_TIME = 250; // Our fine-tuned snappy 250ms hold
@@ -58,13 +58,13 @@ function finishAppInitialization(startTime) {
 
     setTimeout(() => {
         // 1. Drop the curtain
-        initScreen.classList.add('fade-out');
-        
+        initScreen.classList.add("fade-out");
+
         // 2. Unveil the fully loaded app shell underneath
         if (appWrapper) {
-            appWrapper.classList.add('visible');
+            appWrapper.classList.add("visible");
         }
-        
+
         // Clean up the DOM completely once the CSS transition ends
         setTimeout(() => initScreen.remove(), 300);
     }, remainingHoldTime);
@@ -81,30 +81,30 @@ function setupEventListeners() {
     setupLeaderboardListeners();
     setupSettingsListeners();
     setupPullToRefresh();
-    
-    // Add these bindings inside your event listeners setup block
-    const timerToggle = document.getElementById('modal-timer-toggle');
-    const timerReset = document.getElementById('modal-timer-reset');
-    const modalCancel = document.getElementById('modal-cancel');
 
-    if (timerToggle) timerToggle.addEventListener('click', UI.toggleModalTimer);
-    if (timerReset) timerReset.addEventListener('click', UI.resetModalTimer);
+    // Add these bindings inside your event listeners setup block
+    const timerToggle = document.getElementById("modal-timer-toggle");
+    const timerReset = document.getElementById("modal-timer-reset");
+    const modalCancel = document.getElementById("modal-cancel");
+
+    if (timerToggle) timerToggle.addEventListener("click", UI.toggleModalTimer);
+    if (timerReset) timerReset.addEventListener("click", UI.resetModalTimer);
 
     // Make sure cancelling out clears any background clock tasks cleanly
     if (modalCancel) {
-        modalCancel.addEventListener('click', () => {
+        modalCancel.addEventListener("click", () => {
             UI.resetModalTimer();
             // Include your existing close modal visibility code block here
         });
     }
-    const modeSwitchLink = document.getElementById('modal-timer-mode-switch');
+    const modeSwitchLink = document.getElementById("modal-timer-mode-switch");
     if (modeSwitchLink) {
-        modeSwitchLink.addEventListener('click', () => {
-            if (!isManualTimerMode) {
-                modeSwitchLink.innerText = "Switch to Stopwatch";
+        modeSwitchLink.addEventListener("click", () => {
+            if (!Store.state.isManualTimerMode) {
+                modeSwitchLink.innerText = "⏱";
                 UI.setTimerUIMode(true);
             } else {
-                modeSwitchLink.innerText = "Keyboard Entry";
+                modeSwitchLink.innerText = "⌨";
                 UI.setTimerUIMode(false);
             }
         });
