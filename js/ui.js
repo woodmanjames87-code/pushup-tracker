@@ -65,8 +65,8 @@ function showPage(pageId) {
 
     // --- 4. FLOATING LOG BUTTON COMPONENT TOGGLE ---
     const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
-    if (elements.modal?.floatingLogBtn) {
-        elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
+    if (elements.floatingLogBtn) {
+        elements.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
     }
 
     // --- 5. PODIUM OVERLAY EXIT CLEANUP ---

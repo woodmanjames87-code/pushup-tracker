@@ -15,6 +15,7 @@ export const elements = {
     ptr: document.getElementById("pull-to-refresh"),
     logBtnSpan: document.getElementById("log-btn-exercise-name"),
     activeExerciseName: document.getElementById("active-exercise-name"),
+    floatingLogBtn: document.getElementById("floating-log-btn"),
 
     //Menu Elements
     menu: {
@@ -36,7 +37,6 @@ export const elements = {
         timerDisplay: document.getElementById("modal-timer-display"),
         timerToggle: document.getElementById("modal-timer-toggle"),
         btnRow: document.getElementById("timer-btn-row"),
-        floatingLogBtn: document.getElementById("floating-log-btn"),
     },
 
     // Notifications & Banners

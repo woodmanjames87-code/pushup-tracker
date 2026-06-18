@@ -124,7 +124,6 @@ function setupOverviewListeners() {
 function setupModalListeners() {
     // 🎯 THE PRO CLEANUP: Destructure everything we need straight out of elements.modal
     const { 
-        floatingLogBtn, 
         form, 
         input, 
         cancelBtn, 
@@ -134,7 +133,7 @@ function setupModalListeners() {
     } = elements.modal;
 
     // --- 1. OPENING THE MODAL ---
-    floatingLogBtn.onclick = () => {
+    elements.floatingLogBtn.onclick = () => {
         Store.prepareModalState();
         UI.openLogModal(Store.state.currentExercise);
     };
