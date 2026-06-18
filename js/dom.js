@@ -151,6 +151,9 @@ export const elements = {
             "stat-avg",
             "label-next-milestone",
             "stat-best-streak",
+            "elite-label",
+            "solid-label",
+            "light-label",
         ];
         statIds.forEach((id) => {
             const el = document.getElementById(id);

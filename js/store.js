@@ -256,13 +256,13 @@ function calculateDailyGoal(data, exerciseId) {
         return exSettings.manualGoal || libEntry.minGoal;
     }
 
-    let activeValues = [];
-    const today = new Date();
+    const time = createTimeContext();
+    const activeValues = [];
 
-    // Loop back through the last 30 days until we collect up to 14 active workout days
+    // Loop back through the last 30 days relative to local midnight
     for (let i = 1; i <= 30 && activeValues.length < 14; i++) {
-        const d = new Date();
-        d.setDate(today.getDate() - i);
+        const d = new Date(time.today);
+        d.setDate(time.today.getDate() - i);
 
         const v = getDayTotal(data, d, exerciseId);
         if (v > 0) activeValues.push(v);
@@ -302,149 +302,69 @@ function getGoals(data, exerciseId = state.currentExercise) {
     };
 }
 
-export function computeStats(exerciseId = state.currentExercise) {
-    if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
-    const data = loadData();
+// =========================================================================
+// 📦 MODULE STATS HELPERS
+// =========================================================================
 
-    // 🎯 Grab the config to know if this exercise is tracked in seconds
-    const config = EXERCISE_LIB[exerciseId];
-    const isSeconds = config.unit === "seconds" || config.unit === "sec";
-
-    // Normalize today to local midnight to prevent timestamp bleeding
+/**
+ * Helper 1: Builds the standardized calendar window contexts
+ */
+function createTimeContext() {
     const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-    const todayStr = getDateKey(today);
-    const currentYearStr = today.getFullYear().toString();
-    const yestStr = getYesterdayId();
-
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - today.getDay());
-    const sundayStr = getDateKey(sunday);
 
     const fourteenDaysAgo = new Date(today);
     fourteenDaysAgo.setDate(today.getDate() - 13);
 
-    const weekId = getWeekId(today);
-    const monthId = getMonthId(today);
-    const yearId = getYearId(today);
-
-    // Filter down to cleanly formatted date keys and sort them chronologically
-    const allKeys = Object.keys(data)
-        .filter((k) => k.match(/^\d{4}-\d{2}-\d{2}$/))
-        .sort();
-
-    let allTimeTotal = 0,
-        ytdTotal = 0,
-        pb = 0,
-        activeDays = 0;
-    let centuryDays = 0,
-        eliteVol = 0,
-        solidVol = 0,
-        lightVol = 0;
-    let currentStreakCount = 0,
-        bestStreak = 0;
-    let lastActiveDateStr = "";
-    let calendarWeeklyTotal = 0;
-    let total30 = 0,
-        active30 = 0;
-    let expectedDateStr = "";
-    let active14 = 0;
-    let exerciseFirstDateStr = "";
-
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 29);
-    const thirtyDaysAgoStr = getDateKey(thirtyDaysAgo);
 
-    // 🎯 Dynamically establish volume tiers based on the type of exercise
-    // Reps: 100+ is Elite, 50+ is Solid. Seconds (Planks): 300s (5m) is Elite, 120s (2m) is Solid.
-    const eliteThreshold = isSeconds ? 300 : 100;
-    const solidThreshold = isSeconds ? 120 : 50;
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
 
-    // --- THE ONE LOOP ---
-    allKeys.forEach((dateKey) => {
-        const val = getDayTotal(data, dateKey, exerciseId);
-        if (val <= 0) return; // Skip rest days for this specific exercise
+    return {
+        today,
+        todayStr: getDateKey(today),
+        currentYearStr: today.getFullYear().toString(),
+        yestStr: getYesterdayId(),
+        sundayStr: getDateKey(sunday),
+        fourteenDaysAgoStr: getDateKey(fourteenDaysAgo),
+        thirtyDaysAgoStr: getDateKey(thirtyDaysAgo),
+        weekId: getWeekId(today),
+        monthId: getMonthId(today),
+        yearId: getYearId(today),
+    };
+}
 
-        if (!exerciseFirstDateStr) {
-            exerciseFirstDateStr = dateKey;
-        }
-
-        allTimeTotal += val;
-        activeDays++;
-        lastActiveDateStr = dateKey;
-        if (val > pb) pb = val;
-
-        // Categorize training volume benchmarks using our dynamic thresholds
-        if (val >= eliteThreshold) {
-            centuryDays++; // Keeps track of "Elite Tier Days"
-            eliteVol += val;
-        } else if (val >= solidThreshold) {
-            solidVol += val;
-        } else {
-            lightVol += val;
-        }
-
-        if (dateKey.startsWith(currentYearStr)) ytdTotal += val;
-        if (dateKey >= sundayStr && dateKey <= todayStr) calendarWeeklyTotal += val;
-        if (dateKey >= thirtyDaysAgoStr && dateKey <= todayStr) {
-            total30 += val;
-            active30++;
-        }
-
-        // STREAK LOGIC
-        if (expectedDateStr === "" || dateKey === expectedDateStr) {
-            currentStreakCount++;
-        } else {
-            currentStreakCount = 1; // Gap found, reset to 1
-        }
-
-        // Prepare the string for the "Next Day" to check against
-        let nextDay = new Date(dateKey + "T00:00:00");
-        nextDay.setDate(nextDay.getDate() + 1);
-        expectedDateStr = getDateKey(nextDay);
-
-        bestStreak = Math.max(bestStreak, currentStreakCount);
-
-        if (dateKey >= getDateKey(fourteenDaysAgo) && dateKey <= todayStr) {
-            active14++;
-        }
-    });
-
-    // Break streak if no activity recorded today or yesterday
-    if (lastActiveDateStr !== todayStr && lastActiveDateStr !== yestStr) {
-        currentStreakCount = 0;
-    }
-
-    // Weekly Chart Data (The 7-Day Array)
-    let weeklyData = [];
-    let weeklyTotal = 0;
+/**
+ * Helper 2: Generates chronological matrices for Chart.js integrations
+ */
+function generateChartMatrices(data, time, allKeys, exerciseId) {
+    // A. Weekly Chart Data (7 Days)
+    let weeklyData = [],
+        weeklyTotal = 0;
     for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
+        const d = new Date(time.today);
+        d.setDate(time.today.getDate() - i);
         const v = getDayTotal(data, d, exerciseId);
         weeklyData.push(v);
         weeklyTotal += v;
     }
 
-    // Rolling 30-Day Performance Timeline
-    let chart30Values = [];
-    let chart30Labels = [];
+    // B. Rolling 30-Day Performance Timeline
+    let chart30Values = [],
+        chart30Labels = [];
     for (let i = 29; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
+        const d = new Date(time.today);
+        d.setDate(time.today.getDate() - i);
         chart30Values.push(getDayTotal(data, d, exerciseId));
         chart30Labels.push("");
     }
 
-    const todayTotal = getDayTotal(data, todayStr, exerciseId);
-    const yesterdayTotal = getDayTotal(data, yestStr, exerciseId);
-    const dailyGoal = calculateDailyGoal(data, exerciseId);
-    const currentGoals = getGoals(data, exerciseId);
-
-    // Monthly Trend Calculation
+    // C. Past 6-Months Trend Backlog Calculation
     const monthlyData = {};
     let currentMonthLabel = "";
     for (let i = 5; i >= 0; i--) {
-        let d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        let d = new Date(time.today.getFullYear(), time.today.getMonth() - i, 1);
         const label = d.toLocaleString("default", { month: "short" });
         if (i === 0) currentMonthLabel = label;
 
@@ -454,130 +374,242 @@ export function computeStats(exerciseId = state.currentExercise) {
             .reduce((s, date) => s + getDayTotal(data, date, exerciseId), 0);
     }
 
-    // Rest Streak Math
-    let restStreak = 0;
-    if (lastActiveDateStr && todayTotal === 0) {
-        const lastDate = new Date(lastActiveDateStr + "T00:00:00");
-        restStreak = Math.floor((today - lastDate) / 86400000);
-    }
+    return { weeklyData, weeklyTotal, chart30Values, chart30Labels, monthlyData, currentMonthLabel };
+}
 
-
-    // --- TRENDS & MILESTONES: UNIFIED CAPACITY & VELOCITY TRACKING ---
+/**
+ * Helper 3: Dual-Window Psychological Status Engine
+ */
+function calculateTrendLabel(stats, dailyGoal, currentGoals) {
+    const { total30, weeklyTotal, todayTotal, yesterdayTotal } = stats;
     const avg30 = Number((total30 / 30).toFixed(1));
-    
-    // 1. Long-term volume capacity checkpoints
     const target30 = dailyGoal * 30 * currentGoals.onTrackRatio;
-    const trendPct = avg30 / dailyGoal; // Your original threshold metric
-    
-    // 2. Recent short-term velocity check
+    const trendPct = avg30 / dailyGoal;
     const avg7 = Number((weeklyTotal / 7).toFixed(1));
 
-    let trend = { label: "Below Target", color: "#ff3b30" }; // Default floor state
-
     if (total30 >= target30) {
-        // --- UPPER LADDER: Meeting or Exceeding 30-Day Baselines ---
+        // --- UPPER LADDER: Maintaining or Exceeding Goal Baselines ---
         const dailyMinimumPace = dailyGoal * currentGoals.onTrackRatio;
-        
+
         if (avg7 < dailyMinimumPace) {
-            trend = { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
+            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
         } else if (trendPct >= currentGoals.improveRatio) {
-            // 🎯 RESTORED: User is actively crushing past their expansion goal over 30 days!
-            trend = { label: "Improving", color: "#007aff" }; // High-Performance Blue
+            return { label: "Improving", color: "#007aff" }; // High-Performance Dark Blue
         } else {
-            trend = { label: "On Track", color: "#34c759" }; // Baseline Green
+            return { label: "On Track", color: "#34c759" }; // Balanced Green
         }
     } else {
-        // --- LOWER LADDER: Working back up from a deficit ---
-        const priorWeekTotal = Math.max(0, (total30 - weeklyTotal)); 
+        // --- LOWER LADDER: Working back up from a training deficit ---
+        const priorWeekTotal = Math.max(0, total30 - weeklyTotal);
         const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
 
-        const isExceedingGoalThisWeek = avg7 >= (dailyGoal * currentGoals.onTrackRatio);
+        const isExceedingGoalThisWeek = avg7 >= dailyGoal * currentGoals.onTrackRatio;
         const isTrendingUpward = weeklyTotal > priorWeekTotal && weeklyTotal >= minimumActiveVolume;
         const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > priorWeekTotal);
 
         if (isExceedingGoalThisWeek || isTrendingUpward) {
-            trend = { label: "Gaining Momentum", color: "#5ac8fa" }; // Light Blue / Teal - Active Comeback
+            return { label: "Gaining Momentum", color: "#5ac8fa" }; // Light Blue/Teal - Active Comeback
         } else if (isFreshStart) {
-            trend = { label: "Starting Up", color: "#5856d6" }; // Indigo/Purple - Day 1 Spark
+            return { label: "Starting Up", color: "#5856d6" }; // Indigo/Purple - Day 1 Spark
         } else {
-            trend = { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
+            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
         }
     }
+}
 
-    const firstDateObj = exerciseFirstDateStr ? new Date(exerciseFirstDateStr + "T00:00:00") : today;
+// =========================================================================
+// 🚀 CORE EXPORT PIPELINE
+// =========================================================================
+
+export function computeStats(exerciseId = state.currentExercise) {
+    if (!exerciseId || !EXERCISE_LIB[exerciseId]) return null;
+    const data = loadData();
+
+    const config = EXERCISE_LIB[exerciseId];
+    const isSeconds = config.unit === "seconds" || config.unit === "sec";
+
+    // 1. Structural Timing Windows Construction
+    const time = createTimeContext();
+    const allKeys = Object.keys(data)
+        .filter((k) => k.match(/^\d{4}-\d{2}-\d{2}$/))
+        .sort();
+
+    const dailyGoal = calculateDailyGoal(data, exerciseId);
+
+    // 2. Volume Benchmark Tier Boundaries
+    const eliteThreshold = dailyGoal;
+    const solidThreshold = Math.floor(dailyGoal / 2);
+
+    // Aggregator State Initialization
+    let loopStats = {
+        allTimeTotal: 0,
+        ytdTotal: 0,
+        pb: 0,
+        activeDays: 0,
+        centuryDays: 0,
+        eliteVol: 0,
+        solidVol: 0,
+        lightVol: 0,
+        currentStreakCount: 0,
+        bestStreak: 0,
+        calendarWeeklyTotal: 0,
+        total30: 0,
+        active30: 0,
+        active14: 0,
+        lastActiveDateStr: "",
+        exerciseFirstDateStr: "",
+    };
+    let expectedDateStr = "";
+
+    // 3. Executing "The One Loop" Aggregator
+    allKeys.forEach((dateKey) => {
+        const val = getDayTotal(data, dateKey, exerciseId);
+        if (val <= 0) return; // Disregard rest days
+
+        if (!loopStats.exerciseFirstDateStr) loopStats.exerciseFirstDateStr = dateKey;
+
+        loopStats.allTimeTotal += val;
+        loopStats.activeDays++;
+        loopStats.lastActiveDateStr = dateKey;
+        if (val > loopStats.pb) loopStats.pb = val;
+
+        // Categorize Training Volume Volume Tiers
+        if (val >= eliteThreshold) {
+            loopStats.centuryDays++;
+            loopStats.eliteVol += val;
+        } else if (val >= solidThreshold) {
+            loopStats.solidVol += val;
+        } else {
+            loopStats.lightVol += val;
+        }
+
+        // Window Accumulations
+        if (dateKey.startsWith(time.currentYearStr)) loopStats.ytdTotal += val;
+        if (dateKey >= time.sundayStr && dateKey <= time.todayStr) loopStats.calendarWeeklyTotal += val;
+
+        if (dateKey >= time.thirtyDaysAgoStr && dateKey <= time.todayStr) {
+            loopStats.total30 += val;
+            loopStats.active30++;
+        }
+        if (dateKey >= time.fourteenDaysAgoStr && dateKey <= time.todayStr) {
+            loopStats.active14++;
+        }
+
+        // Streak Continuity Processing
+        if (expectedDateStr === "" || dateKey === expectedDateStr) {
+            loopStats.currentStreakCount++;
+        } else {
+            loopStats.currentStreakCount = 1;
+        }
+
+        let nextDay = new Date(dateKey + "T00:00:00");
+        nextDay.setDate(nextDay.getDate() + 1);
+        expectedDateStr = getDateKey(nextDay);
+
+        loopStats.bestStreak = Math.max(loopStats.bestStreak, loopStats.currentStreakCount);
+    });
+
+    // Break streak checks if completely inactive today and yesterday
+    if (loopStats.lastActiveDateStr !== time.todayStr && loopStats.lastActiveDateStr !== time.yestStr) {
+        loopStats.currentStreakCount = 0;
+    }
+
+    // 4. Generate Chart Timelines & Arrays
+    const charts = generateChartMatrices(data, time, allKeys, exerciseId);
+
+    // 5. Gather Environmental Parameters
+    const todayTotal = getDayTotal(data, time.todayStr, exerciseId);
+    const yesterdayTotal = getDayTotal(data, time.yestStr, exerciseId);
+    const currentGoals = getGoals(data, exerciseId);
+
+    // 6. Rest Streak Timeline Evaluation
+    let restStreak = 0;
+    if (loopStats.lastActiveDateStr && todayTotal === 0) {
+        const lastDate = new Date(loopStats.lastActiveDateStr + "T00:00:00");
+        restStreak = Math.floor((time.today - lastDate) / 86400000);
+    }
+
+    // 7. Calculate Trends via the Coaching Engine
+    const trendsPayload = { total30: loopStats.total30, weeklyTotal: charts.weeklyTotal, todayTotal, yesterdayTotal };
+    const trend = calculateTrendLabel(trendsPayload, dailyGoal, currentGoals);
+
+    // 8. Long-Term Lifetime Metrics
+    const firstDateObj = loopStats.exerciseFirstDateStr
+        ? new Date(loopStats.exerciseFirstDateStr + "T00:00:00")
+        : time.today;
     const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase();
-    const startOfYear = new Date(today.getFullYear(), 0, 1);
-    const daysInYearSoFar = Math.max(Math.ceil((today - startOfYear) / 86400000), 1);
 
-    // Lifetime Metrics
-    const totalDaysElapsed = Math.round(Math.abs(today - firstDateObj) / 86400000) + 1 || 1;
-    const lifetimeAvg = Math.round(allTimeTotal / totalDaysElapsed);
+    const startOfYear = new Date(time.today.getFullYear(), 0, 1);
+    const daysInYearSoFar = Math.max(Math.ceil((time.today - startOfYear) / 86400000), 1);
+    const totalDaysElapsed = Math.round(Math.abs(time.today - firstDateObj) / 86400000) + 1;
 
     const windowSize = Math.min(14, totalDaysElapsed);
-    const rest14 = Math.max(0, windowSize - active14);
-
-    // 🎯 Dynamically scale your lifetime milestones (e.g., milestone every 5,000 reps OR every 10,000 seconds)
     const milestoneInterval = isSeconds ? 10000 : 5000;
 
+    // 9. Consolidated Payload Output Export
     return {
         exerciseId,
-        isSeconds, // 🎯 Return this flag so your ui.js file knows how to format the display strings easily!
-        weekId,
-        monthId,
-        yearId,
+        isSeconds,
         todayTotal,
         yesterdayTotal,
-        weeklyTotal,
-        calendarWeeklyTotal,
-        monthlyTotal: monthlyData[currentMonthLabel] || 0,
-        total30,
-        chart30Labels,
-        chart30Values,
-        allTimeTotal,
-        ytdTotal,
         dailyGoal,
+        restStreak,
+        trend,
+        weekId: time.weekId,
+        monthId: time.monthId,
+        yearId: time.yearId,
+
+        // Unpacked Charts Object Vectors
+        weeklyData: charts.weeklyData,
+        weeklyTotal: charts.weeklyTotal,
+        monthlyData: charts.monthlyData,
+        chart30Labels: charts.chart30Labels,
+        chart30Values: charts.chart30Values,
+        calendarWeeklyTotal: loopStats.calendarWeeklyTotal,
+        monthlyTotal: charts.monthlyData[charts.currentMonthLabel] || 0,
+
+        // Historical Aggregations
+        total30: loopStats.total30,
+        allTimeTotal: loopStats.allTimeTotal,
+        ytdTotal: loopStats.ytdTotal,
+        active30: loopStats.active30,
+        rest14: Math.max(0, windowSize - loopStats.active14),
+        streak: loopStats.currentStreakCount,
+        bestStreak: loopStats.bestStreak,
+        avg30: Number((loopStats.total30 / 30).toFixed(1)),
+        pb: loopStats.pb,
+        centuryDays: loopStats.centuryDays,
+        lifetimeAvg: Math.round(loopStats.allTimeTotal / totalDaysElapsed),
+        totalDaysElapsed,
+
+        // Calculated Targets
         thirtyGoal: Math.round(dailyGoal * 30 * currentGoals.onTrackRatio),
         thirtyImprov: Math.round(dailyGoal * 30 * currentGoals.improveRatio),
-        active30,
-        restStreak,
-        rest14,
-        streak: currentStreakCount,
-        bestStreak,
-        avg30,
-        trend,
-        weeklyData,
-        monthlyData,
-        pb,
-        centuryDays,
-        lifetimeAvg,
-        totalDaysElapsed,
-        nextMilestone: Math.ceil((allTimeTotal + 1) / milestoneInterval) * milestoneInterval,
-        projectedYearly: Math.round((ytdTotal / daysInYearSoFar) * 365),
-        currentYearStr,
-        eliteVol,
-        solidVol,
-        lightVol,
+        nextMilestone: Math.ceil((loopStats.allTimeTotal + 1) / milestoneInterval) * milestoneInterval,
+        projectedYearly: Math.round((loopStats.ytdTotal / daysInYearSoFar) * 365),
+
+        // Structural Strings
+        currentYearStr: time.currentYearStr,
         firstDateStr,
-        activeDays,
+        activeDays: loopStats.activeDays,
+        eliteVol: loopStats.eliteVol,
+        solidVol: loopStats.solidVol,
+        lightVol: loopStats.lightVol,
     };
 }
 
 export function getQuickWeekly(exerciseId) {
     const data = loadData();
-    const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+    const time = createTimeContext(); // 🎯 Reuses the unified date normalization engine
 
-    let weeklyData = [];
-    let maxVal = 0;
+    const weeklyData = Array.from({ length: 7 }, (_, index) => {
+        const d = new Date(time.today);
+        d.setDate(time.today.getDate() - (6 - index));
+        return getDayTotal(data, d, exerciseId);
+    });
 
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        const v = getDayTotal(data, d, exerciseId);
-        weeklyData.push(v);
-        if (v > maxVal) maxVal = v;
-    }
-
-    return { exerciseId, weeklyData, maxVal: maxVal || 10 };
+    const maxVal = Math.max(...weeklyData, 10); // Clearer fallback bounds
+    return { exerciseId, weeklyData, maxVal };
 }
 
 /*************************************************
