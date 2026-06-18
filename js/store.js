@@ -461,12 +461,48 @@ export function computeStats(exerciseId = state.currentExercise) {
         restStreak = Math.floor((today - lastDate) / 86400000);
     }
 
-    // Trends & Milestones
+
+    // --- TRENDS & MILESTONES: UNIFIED CAPACITY & VELOCITY TRACKING ---
     const avg30 = Number((total30 / 30).toFixed(1));
-    const trendPct = avg30 / dailyGoal;
-    let trend = { label: "Below Target", color: "#ff3b30" };
-    if (trendPct >= currentGoals.improveRatio) trend = { label: "Improving", color: "#007aff" };
-    else if (trendPct >= currentGoals.onTrackRatio) trend = { label: "On Track", color: "#34c759" };
+    
+    // 1. Long-term volume capacity checkpoints
+    const target30 = dailyGoal * 30 * currentGoals.onTrackRatio;
+    const trendPct = avg30 / dailyGoal; // Your original threshold metric
+    
+    // 2. Recent short-term velocity check
+    const avg7 = Number((weeklyTotal / 7).toFixed(1));
+
+    let trend = { label: "Below Target", color: "#ff3b30" }; // Default floor state
+
+    if (total30 >= target30) {
+        // --- UPPER LADDER: Meeting or Exceeding 30-Day Baselines ---
+        const dailyMinimumPace = dailyGoal * currentGoals.onTrackRatio;
+        
+        if (avg7 < dailyMinimumPace) {
+            trend = { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
+        } else if (trendPct >= currentGoals.improveRatio) {
+            // 🎯 RESTORED: User is actively crushing past their expansion goal over 30 days!
+            trend = { label: "Improving", color: "#007aff" }; // High-Performance Blue
+        } else {
+            trend = { label: "On Track", color: "#34c759" }; // Baseline Green
+        }
+    } else {
+        // --- LOWER LADDER: Working back up from a deficit ---
+        const priorWeekTotal = Math.max(0, (total30 - weeklyTotal)); 
+        const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
+
+        const isExceedingGoalThisWeek = avg7 >= (dailyGoal * currentGoals.onTrackRatio);
+        const isTrendingUpward = weeklyTotal > priorWeekTotal && weeklyTotal >= minimumActiveVolume;
+        const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > priorWeekTotal);
+
+        if (isExceedingGoalThisWeek || isTrendingUpward) {
+            trend = { label: "Gaining Momentum", color: "#5ac8fa" }; // Light Blue / Teal - Active Comeback
+        } else if (isFreshStart) {
+            trend = { label: "Starting Up", color: "#5856d6" }; // Indigo/Purple - Day 1 Spark
+        } else {
+            trend = { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
+        }
+    }
 
     const firstDateObj = exerciseFirstDateStr ? new Date(exerciseFirstDateStr + "T00:00:00") : today;
     const firstDateStr = firstDateObj.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase();

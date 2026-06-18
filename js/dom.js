@@ -150,6 +150,7 @@ export const elements = {
             "stat-century",
             "stat-avg",
             "label-next-milestone",
+            "stat-best-streak",
         ];
         statIds.forEach((id) => {
             const el = document.getElementById(id);

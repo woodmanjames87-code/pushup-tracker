@@ -671,6 +671,9 @@ function updateTrackerDisplay() {
         const elAvg = elements.stats["stat-avg"];
         if (elAvg) elAvg.innerText = `${formatExerciseVolume(s.lifetimeAvg, s.isSeconds)}/day`;
 
+        const elBestStreak = elements.stats["stat-best-streak"];
+        if (elBestStreak) elBestStreak.innerText = `${s.bestStreak} days`;
+
         const elMilestone = elements.stats["label-next-milestone"];
         if (elMilestone)
             elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.nextMilestone, s.isSeconds)}`;
@@ -694,6 +697,7 @@ function updateTrackerDisplay() {
             "stat-ytd",
             "stat-century",
             "stat-avg",
+            "stat-best-streak",
         ].forEach((id) => {
             let fallbackText = "0";
             if (id.includes("projected") || id.includes("active-days")) {
