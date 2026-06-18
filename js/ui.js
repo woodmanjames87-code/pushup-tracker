@@ -65,8 +65,8 @@ function showPage(pageId) {
 
     // --- 4. FLOATING LOG BUTTON COMPONENT TOGGLE ---
     const isTrackerOrSocial = pageId === "tracker" || pageId === "leaderboard";
-    if (elements.modal?.floatingLogBtn) {
-        elements.modal.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
+    if (elements.floatingLogBtn) {
+        elements.floatingLogBtn.style.display = isTrackerOrSocial ? "block" : "none";
     }
 
     // --- 5. PODIUM OVERLAY EXIT CLEANUP ---
@@ -118,7 +118,7 @@ function openLogModal(exId) {
 
     if (elements.modal.container) {
         elements.modal.container.style.display = "flex";
-        
+
         // 🎯 THE FIX: Add class to center for timers, remove it to pin high for reps
         const isSeconds = config.unit === "seconds" || config.unit === "sec";
         elements.modal.container.classList.toggle("is-timer-mode", isSeconds);
@@ -228,7 +228,7 @@ function toggleModalTimer() {
         // 🚀 START TIMER
         toggleBtn.innerText = "Pause";
         toggleBtn.classList.add("running");
-        
+
         // 🎯 LOCK DOWN CONTROLS: Disable and fade out competing actions
         if (okBtn) okBtn.disabled = true;
         if (cancelBtn) cancelBtn.disabled = true;
@@ -284,17 +284,17 @@ function resetModalTimer() {
 
     // 4. Restore the default text and state baselines
     if (timerDisplay) timerDisplay.innerText = "00:00";
-    
+
     if (toggleBtn) {
         toggleBtn.innerText = "Start";
         toggleBtn.classList.remove("running");
     }
-    
+
     if (modeSwitch) {
         modeSwitch.innerText = "⌨";
         modeSwitch.disabled = false; // 🎯 Clean native unlock
     }
-    
+
     if (cancelBtn) {
         cancelBtn.disabled = false; // 🎯 Clean native unlock
     }
@@ -527,32 +527,23 @@ function refreshStateAndUI() {
 
 function updateTrackerDisplay() {
     const s = computeStats();
-    if (!s) {
-        console.warn("No stats object returned.");
-        return;
-    }
+    if (!s) return console.warn("No stats object returned.");
 
-    // Helper: Now simply calls your global clean formatter
+    // 📦 OUR ENHANCED HELPER (Strictly for standalone text strings or raw volume numbers)
     const updateText = (id, val) => {
         const el = elements.stats[id];
-        if (el) el.innerText = formatExerciseVolume(val, s.isSeconds);
+        if (!el) return;
+        el.innerText = typeof val === "number" ? formatExerciseVolume(val, s.isSeconds) : val;
     };
 
-    // --- 1. DAILY STATS & PROGRESS ---
+    // --- 1. DAILY STATS, PROGRESS & STREAKS ---
     updateText("today-val", s.todayTotal);
     updateText("yest-val", s.yesterdayTotal);
+    updateText("streak-val", s.streak);
+    updateText("rest-val", s.rest14);
 
-    // 🎯 FIX: Bypass the helper so the template string doesn't get run through the volume formatter twice
     const elGoal = elements.stats["goal-text"];
-    if (elGoal) {
-        elGoal.innerText = `Goal: ${formatExerciseVolume(s.dailyGoal, s.isSeconds)}`;
-    }
-
-    // Streak and rest items are raw counts of days, so update text directly without formatting as volume
-    const elStreak = elements.stats["streak-val"];
-    if (elStreak) elStreak.innerText = s.streak;
-    const elRest = elements.stats["rest-val"];
-    if (elRest) elRest.innerText = s.rest14;
+    if (elGoal) elGoal.innerText = `Goal: ${formatExerciseVolume(s.dailyGoal, s.isSeconds)}`;
 
     const pct = s.todayTotal / s.dailyGoal;
     if (elements.ui.greenBar) elements.ui.greenBar.style.width = Math.min(pct, 1) * 100 + "%";
@@ -560,37 +551,28 @@ function updateTrackerDisplay() {
 
     if (elements.ui.restStreakTag) {
         elements.ui.restStreakTag.style.display = s.restStreak > 1 ? "inline-flex" : "none";
-        if (s.restStreak > 0) {
-            const elRestStreak = elements.stats["rest-streak-val"];
-            if (elRestStreak) elRestStreak.innerText = s.restStreak;
-        }
+        if (s.restStreak > 0) updateText("rest-streak-val", s.restStreak);
     }
 
     // --- 2. 30-DAY PERFORMANCE & TRENDS ---
     updateText("total-30-val", s.total30);
-
-    const elActive30 = elements.stats["active-30-val"];
-    if (elActive30) elActive30.innerText = `${s.active30}/30`;
-
-    const elAvg30 = elements.stats["avg-30"];
-    if (elAvg30) {
-        elAvg30.innerText = s.isSeconds
-            ? `Avg: ${formatExerciseVolume(Math.round(s.avg30), true)}/day`
-            : `Avg: ${s.avg30}/day`;
-    }
-
+    updateText("active-30-val", `${s.active30}/30`);
     updateText("thirty-goal-val", s.thirtyGoal);
     updateText("thirty-improv-val", s.thirtyImprov);
 
-    if (elements.ui.trendFill) {
-        elements.ui.trendFill.style.width = Math.min((s.total30 / s.thirtyImprov) * 100, 100) + "%";
+    const elAvg30 = elements.stats["avg-30"];
+    if (elAvg30) {
+        elAvg30.innerText = `Avg: ${formatExerciseVolume(Math.round(s.avg30), s.isSeconds)}/day`;
     }
+
+    if (elements.ui.trendFill)
+        elements.ui.trendFill.style.width = Math.min((s.total30 / s.thirtyImprov) * 100, 100) + "%";
     if (elements.ui.trendLabel) {
         elements.ui.trendLabel.innerText = s.trend.label;
         elements.ui.trendLabel.style.color = s.trend.color;
     }
 
-    // --- 3. WEEKLY CHART ---
+    // --- 3. TIMELINE CHARTS (Weekly, 30-Day, Monthly) ---
     if (elements.ui.barChart && elements.ui.barLabels) {
         const bars = elements.ui.barChart.querySelectorAll(".bar-unit");
         const labels = elements.ui.barLabels.querySelectorAll(".day-label");
@@ -605,8 +587,7 @@ function updateTrackerDisplay() {
 
         s.weeklyData.forEach((v, i) => {
             if (bars[i]) {
-                const hPercentage = (v / maxVal) * 100;
-                bars[i].style.setProperty("--bar-h", `${hPercentage}%`);
+                bars[i].style.setProperty("--bar-h", `${(v / maxVal) * 100}%`);
                 bars[i].style.opacity = v > 0 ? "1" : "0.2";
             }
             if (labels[i]) {
@@ -617,15 +598,15 @@ function updateTrackerDisplay() {
         });
 
         const elWeeklyTitle = elements.stats["weekly-title"];
-        if (elWeeklyTitle) elWeeklyTitle.innerText = `Total: ${formatExerciseVolume(s.weeklyTotal, s.isSeconds)}`;
+        if (elWeeklyTitle) {
+            elWeeklyTitle.innerText = `Total: ${formatExerciseVolume(s.weeklyTotal, s.isSeconds)}`;
+        }
     }
 
-    // --- 3.5. 30-DAY LINE CHART ---
     if (elements.ui.trendChartView && elements.ui.trendChartView.style.display === "block") {
         renderTrendLineChart(s.chart30Labels || [], s.chart30Values || [], s.dailyGoal);
     }
 
-    // --- 4. MONTHLY CHART (6-Month Optimized) ---
     if (elements.ui.monthlyChart) {
         const containers = elements.ui.monthlyChart.querySelectorAll(".monthly-bar-container");
         const monthEntries = Object.entries(s.monthlyData).slice(-6);
@@ -633,40 +614,34 @@ function updateTrackerDisplay() {
 
         monthEntries.forEach(([label, val], i) => {
             const container = containers[i];
-            if (container) {
-                const bar = container.querySelector(".bar-unit");
-                const valLabel = container.querySelector(".chart-value-label");
-                const nameLabel = container.querySelector(".month-name-label");
+            if (!container) return;
 
-                const hPct = (val / maxMonth) * 100;
-                if (bar) {
-                    bar.style.setProperty("--bar-h", `${hPct}%`);
-                    bar.style.opacity = val > 0 ? "1" : "0.2";
-                }
-                if (valLabel) valLabel.innerText = val > 0 ? formatExerciseVolume(val, s.isSeconds) : "";
-                if (nameLabel) nameLabel.innerText = label;
+            const bar = container.querySelector(".bar-unit");
+            const valLabel = container.querySelector(".chart-value-label");
+            const nameLabel = container.querySelector(".month-name-label");
+
+            if (bar) {
+                bar.style.setProperty("--bar-h", `${(val / maxMonth) * 100}%`);
+                bar.style.opacity = val > 0 ? "1" : "0.2";
             }
+            if (valLabel) valLabel.innerText = val > 0 ? formatExerciseVolume(val, s.isSeconds) : "";
+            if (nameLabel) nameLabel.innerText = label;
         });
     }
 
-    // --- 5. LEGACY INSIGHTS (ALL-TIME) ---
+    // --- 4. LIFETIME INSIGHTS & HISTORICAL BADGES ---
     if (s.allTimeTotal > 0) {
         const elProj = elements.stats["legacy-projected"];
         if (elProj)
             elProj.innerText = `${s.currentYearStr} PROJECTION: ${formatExerciseVolume(s.projectedYearly, s.isSeconds)}`;
 
-        const elSince = elements.stats["legacy-since"];
-        if (elSince) elSince.innerText = `STARTED ${s.firstDateStr}`;
-
-        const elActDays = elements.stats["legacy-active-days"];
-        if (elActDays) elActDays.innerText = `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`;
-
+        updateText("legacy-since", `STARTED ${s.firstDateStr}`);
+        updateText("legacy-active-days", `ACTIVE: ${s.activeDays} / ${s.totalDaysElapsed} days`);
         updateText("stat-all-time", s.allTimeTotal);
         updateText("stat-pb", s.pb);
         updateText("stat-ytd", s.ytdTotal);
-
-        const elCentury = elements.stats["stat-century"];
-        if (elCentury) elCentury.innerText = s.centuryDays;
+        updateText("stat-century", s.centuryDays);
+        updateText("stat-best-streak", `${s.bestStreak} days`);
 
         const elAvg = elements.stats["stat-avg"];
         if (elAvg) elAvg.innerText = `${formatExerciseVolume(s.lifetimeAvg, s.isSeconds)}/day`;
@@ -676,8 +651,7 @@ function updateTrackerDisplay() {
             elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.nextMilestone, s.isSeconds)}`;
 
         if (elements.ui.milestoneFill) {
-            const milestonePct = (s.allTimeTotal / s.nextMilestone) * 100;
-            elements.ui.milestoneFill.style.width = Math.min(milestonePct, 100) + "%";
+            elements.ui.milestoneFill.style.width = Math.min((s.allTimeTotal / s.nextMilestone) * 100, 100) + "%";
         }
 
         const total = s.allTimeTotal || 1;
@@ -685,37 +659,42 @@ function updateTrackerDisplay() {
         if (elements.ui.pillSolid) elements.ui.pillSolid.style.width = (s.solidVol / total) * 100 + "%";
         if (elements.ui.pillLight) elements.ui.pillLight.style.width = (s.lightVol / total) * 100 + "%";
     } else {
-        [
-            "legacy-projected",
-            "legacy-since",
-            "legacy-active-days",
-            "stat-all-time",
-            "stat-pb",
-            "stat-ytd",
-            "stat-century",
-            "stat-avg",
-        ].forEach((id) => {
-            let fallbackText = "0";
-            if (id.includes("projected") || id.includes("active-days")) {
-                fallbackText = "NO DATA YET";
-            } else if (id.includes("since")) {
-                fallbackText = "START TRACKING TODAY";
-            } else if (id === "stat-avg" && s.isSeconds) {
-                fallbackText = "0s/day";
-            }
+        updateText("legacy-projected", "NO DATA YET");
+        updateText("legacy-active-days", "NO DATA YET");
+        updateText("legacy-since", "START TRACKING TODAY");
+        updateText("stat-avg", s.isSeconds ? "0s/day" : "0/day");
 
-            const el = elements.stats[id];
-            if (el) el.innerText = fallbackText;
-        });
+        ["stat-all-time", "stat-pb", "stat-ytd", "stat-century", "stat-best-streak"].forEach((id) =>
+            updateText(id, "0"),
+        );
 
+        const defaultMilestone = s.isSeconds ? 10000 : 5000;
         const elMilestone = elements.stats["label-next-milestone"];
         if (elMilestone)
-            elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(s.isSeconds ? 10000 : 5000, s.isSeconds)}`;
+            elMilestone.innerText = `NEXT MILESTONE: ${formatExerciseVolume(defaultMilestone, s.isSeconds)}`;
 
         if (elements.ui.milestoneFill) elements.ui.milestoneFill.style.width = "0%";
         [elements.ui.pillElite, elements.ui.pillSolid, elements.ui.pillLight].forEach((el) => {
             if (el) el.style.width = "0%";
         });
+    }
+
+    // --- 5. DYNAMIC VOLUME BY INTENSITY LEGEND TIERS ---
+    const solidFloor = Math.floor(s.dailyGoal / 2);
+
+    const elEliteLbl = elements.stats["elite-label"];
+    if (elEliteLbl) elEliteLbl.innerText = ` (${formatExerciseVolume(s.dailyGoal, s.isSeconds)}+)`;
+
+    const elSolidLbl = elements.stats["solid-label"];
+    if (elSolidLbl) {
+        const solidCeil = s.dailyGoal - 1;
+        elSolidLbl.innerText = ` (${formatExerciseVolume(solidFloor, s.isSeconds)}-${s.isSeconds ? solidCeil + "s" : solidCeil})`;
+    }
+
+    const elLightLbl = elements.stats["light-label"];
+    if (elLightLbl) {
+        const lightCeil = solidFloor - 1;
+        elLightLbl.innerText = ` (1-${s.isSeconds ? lightCeil + "s" : lightCeil})`;
     }
 }
 
