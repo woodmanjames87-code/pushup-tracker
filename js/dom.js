@@ -147,7 +147,7 @@ export const elements = {
             "stat-all-time",
             "stat-pb",
             "stat-ytd",
-            "stat-century",
+            "stat-elite",
             "stat-avg",
             "label-next-milestone",
             "stat-best-streak",

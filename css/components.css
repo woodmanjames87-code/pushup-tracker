@@ -285,7 +285,7 @@
     font-size: 1.4rem;
     font-weight: 800;
 }
-#stat-century {
+#stat-elite {
     font-size: 1.4rem;
     font-weight: 800;
     color: var(--orange);
@@ -1349,7 +1349,9 @@ input:checked + .slider:before {
     font-size: 2rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
 
 /* Active state modifier (No !important needed when placed underneath the base rule) */

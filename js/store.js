@@ -382,37 +382,45 @@ function generateChartMatrices(data, time, allKeys, exerciseId) {
  */
 function calculateTrendLabel(stats, dailyGoal, currentGoals) {
     const { total30, weeklyTotal, todayTotal, yesterdayTotal } = stats;
-    const avg30 = Number((total30 / 30).toFixed(1));
-    const target30 = dailyGoal * 30 * currentGoals.onTrackRatio;
-    const trendPct = avg30 / dailyGoal;
     const avg7 = Number((weeklyTotal / 7).toFixed(1));
 
-    if (total30 >= target30) {
-        // --- UPPER LADDER: Maintaining or Exceeding Goal Baselines ---
-        const dailyMinimumPace = dailyGoal * currentGoals.onTrackRatio;
+    // --- 30-DAY MACRO VOLUMES ---
+    const target30 = dailyGoal * 30 * currentGoals.onTrackRatio;
+    const improve30 = dailyGoal * 30 * currentGoals.improveRatio;
 
-        if (avg7 < dailyMinimumPace) {
-            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
-        } else if (trendPct >= currentGoals.improveRatio) {
-            return { label: "Improving", color: "#007aff" }; // High-Performance Dark Blue
+    if (total30 >= target30) {
+        // --- UPPER LADDER ---
+        if (total30 >= improve30) {
+            return { label: "Improving", color: "#007aff" };
         } else {
-            return { label: "On Track", color: "#34c759" }; // Balanced Green
+            return { label: "On Track", color: "#34c759" };
         }
     } else {
-        // --- LOWER LADDER: Working back up from a training deficit ---
-        const priorWeekTotal = Math.max(0, total30 - weeklyTotal);
+        // --- LOWER LADDER: Working back up OR slipping down ---
+        const prior23DayTotal = Math.max(0, total30 - weeklyTotal);
+
+        // Normalize the previous 23 days into a 7-day average pace
+        const priorWeeksAvgVolume = (prior23DayTotal / 23) * 7;
         const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
 
+        // Conditions for moving UP
         const isExceedingGoalThisWeek = avg7 >= dailyGoal * currentGoals.onTrackRatio;
-        const isTrendingUpward = weeklyTotal > priorWeekTotal && weeklyTotal >= minimumActiveVolume;
-        const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > priorWeekTotal);
+        const isTrendingUpward = weeklyTotal > prior23DayTotal && weeklyTotal >= minimumActiveVolume;
+        const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > prior23DayTotal);
+
+        // Condition for moving DOWN (The Inverse Slip)
+        // Current week is less than their established historical weekly average,
+        // but they still have at least 3 days of baseline goals logged in the past month.
+        const isSlowingDown = weeklyTotal < priorWeeksAvgVolume && prior23DayTotal > dailyGoal * 3;
 
         if (isExceedingGoalThisWeek || isTrendingUpward) {
-            return { label: "Gaining Momentum", color: "#5ac8fa" }; // Light Blue/Teal - Active Comeback
+            return { label: "Gaining Momentum", color: "#5ac8fa" };
         } else if (isFreshStart) {
-            return { label: "Starting Up", color: "#5856d6" }; // Indigo/Purple - Day 1 Spark
+            return { label: "Starting Up", color: "#5856d6" };
+        } else if (isSlowingDown) {
+            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange - The Inverse Slip
         } else {
-            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
+            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red - Bottomed out
         }
     }
 }
@@ -446,7 +454,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         ytdTotal: 0,
         pb: 0,
         activeDays: 0,
-        centuryDays: 0,
+        eliteDays: 0,
         eliteVol: 0,
         solidVol: 0,
         lightVol: 0,
@@ -475,7 +483,7 @@ export function computeStats(exerciseId = state.currentExercise) {
 
         // Categorize Training Volume Volume Tiers
         if (val >= eliteThreshold) {
-            loopStats.centuryDays++;
+            loopStats.eliteDays++;
             loopStats.eliteVol += val;
         } else if (val >= solidThreshold) {
             loopStats.solidVol += val;
@@ -578,7 +586,7 @@ export function computeStats(exerciseId = state.currentExercise) {
         bestStreak: loopStats.bestStreak,
         avg30: Number((loopStats.total30 / 30).toFixed(1)),
         pb: loopStats.pb,
-        centuryDays: loopStats.centuryDays,
+        eliteDays: loopStats.eliteDays,
         lifetimeAvg: Math.round(loopStats.allTimeTotal / totalDaysElapsed),
         totalDaysElapsed,
 

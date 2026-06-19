@@ -640,7 +640,7 @@ function updateTrackerDisplay() {
         updateText("stat-all-time", s.allTimeTotal);
         updateText("stat-pb", s.pb);
         updateText("stat-ytd", s.ytdTotal);
-        updateText("stat-century", s.centuryDays);
+        updateText("stat-elite", s.eliteDays);
         updateText("stat-best-streak", `${s.bestStreak} days`);
 
         const elAvg = elements.stats["stat-avg"];
@@ -664,9 +664,7 @@ function updateTrackerDisplay() {
         updateText("legacy-since", "START TRACKING TODAY");
         updateText("stat-avg", s.isSeconds ? "0s/day" : "0/day");
 
-        ["stat-all-time", "stat-pb", "stat-ytd", "stat-century", "stat-best-streak"].forEach((id) =>
-            updateText(id, "0"),
-        );
+        ["stat-all-time", "stat-pb", "stat-ytd", "stat-elite", "stat-best-streak"].forEach((id) => updateText(id, "0"));
 
         const defaultMilestone = s.isSeconds ? 10000 : 5000;
         const elMilestone = elements.stats["label-next-milestone"];
@@ -698,15 +696,29 @@ function updateTrackerDisplay() {
     }
 }
 
+// Quick helper to calculate the rolling 7-day average for each point on the chart
+function calculateRolling7DayAverage(values) {
+    return values.map((_, index, array) => {
+        // Look backward up to 7 days from the current point
+        const start = Math.max(0, index - 6);
+        const subset = array.slice(start, index + 1);
+        const sum = subset.reduce((acc, val) => acc + val, 0);
+        return Number((sum / subset.length).toFixed(1));
+    });
+}
+
 function renderTrendLineChart(labels, values, dailyGoal) {
-    // 1. Grab the computed styles from the root element
     const rootStyles = getComputedStyle(document.documentElement);
-    // 2. Pull the color values
+
+    // Pull theme colors
     const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
+    const trendColor = rootStyles.getPropertyValue("--primary").trim(); // Or use a distinct accent color like blue/orange
     const gridColor = rootStyles.getPropertyValue("--border-color").trim();
     const textColor = rootStyles.getPropertyValue("--text-muted").trim();
 
-    // 🧠 Dynamic scaling anchored to the user's daily goal
+    // Calculate rolling data
+    const rollingAvgData = calculateRolling7DayAverage(values);
+
     const realMax = values.length > 0 ? Math.max(...values) : 0;
     const rawCeiling = realMax * 1.1;
     const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
@@ -718,12 +730,10 @@ function renderTrendLineChart(labels, values, dailyGoal) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // 🔒 Fully centralized cleanup: Wipe previous engine instance using your global state object
     if (state.trendChartInstance) {
         state.trendChartInstance.destroy();
     }
 
-    // Assign directly to your shared global state registry
     state.trendChartInstance = new Chart(ctx, {
         type: "line",
         data: {
@@ -738,18 +748,27 @@ function renderTrendLineChart(labels, values, dailyGoal) {
                     hoverRadius: 4,
                     tension: 0.2,
                     fill: true,
-                    backgroundColor: "#39e63933", // 20% opacity for the fill
+                    backgroundColor: "#39e6391a", // Softened to 10% to make space for the trend line
+                },
+                {
+                    label: "7-Day Trend",
+                    data: rollingAvgData,
+                    borderColor: trendColor, // A clean, striking contrast color
+                    borderWidth: 2.5,
+                    borderDash: [5, 5], // Creates a visually distinct dashed trend line
+                    pointRadius: 0,
+                    hoverRadius: 0,
+                    tension: 0.4, // Smoother curve for the trend
+                    fill: false,
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false } }, // Keeps it clean, tooltips will still show both values
             scales: {
-                x: {
-                    display: false,
-                },
+                x: { display: false },
                 y: {
                     beginAtZero: true,
                     max: dynamicCeiling,
