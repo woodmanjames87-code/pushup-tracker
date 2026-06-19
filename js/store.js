@@ -380,69 +380,73 @@ function generateChartMatrices(data, time, allKeys, exerciseId) {
 /**
  * Helper 3: Dual-Window Psychological Status Engine
  */
-function calculateTrendLabel(stats, dailyGoal, currentGoals) {
-    const { total30, weeklyTotal, todayTotal, yesterdayTotal } = stats;
+function calculateTrendLabel(dailyHistoryArray, dailyGoal, currentGoals) {
+    const totalDays = dailyHistoryArray.length;
+    if (totalDays === 0) return { label: "Below Target", color: "#ff3b30" };
+
+    const daysInWeek = currentGoals.DAYS_PER_WEEK; // 7
+
+    // --- 1. HARD MACRO VOLUME EVALUATION (UPPER LADDER) ---
+    const total30Volume = dailyHistoryArray.reduce((sum, reps) => sum + reps, 0);
+    const targetMacro   = dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.onTrackRatio;
+    const improveMacro  = dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.improveRatio;
+
+    if (total30Volume >= targetMacro) {
+        if (total30Volume >= improveMacro) {
+            return { label: "Improving", color: "#007aff" }; 
+        }
+        return { label: "On Track", color: "#34c759" }; 
+    }
+
+    // --- 2. ROLLING BEHAVIORAL WINDOWS (LOWER LADDER) ---
+    // Slice the most recent 7 days out of the array for a true rolling week
+    const rollingWeekArray = dailyHistoryArray.slice(-daysInWeek);
+    const rollingWeeklyTotal = rollingWeekArray.reduce((sum, reps) => sum + reps, 0);
+
+    // Prior history is everything else in the 30-day window before this rolling week
+    const priorHistoryArray = dailyHistoryArray.slice(0, totalDays - daysInWeek);
+    const priorHistoryTotal = priorHistoryArray.reduce((sum, reps) => sum + reps, 0);
+
+    // Immediate daily boundaries
+    const todayTotal = dailyHistoryArray[totalDays - 1] || 0;
+    const yesterdayTotal = dailyHistoryArray[totalDays - 2] || 0;
+
+    // Targets scaled exactly to your profile settings
+    const historyWindow = totalDays - daysInWeek; // 23 days
+    const priorWeeksAvgVolume = (priorHistoryTotal / historyWindow) * daysInWeek;
+    const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
+
+    // --- 3. THE DECISION MATRIX ---
+
+    // Condition for moving UP
+    const hasSolidWeeklyVolume = rollingWeeklyTotal >= minimumActiveVolume;
+    const isTrendingUpward = rollingWeeklyTotal > priorWeeksAvgVolume && rollingWeeklyTotal > 0;
+
+    // Condition for a FRESH START (with perfect rest-day budget protection)
+    const maxRestDaysAllowed = daysInWeek - currentGoals.ON_TRACK_DAYS;
+    const isLowFrequencySplit = maxRestDaysAllowed > currentGoals.ON_TRACK_DAYS;
     
-    // --- DYNAMIC WINDOW DEFINITIONS ---
-    const daysInWeek = currentGoals.DAYS_PER_WEEK;
-    const totalWindow = currentGoals.WINDOW_DAYS;
-    const historyWindow = totalWindow - daysInWeek; // Dynamically calculates 23 if window is 30
+    // If they have a low-frequency target and have done at least 1 day of work this rolling week,
+    // their rest days are completely protected inside the 7-day window.
+    const isLegitRestDay = isLowFrequencySplit && 
+                           rollingWeeklyTotal >= dailyGoal && 
+                           rollingWeeklyTotal < minimumActiveVolume;
 
-    const avg7 = Number((weeklyTotal / daysInWeek).toFixed(1));
+    const isFreshStart = todayTotal > 0 || yesterdayTotal > 0 || isLegitRestDay;
 
-    // --- MACRO VOLUMES ---
-    const targetMacro = dailyGoal * totalWindow * currentGoals.onTrackRatio;
-    const improveMacro = dailyGoal * totalWindow * currentGoals.improveRatio;
+    // Condition for moving DOWN (Slowing Down)
+    const isSlowingDown = rollingWeeklyTotal > 0 && 
+                          rollingWeeklyTotal < priorWeeksAvgVolume && 
+                          priorHistoryTotal >= (dailyGoal * historyWindow * currentGoals.onTrackRatio);
 
-    if (total30 >= targetMacro) {
-        // --- UPPER LADDER ---
-        if (total30 >= improveMacro) {
-            return { label: "Improving", color: "#007aff" };
-        } else {
-            return { label: "On Track", color: "#34c759" };
-        }
+    if (hasSolidWeeklyVolume || isTrendingUpward) {
+        return { label: "Gaining Momentum", color: "#5ac8fa" }; // Teal Spark
+    } else if (isFreshStart) {
+        return { label: "Starting Up", color: "#5856d6" }; // Stable Purple
+    } else if (isSlowingDown) {
+        return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
     } else {
-        // --- LOWER LADDER: Working back up OR slipping down ---
-        const priorHistoryTotal = Math.max(0, total30 - weeklyTotal);
-
-        // Normalize the previous history period into a current week-sized pace
-        const priorWeeksAvgVolume = (priorHistoryTotal / historyWindow) * daysInWeek;
-        const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
-
-        // Proportional historical baseline scaled exactly to the historical window remainder
-        const historicalBaselinePrior = dailyGoal * historyWindow * currentGoals.onTrackRatio;
-
-        // Conditions for moving UP
-        const isExceedingGoalThisWeek = avg7 >= dailyGoal * currentGoals.onTrackRatio;
-        const isTrendingUpward = weeklyTotal > priorHistoryTotal && weeklyTotal >= minimumActiveVolume;
-        
-        // --- DYNAMIC REST DAY CALCULATION ---
-        const maxRestDaysAllowed = daysInWeek - currentGoals.ON_TRACK_DAYS;
-        
-        // A routine is considered low-frequency if allowed rest days exceed scheduled work days
-        const isLowFrequencySplit = maxRestDaysAllowed > currentGoals.ON_TRACK_DAYS;
-        
-        // If their schedule allows more rest than work, a single daily goal protects them from red
-        const isLegitRestDay = isLowFrequencySplit && 
-                               weeklyTotal >= dailyGoal && 
-                               weeklyTotal < minimumActiveVolume;
-
-        const isFreshStart = todayTotal > 0 || yesterdayTotal > 0 || isLegitRestDay;
-
-        // Condition for moving DOWN (The Dynamic Inverse Slip)
-        const isSlowingDown = weeklyTotal > 0 && 
-                             weeklyTotal < priorWeeksAvgVolume && 
-                             priorHistoryTotal >= historicalBaselinePrior;
-
-        if (isExceedingGoalThisWeek || isTrendingUpward) {
-            return { label: "Gaining Momentum", color: "#5ac8fa" };
-        } else if (isFreshStart) {
-            return { label: "Starting Up", color: "#5856d6" }; 
-        } else if (isSlowingDown) {
-            return { label: "Slowing Down", color: "#ff9500" }; 
-        } else {
-            return { label: "Below Target", color: "#ff3b30" }; 
-        }
+        return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
     }
 }
 
@@ -559,8 +563,8 @@ export function computeStats(exerciseId = state.currentExercise) {
     }
 
     // 7. Calculate Trends via the Coaching Engine
-    const trendsPayload = { total30: loopStats.total30, weeklyTotal: charts.weeklyTotal, todayTotal, yesterdayTotal };
-    const trend = calculateTrendLabel(trendsPayload, dailyGoal, currentGoals);
+    const dailyHistoryArray = charts.chart30Values || [];
+    const trend = calculateTrendLabel(dailyHistoryArray, dailyGoal, currentGoals);
 
     // 8. Long-Term Lifetime Metrics
     const firstDateObj = loopStats.exerciseFirstDateStr
