@@ -403,24 +403,30 @@ function calculateTrendLabel(stats, dailyGoal, currentGoals) {
         const priorWeeksAvgVolume = (prior23DayTotal / 23) * 7;
         const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
 
+        // Proportional historical baseline scaled exactly to the 23-day window
+        const historicalBaseline3Weeks = dailyGoal * 23 * currentGoals.onTrackRatio;
+
         // Conditions for moving UP
         const isExceedingGoalThisWeek = avg7 >= dailyGoal * currentGoals.onTrackRatio;
         const isTrendingUpward = weeklyTotal > prior23DayTotal && weeklyTotal >= minimumActiveVolume;
         const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > prior23DayTotal);
 
-        // Condition for moving DOWN (The Inverse Slip)
-        // Current week is less than their established historical weekly average,
-        // but they still have at least 3 days of baseline goals logged in the past month.
-        const isSlowingDown = weeklyTotal < priorWeeksAvgVolume && prior23DayTotal > dailyGoal * 3;
+        // Condition for moving DOWN (The Dynamic Inverse Slip)
+        // 1. weeklyTotal > 0: Ensures they aren't completely stagnant/halted
+        // 2. weeklyTotal < priorWeeksAvgVolume: Current output is losing steam compared to past habits
+        // 3. prior23DayTotal >= historicalBaseline3Weeks: They actually had a solid routine before this drop
+        const isSlowingDown = weeklyTotal > 0 && 
+                             weeklyTotal < priorWeeksAvgVolume && 
+                             prior23DayTotal >= historicalBaseline3Weeks;
 
         if (isExceedingGoalThisWeek || isTrendingUpward) {
             return { label: "Gaining Momentum", color: "#5ac8fa" };
         } else if (isFreshStart) {
             return { label: "Starting Up", color: "#5856d6" };
         } else if (isSlowingDown) {
-            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange - The Inverse Slip
+            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
         } else {
-            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red - Bottomed out
+            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red (Halted or bottomed out)
         }
     }
 }
