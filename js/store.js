@@ -382,51 +382,66 @@ function generateChartMatrices(data, time, allKeys, exerciseId) {
  */
 function calculateTrendLabel(stats, dailyGoal, currentGoals) {
     const { total30, weeklyTotal, todayTotal, yesterdayTotal } = stats;
-    const avg7 = Number((weeklyTotal / 7).toFixed(1));
+    
+    // --- DYNAMIC WINDOW DEFINITIONS ---
+    const daysInWeek = currentGoals.DAYS_PER_WEEK;
+    const totalWindow = currentGoals.WINDOW_DAYS;
+    const historyWindow = totalWindow - daysInWeek; // Dynamically calculates 23 if window is 30
 
-    // --- 30-DAY MACRO VOLUMES ---
-    const target30 = dailyGoal * 30 * currentGoals.onTrackRatio;
-    const improve30 = dailyGoal * 30 * currentGoals.improveRatio;
+    const avg7 = Number((weeklyTotal / daysInWeek).toFixed(1));
 
-    if (total30 >= target30) {
+    // --- MACRO VOLUMES ---
+    const targetMacro = dailyGoal * totalWindow * currentGoals.onTrackRatio;
+    const improveMacro = dailyGoal * totalWindow * currentGoals.improveRatio;
+
+    if (total30 >= targetMacro) {
         // --- UPPER LADDER ---
-        if (total30 >= improve30) {
+        if (total30 >= improveMacro) {
             return { label: "Improving", color: "#007aff" };
         } else {
             return { label: "On Track", color: "#34c759" };
         }
     } else {
         // --- LOWER LADDER: Working back up OR slipping down ---
-        const prior23DayTotal = Math.max(0, total30 - weeklyTotal);
+        const priorHistoryTotal = Math.max(0, total30 - weeklyTotal);
 
-        // Normalize the previous 23 days into a 7-day average pace
-        const priorWeeksAvgVolume = (prior23DayTotal / 23) * 7;
+        // Normalize the previous history period into a current week-sized pace
+        const priorWeeksAvgVolume = (priorHistoryTotal / historyWindow) * daysInWeek;
         const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
 
-        // Proportional historical baseline scaled exactly to the 23-day window
-        const historicalBaseline3Weeks = dailyGoal * 23 * currentGoals.onTrackRatio;
+        // Proportional historical baseline scaled exactly to the historical window remainder
+        const historicalBaselinePrior = dailyGoal * historyWindow * currentGoals.onTrackRatio;
 
         // Conditions for moving UP
         const isExceedingGoalThisWeek = avg7 >= dailyGoal * currentGoals.onTrackRatio;
-        const isTrendingUpward = weeklyTotal > prior23DayTotal && weeklyTotal >= minimumActiveVolume;
-        const isFreshStart = todayTotal > 0 || (yesterdayTotal > 0 && weeklyTotal > prior23DayTotal);
+        const isTrendingUpward = weeklyTotal > priorHistoryTotal && weeklyTotal >= minimumActiveVolume;
+        
+        // --- DYNAMIC REST DAY CALCULATION ---
+        const maxRestDaysAllowed = daysInWeek - currentGoals.ON_TRACK_DAYS;
+        
+        // A routine is considered low-frequency if allowed rest days exceed scheduled work days
+        const isLowFrequencySplit = maxRestDaysAllowed > currentGoals.ON_TRACK_DAYS;
+        
+        // If their schedule allows more rest than work, a single daily goal protects them from red
+        const isLegitRestDay = isLowFrequencySplit && 
+                               weeklyTotal >= dailyGoal && 
+                               weeklyTotal < minimumActiveVolume;
+
+        const isFreshStart = todayTotal > 0 || yesterdayTotal > 0 || isLegitRestDay;
 
         // Condition for moving DOWN (The Dynamic Inverse Slip)
-        // 1. weeklyTotal > 0: Ensures they aren't completely stagnant/halted
-        // 2. weeklyTotal < priorWeeksAvgVolume: Current output is losing steam compared to past habits
-        // 3. prior23DayTotal >= historicalBaseline3Weeks: They actually had a solid routine before this drop
         const isSlowingDown = weeklyTotal > 0 && 
                              weeklyTotal < priorWeeksAvgVolume && 
-                             prior23DayTotal >= historicalBaseline3Weeks;
+                             priorHistoryTotal >= historicalBaselinePrior;
 
         if (isExceedingGoalThisWeek || isTrendingUpward) {
             return { label: "Gaining Momentum", color: "#5ac8fa" };
         } else if (isFreshStart) {
-            return { label: "Starting Up", color: "#5856d6" };
+            return { label: "Starting Up", color: "#5856d6" }; 
         } else if (isSlowingDown) {
-            return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
+            return { label: "Slowing Down", color: "#ff9500" }; 
         } else {
-            return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red (Halted or bottomed out)
+            return { label: "Below Target", color: "#ff3b30" }; 
         }
     }
 }
