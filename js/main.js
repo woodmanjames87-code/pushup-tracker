@@ -251,7 +251,6 @@ function setupLeaderboardListeners() {
     if (!lb) return; // Guard clause
 
     // --- 1. SINGLE-MODE LEADERBOARD FILTERS (Refactored to Event Delegation) ---
-    // Instead of a brittle .forEach loop on elements that might get swapped, we use the parent container
     lb.filterContainer?.addEventListener("click", (e) => {
         const btn = e.target.closest(".seg-btn");
         if (!btn) return;
@@ -271,6 +270,10 @@ function setupLeaderboardListeners() {
 
         // Trigger Fetch with the specific filter
         const filterValue = btn.getAttribute("data-filter");
+        
+        // 🌟 SAVE STATE: Remember the last selected single filter
+        localStorage.setItem("dg_lb_filter", filterValue);
+
         if (typeof UI.fetchLeaderboard === "function") {
             UI.fetchLeaderboard(filterValue);
         }
@@ -285,6 +288,9 @@ function setupLeaderboardListeners() {
         btn.classList.add("active");
 
         const activeMode = btn.getAttribute("data-mode");
+
+        // 🌟 SAVE STATE: Remember whether the user prefers Single or Matrix mode
+        localStorage.setItem("dg_lb_mode", activeMode);
 
         if (activeMode === "matrix") {
             UI.hidePodiumOverlay();
@@ -307,7 +313,7 @@ function setupLeaderboardListeners() {
         }
     });
 
-    // --- 3. STANDALONE MATRIX SUB-FILTER LISTENER (Preserved Exactly as Written) ---
+    // --- 3. STANDALONE MATRIX SUB-FILTER LISTENER ---
     lb.matrixFilterContainer?.addEventListener("click", (e) => {
         const btn = e.target.closest(".seg-btn");
         if (!btn) return;
@@ -317,9 +323,17 @@ function setupLeaderboardListeners() {
 
         const timeframe = btn.getAttribute("data-matrix-filter");
 
+        // 🌟 SAVE STATE: Remember the last selected matrix sub-filter
+        localStorage.setItem("dg_lb_filter", timeframe);
+
         if (lb.rangeText) {
-            lb.rangeText.innerText =
-                timeframe === "weekly" ? "Current Week - All Movements" : "Year To Date - All Movements";
+            if (timeframe === "weekly") {
+                lb.rangeText.innerText = "Current Week - All Movements";
+            } else if (timeframe === "monthly") {
+                lb.rangeText.innerText = "Current Month - All Movements";
+            } else {
+                lb.rangeText.innerText = "Year To Date - All Movements";
+            }
         }
 
         if (typeof UI.fetchAndRenderMatrix === "function") {

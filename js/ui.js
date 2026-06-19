@@ -89,18 +89,83 @@ function refreshActivePage() {
         renderEditList();
     }
     if (pageId === "leaderboard") {
-        const activeModeBtn = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active");
-        const activeMode = activeModeBtn ? activeModeBtn.getAttribute("data-mode") : "single";
+        syncLeaderboardDOMWithStorage();
 
+        // Let the engines look at the DOM themselves to execute
+        const activeMode = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active")?.getAttribute("data-mode") || "single";
+        
         if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
-            // Find which sub-filter is active ("weekly" or "yearly")
-            const activeMatrixBtn = elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
-            const matrixTimeframe = activeMatrixBtn ? activeMatrixBtn.getAttribute("data-matrix-filter") : "weekly";
-
-            fetchAndRenderMatrix(matrixTimeframe);
+            fetchAndRenderMatrix(); // 🌟 No middleman variables needed!
         } else if (typeof fetchLeaderboard === "function") {
-            // Fall back to single mode refresh
             fetchLeaderboard();
+        }
+    }
+}
+
+function syncLeaderboardDOMWithStorage() {
+    const lb = elements.leaderboard;
+    if (!lb) return;
+
+    // 1. Retrieve preferences from localStorage
+    const savedMode = localStorage.getItem("dg_lb_mode") || "single";
+    const savedFilter = localStorage.getItem("dg_lb_filter");
+
+    // 2. Track our active button elements so we can extract their text labels later
+    let activeBtnElement = null;
+
+    // 3. Align DOM with saved mode selector
+    if (lb.modeSelector) {
+        lb.modeSelector.querySelectorAll(".seg-btn").forEach(btn => {
+            const isTarget = btn.getAttribute("data-mode") === savedMode;
+            btn.classList.toggle("active", isTarget);
+        });
+    }
+
+    // 4. Adjust layout visibility bars and sub-filter active states
+    if (savedMode === "matrix") {
+        if (typeof hidePodiumOverlay === "function") hidePodiumOverlay();
+        if (lb.filterContainer) lb.filterContainer.style.display = "none";
+        if (lb.matrixFilterContainer) lb.matrixFilterContainer.style.display = "flex";
+        if (lb.singleViewContainer) lb.singleViewContainer.hidden = true;
+        if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = false;
+
+        if (lb.matrixFilterContainer) {
+            // If no filter matches or exists, fallback to your default layout target
+            const targetFilter = savedFilter || "yearly"; 
+            lb.matrixFilterContainer.querySelectorAll(".seg-btn").forEach(btn => {
+                const isTarget = btn.getAttribute("data-matrix-filter") === targetFilter;
+                btn.classList.toggle("active", isTarget);
+                if (isTarget) activeBtnElement = btn;
+            });
+        }
+    } else {
+        if (lb.matrixFilterContainer) lb.matrixFilterContainer.style.display = "none";
+        if (lb.filterContainer) lb.filterContainer.style.display = "flex";
+        if (lb.matrixViewContainer) lb.matrixViewContainer.hidden = true;
+        if (lb.singleViewContainer) lb.singleViewContainer.hidden = false;
+
+        if (lb.filterContainer) {
+            const targetFilter = savedFilter || "stats.daily";
+            lb.filterContainer.querySelectorAll(".seg-btn").forEach(btn => {
+                const isTarget = btn.getAttribute("data-filter") === targetFilter;
+                btn.classList.toggle("active", isTarget);
+                if (isTarget) activeBtnElement = btn;
+            });
+        }
+    }
+
+    // 🌟 5. CENTRALIZED HEADER TEXT UPDATER
+    // This dynamically handles both Single AND Matrix modes using the active button text!
+    if (lb.rangeText && activeBtnElement) {
+        if (savedMode === "matrix") {
+            const timeframe = activeBtnElement.getAttribute("data-matrix-filter");
+            if (timeframe === "weekly") lb.rangeText.innerText = "Current Week - All Movements";
+            else if (timeframe === "monthly") lb.rangeText.innerText = "Current Month - All Movements";
+            else lb.rangeText.innerText = "Year To Date - All Movements";
+        } else {
+            // Uses the button text itself ("Daily", "Week", "Month", etc.)
+            const label = activeBtnElement.innerText;
+            lb.rangeText.innerText = label === "Daily" ? "Today & Yesterday" : `This ${label}`;
         }
     }
 }
@@ -512,7 +577,7 @@ function refreshStateAndUI() {
                             elements.leaderboard.matrixFilterContainer?.querySelector(".seg-btn.active");
                         const matrixTimeframe = activeMatrixBtn
                             ? activeMatrixBtn.getAttribute("data-matrix-filter")
-                            : "weekly";
+                            : "yearly";
 
                         fetchAndRenderMatrix(matrixTimeframe);
                     } else if (typeof fetchLeaderboard === "function") {
@@ -696,29 +761,15 @@ function updateTrackerDisplay() {
     }
 }
 
-// Quick helper to calculate the rolling 7-day average for each point on the chart
-function calculateRolling7DayAverage(values) {
-    return values.map((_, index, array) => {
-        // Look backward up to 7 days from the current point
-        const start = Math.max(0, index - 6);
-        const subset = array.slice(start, index + 1);
-        const sum = subset.reduce((acc, val) => acc + val, 0);
-        return Number((sum / subset.length).toFixed(1));
-    });
-}
-
 function renderTrendLineChart(labels, values, dailyGoal) {
     const rootStyles = getComputedStyle(document.documentElement);
-
+    
     // Pull theme colors
     const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
-    const trendColor = rootStyles.getPropertyValue("--primary").trim(); // Or use a distinct accent color like blue/orange
     const gridColor = rootStyles.getPropertyValue("--border-color").trim();
     const textColor = rootStyles.getPropertyValue("--text-muted").trim();
 
-    // Calculate rolling data
-    const rollingAvgData = calculateRolling7DayAverage(values);
-
+    // 🧠 Dynamic scaling anchored to the user's daily goal
     const realMax = values.length > 0 ? Math.max(...values) : 0;
     const rawCeiling = realMax * 1.1;
     const paddedCeiling = Math.ceil(rawCeiling / 5) * 5;
@@ -730,6 +781,7 @@ function renderTrendLineChart(labels, values, dailyGoal) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Fully centralized cleanup: Wipe previous engine instance
     if (state.trendChartInstance) {
         state.trendChartInstance.destroy();
     }
@@ -748,27 +800,18 @@ function renderTrendLineChart(labels, values, dailyGoal) {
                     hoverRadius: 4,
                     tension: 0.2,
                     fill: true,
-                    backgroundColor: "#39e6391a", // Softened to 10% to make space for the trend line
-                },
-                {
-                    label: "7-Day Trend",
-                    data: rollingAvgData,
-                    borderColor: trendColor, // A clean, striking contrast color
-                    borderWidth: 2.5,
-                    borderDash: [5, 5], // Creates a visually distinct dashed trend line
-                    pointRadius: 0,
-                    hoverRadius: 0,
-                    tension: 0.4, // Smoother curve for the trend
-                    fill: false,
+                    backgroundColor: "#39e63933", // 20% opacity for the clean green fill
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } }, // Keeps it clean, tooltips will still show both values
+            plugins: { legend: { display: false } },
             scales: {
-                x: { display: false },
+                x: {
+                    display: false,
+                },
                 y: {
                     beginAtZero: true,
                     max: dynamicCeiling,
@@ -1040,10 +1083,8 @@ function updateBgImage(exId) {
 /*************************************************
  * LEADERBOARD LOGIC
  *************************************************/
-let leaderboardUnsubscribe = null;
-
 async function fetchLeaderboard(passedFilter = null) {
-    console.log("fetchLeaderboard triggered...");
+    console.log("fetchLeaderboard triggered...", passedFilter);
     // Hide the staggered podium by default (will be shown if data exists)
     const el = elements.leaderboard;
     el.podiumOverlay.hidden = true;
@@ -1300,7 +1341,7 @@ function hidePodiumOverlay() {
 }
 
 // New: Matrix fetch and render for All Exercises view
-async function fetchAndRenderMatrix(matrixTimeframe) {
+async function fetchAndRenderMatrix(matrixTimeframe = null) {
     console.log("fetchAndRenderMatrix triggered...", matrixTimeframe);
     const el = elements.leaderboard;
 
@@ -1327,13 +1368,21 @@ async function fetchAndRenderMatrix(matrixTimeframe) {
         return;
     }
 
+    // 🌟 Centralized DOM fallback if no parameter was explicitly passed down
+    const activeBtn = el.matrixFilterContainer?.querySelector(".seg-btn.active");
+    const timeframe = matrixTimeframe || (activeBtn ? activeBtn.getAttribute("data-matrix-filter") : "weekly");
+
     const now = new Date();
     let idValue;
     let typeKey;
 
-    if (matrixTimeframe === "weekly") {
+    // 🌟 Evaluates using the resolved `timeframe` variable
+    if (timeframe === "weekly") {
         idValue = getWeekId(now);
         typeKey = "weekly";
+    } else if (timeframe === "monthly") { 
+        idValue = getMonthId(now);
+        typeKey = "monthly";
     } else {
         // default to yearly
         idValue = getYearId(now);
