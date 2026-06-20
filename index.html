@@ -144,43 +144,43 @@
                     <h3>30-Day Performance Trend</h3>
                     <div id="trend-card-30" class="widget-card trend-section">
                         <span class="tap-icon"> ◉ </span>
-                        <div class="trend-summary-view">
-                            <p class="label-tiny">
-                                Total:
-                                <span id="total-30-val" class="label-bold">0</span>
-                            </p>
+                        <p class="label-tiny">
+                            Total:
+                            <span id="total-30-val" class="label-bold">0</span>
+                        </p>
 
+                        <div class="trend-summary-view">
                             <div class="segmented-track">
                                 <div class="segment red"></div>
                                 <div class="segment yellow"></div>
                                 <div class="segment green-bg"></div>
                                 <div id="trend-fill" class="trend-fill"></div>
                             </div>
-
-                            <div class="trend-footer-grid">
-                                <div class="trend-col-left">
-                                    <div id="trend-label">On Track</div>
-                                    <div class="label-tiny">
-                                        Active Days:
-                                        <span id="active-30-val">0/30</span>
-                                    </div>
-                                    <div class="label-tiny">
-                                        <span id="avg-30">0/day</span>
-                                    </div>
-                                </div>
-                                <div class="trend-col-right">
-                                    <div class="label-tiny">30-Day Goal:</div>
-                                    <div class="label-tiny">
-                                        <span id="thirty-goal-val">0</span> -
-                                        <span id="thirty-improv-val">0</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="trend-chart-view">
                             <div class="chart-container">
                                 <canvas id="trendChartCanvas"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="trend-footer-grid">
+                            <div class="trend-col-left">
+                                <div id="trend-label">On Track</div>
+                                <div class="label-tiny">
+                                    Active Days:
+                                    <span id="active-30-val">0/30</span>
+                                </div>
+                                <div class="label-tiny">
+                                    <span id="avg-30">0/day</span>
+                                </div>
+                            </div>
+                            <div class="trend-col-right">
+                                <div class="label-tiny">30-Day Goal:</div>
+                                <div class="label-tiny">
+                                    <span id="thirty-goal-val">0</span> -
+                                    <span id="thirty-improv-val">0</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -288,7 +288,9 @@
                         </div>
                         <div class="intensity-legend">
                             <div class="legend-item"><span class="dot green"></span><span id="elite-label"></span></div>
-                            <div class="legend-item"><span class="dot orange"></span><span id="solid-label"></span></div>
+                            <div class="legend-item">
+                                <span class="dot orange"></span><span id="solid-label"></span>
+                            </div>
                             <div class="legend-item"><span class="dot red"></span><span id="light-label"></span></div>
                         </div>
                     </div>

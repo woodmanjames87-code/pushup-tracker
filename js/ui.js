@@ -705,7 +705,7 @@ function updateTrackerDisplay() {
         updateText("stat-all-time", s.allTimeTotal);
         updateText("stat-pb", s.pb);
         updateText("stat-ytd", s.ytdTotal);
-        updateText("stat-elite", s.eliteDays);
+        updateText("stat-elite", `${s.eliteDays}`);
         updateText("stat-best-streak", `${s.bestStreak} days`);
 
         const elAvg = elements.stats["stat-avg"];
@@ -797,7 +797,7 @@ function renderTrendLineChart(labels, values, dailyGoal) {
                     borderColor: lineColor,
                     borderWidth: 2,
                     pointRadius: 0,
-                    hoverRadius: 4,
+                    hoverRadius: 0, 
                     tension: 0.2,
                     fill: true,
                     backgroundColor: "#39e63933", // 20% opacity for the clean green fill
@@ -807,7 +807,11 @@ function renderTrendLineChart(labels, values, dailyGoal) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            events: ['click'], 
+            plugins: { 
+                legend: { display: false },
+                tooltip: { enabled: false } 
+            },
             scales: {
                 x: {
                     display: false,

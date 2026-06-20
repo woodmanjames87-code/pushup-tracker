@@ -382,11 +382,12 @@ function generateChartMatrices(data, time, allKeys, exerciseId) {
  */
 function calculateTrendLabel(dailyHistoryArray, dailyGoal, currentGoals) {
     const totalDays = dailyHistoryArray.length;
+
     if (totalDays === 0) return { label: "Below Target", color: "#ff3b30" };
 
-    const daysInWeek = currentGoals.DAYS_PER_WEEK; // 7
+    const daysInWeek = currentGoals.DAYS_PER_WEEK || 7;
 
-    // --- 1. HARD MACRO VOLUME EVALUATION (UPPER LADDER) ---
+    // --- 1. HARD MACRO 30-DAYVOLUME EVALUATION (UPPER LADDER) ---
     const total30Volume = dailyHistoryArray.reduce((sum, reps) => sum + reps, 0);
     const targetMacro   = dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.onTrackRatio;
     const improveMacro  = dailyGoal * currentGoals.WINDOW_DAYS * currentGoals.improveRatio;
@@ -398,56 +399,40 @@ function calculateTrendLabel(dailyHistoryArray, dailyGoal, currentGoals) {
         return { label: "On Track", color: "#34c759" }; 
     }
 
-    // --- 2. ROLLING BEHAVIORAL WINDOWS (LOWER LADDER) ---
-    // Slice the most recent 7 days out of the array for a true rolling week
+    // --- 2. 7-DAY ROLLING BEHAVIORAL WINDOWS (LOWER LADDER) ---
     const rollingWeekArray = dailyHistoryArray.slice(-daysInWeek);
     const rollingWeeklyTotal = rollingWeekArray.reduce((sum, reps) => sum + reps, 0);
 
-    // Prior history is everything else in the 30-day window before this rolling week
-    const priorHistoryArray = dailyHistoryArray.slice(0, totalDays - daysInWeek);
-    const priorHistoryTotal = priorHistoryArray.reduce((sum, reps) => sum + reps, 0);
-
-    // Immediate daily boundaries
-    const todayTotal = dailyHistoryArray[totalDays - 1] || 0;
-    const yesterdayTotal = dailyHistoryArray[totalDays - 2] || 0;
-
-    // Targets scaled exactly to your profile settings
-    const historyWindow = totalDays - daysInWeek; // 23 days
-    const priorWeeksAvgVolume = (priorHistoryTotal / historyWindow) * daysInWeek;
-    const minimumActiveVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
-
-    // --- 3. THE DECISION MATRIX ---
-
-    // Condition for moving UP
-    const hasSolidWeeklyVolume = rollingWeeklyTotal >= minimumActiveVolume;
-    const isTrendingUpward = rollingWeeklyTotal > priorWeeksAvgVolume && rollingWeeklyTotal > 0;
-
-    // Condition for a FRESH START (with perfect rest-day budget protection)
+    const weeklyTargetVolume = dailyGoal * currentGoals.ON_TRACK_DAYS;
     const maxRestDaysAllowed = daysInWeek - currentGoals.ON_TRACK_DAYS;
-    const isLowFrequencySplit = maxRestDaysAllowed > currentGoals.ON_TRACK_DAYS;
-    
-    // If they have a low-frequency target and have done at least 1 day of work this rolling week,
-    // their rest days are completely protected inside the 7-day window.
-    const isLegitRestDay = isLowFrequencySplit && 
-                           rollingWeeklyTotal >= dailyGoal && 
-                           rollingWeeklyTotal < minimumActiveVolume;
 
-    const isFreshStart = todayTotal > 0 || yesterdayTotal > 0 || isLegitRestDay;
+    const consecutiveRestDays = dailyHistoryArray.slice().reverse().findIndex(reps => reps > 0);
+    const daysSinceLastWorkout = consecutiveRestDays === -1 ? totalDays : consecutiveRestDays;
 
-    // Condition for moving DOWN (Slowing Down)
-    const isSlowingDown = rollingWeeklyTotal > 0 && 
-                          rollingWeeklyTotal < priorWeeksAvgVolume && 
-                          priorHistoryTotal >= (dailyGoal * historyWindow * currentGoals.onTrackRatio);
+    // --- 3. THE INTUITIVE DECISION MATRIX ---
 
-    if (hasSolidWeeklyVolume || isTrendingUpward) {
-        return { label: "Gaining Momentum", color: "#5ac8fa" }; // Teal Spark
-    } else if (isFreshStart) {
-        return { label: "Starting Up", color: "#5856d6" }; // Stable Purple
-    } else if (isSlowingDown) {
-        return { label: "Slowing Down", color: "#ff9500" }; // Warning Orange
-    } else {
-        return { label: "Below Target", color: "#ff3b30" }; // Stagnant Red
+    // 3.1. HARD HALT CHECK
+    if (rollingWeeklyTotal === 0) {
+        return { label: "Below Target", color: "#ff3b30" }; 
     }
+
+    // 3.2. GAINING MOMENTUM EVALUATION
+    if (rollingWeeklyTotal >= weeklyTargetVolume) {
+        return { label: "Gaining Momentum", color: "#5ac8fa" }; 
+    }
+
+    // 3.3. STARTING UP EVALUATION
+    if (daysSinceLastWorkout <= maxRestDaysAllowed) {
+        return { label: "Starting Up", color: "#5856d6" }; 
+    }
+
+    // 3.4. SLOWING DOWN
+    // 💡 HOW THIS IS TRIGGERED (FALL-THROUGH STATE):
+    // - The user has active volume in the last 7 days (passed Hard Halt Check).
+    // - They haven't built enough volume to hit their weekly target (passed Gaining Momentum).
+    // - BUT their consecutive rest days have now exceeded their allowed budget (failed Starting Up).
+    // result: They are officially losing their training cadence and slowing down.
+    return { label: "Slowing Down", color: "#ff9500" }; 
 }
 
 // =========================================================================
