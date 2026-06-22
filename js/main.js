@@ -1,5 +1,5 @@
 // prettier-ignore
-import { auth, db, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener, reconcileData } from "./init-firebase.js";
+import { auth, getDb, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 import * as UI from "./ui.js";
 import * as Store from "./store.js";
@@ -403,7 +403,7 @@ function setupSettingsListeners() {
         settings.updateNameBtn.disabled = true;
 
         try {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(getDb(), "users", user.uid);
             await setDoc(userRef, { username: newName }, { merge: true });
 
             const data = Store.loadData();

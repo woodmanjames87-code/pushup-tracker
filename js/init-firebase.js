@@ -38,15 +38,50 @@ const firebaseConfig = {
     measurementId: "G-R8L7NNJ79M",
 };
 
-// 1. Initialize Instances
+// 1. Core instances created immediately
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// 🎯 THE REAL FIX: Use persistentLocalCache for corporate Wi-Fi queueing,
-// but REMOVE persistentMultipleTabManager() so connection pipelines never freeze.
-export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache(),
-});
+// Change 'db' to an internal variable, and export a getter function instead
+let underlyingDb = null;
+export function getDb() {
+    // If the 1.5s network check hasn't finished yet, initialize it immediately with standard cache
+    if (!underlyingDb) {
+        console.log("⏱️ Database accessed before network test finished. Defaulting immediately.");
+        underlyingDb = initializeFirestore(app, { localCache: persistentLocalCache() });
+    }
+    return underlyingDb;
+}
+
+// 🕵️‍♂️ Async Network Probe (Completely non-blocking)
+async function determineNetworkAndInit() {
+    if (underlyingDb) return; // Already initialized by an early call
+    
+    let forceLongPolling = false;
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+        const testUrl = "https://firestore.googleapis.com/v1/projects/my-pushup-tracker-2367b/databases";
+        const response = await fetch(testUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (response.status !== 401 && response.status !== 200) {
+            throw new Error("Network hijacked");
+        }
+        console.log("🚀 Connection clear. Using standard WebSockets.");
+    } catch (err) {
+        forceLongPolling = true;
+        console.warn("⚠️ Corporate network restriction detected. Routing via HTTPS long-polling fallback.");
+    }
+
+    underlyingDb = initializeFirestore(app, {
+        localCache: persistentLocalCache(),
+        ...(forceLongPolling && { experimentalForceLongPolling: true })
+    });
+}
+
+determineNetworkAndInit();
 export const googleProvider = new GoogleAuthProvider();
 
 // 2. Export methods directly so other files can import them
@@ -93,7 +128,7 @@ export async function initAuthListener() {
                 const localData = localRaw ? JSON.parse(localRaw) : {};
 
                 if (Object.keys(localData).length === 0) {
-                    const userRef = doc(db, "users", user.uid);
+                    const userRef = doc(getDb(), "users", user.uid);
                     const userSnap = await getDoc(userRef);
 
                     if (userSnap.exists() && userSnap.data().workouts) {
@@ -119,7 +154,7 @@ async function startCloudSync() {
     try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
-        const userRef = doc(db, "users", user.uid);
+        const userRef = doc(getDb(), "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
@@ -177,10 +212,10 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     if (!data.lastUpdated && !extraData.isInitialSetup) return;
 
     // 🚀 BACK TO BATCH WRITING: Reverting to original atomic batch operations
-    const batch = writeBatch(db);
+    const batch = writeBatch(getDb());
     const confirmedUsername = data.settings?.username || getDisplayUsername(extraData);
 
-    const userRef = doc(db, "users", userId);
+    const userRef = doc(getDb(), "users", userId);
     batch.set(
         userRef,
         {
@@ -219,7 +254,7 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     ];
 
     periods.forEach((p) => {
-        const ref = doc(db, "standings", p.sid);
+        const ref = doc(getDb(), "standings", p.sid);
         if (p.score === undefined || p.score === null || p.score === 0) {
             batch.delete(ref);
         } else {
@@ -260,7 +295,7 @@ export async function reconcileData() {
     console.log("🔄 Reconciling local and cloud data...");
 
     try {
-        const userRef = doc(db, "users", user.uid);
+        const userRef = doc(getDb(), "users", user.uid);
         const cloudSnap = await getDoc(userRef);
         const local = storeModule.loadData();
         const storageKey = storeModule.STORAGE_KEY || "workout-data";

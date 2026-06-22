@@ -1,6 +1,6 @@
 import "./vendor/chart.js";
 // prettier-ignore
-import { auth, db, collection, query, orderBy, limit, getDocs, getDocsFromServer, where, reconcileData } from "./init-firebase.js";
+import { auth, getDb, collection, query, orderBy, limit, getDocs, getDocsFromServer, where, reconcileData } from "./init-firebase.js";
 import { elements } from "./dom.js";
 // prettier-ignore
 import { state, computeStats, getQuickWeekly, EXERCISE_LIB, debounceSave, loadData, saveData, getDateKey, getTodayId, getYesterdayId, getWeekId, getMonthId, getYearId, getPreviousPeriodId } from "./store.js";
@@ -1114,7 +1114,7 @@ async function fetchLeaderboard(passedFilter = null) {
     const filter = passedFilter || (activeBtn ? activeBtn.getAttribute("data-filter") : "stats.daily");
 
     // 2. Safety Guard
-    if (!db) {
+    if (!getDb()) {
         el.list.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
         return;
     }
@@ -1145,7 +1145,7 @@ async function fetchLeaderboard(passedFilter = null) {
         if (filter === "stats.daily") {
             drawPodium(null);
             // --- KEEPING YOUR ORIGINAL DAILY LOGIC (Users Collection) ---
-            const standingsRef = collection(db, "standings");
+            const standingsRef = collection(getDb(), "standings");
 
             // Inside fetchLeaderboard (Daily Section)
             const qToday = query(
@@ -1216,7 +1216,7 @@ async function fetchLeaderboard(passedFilter = null) {
             drawPodium(podiumData, filter);
 
             // Query the 'standings' collection
-            const standingsRef = collection(db, "standings");
+            const standingsRef = collection(getDb(), "standings");
             const q = query(
                 standingsRef,
                 where("periodId", "==", idValue),
@@ -1271,7 +1271,7 @@ async function fetchPreviousPodium(type, currentPeriodId) {
     const exerciseId = state.currentExercise;
 
     const q = query(
-        collection(db, "standings"),
+        collection(getDb(), "standings"),
         where("periodId", "==", prevId),
         where("exerciseId", "==", exerciseId),
         orderBy("score", "desc"),
@@ -1367,7 +1367,7 @@ async function fetchAndRenderMatrix(matrixTimeframe = null) {
     }
 
     // Guard: DB connection
-    if (!db) {
+    if (!getDb()) {
         el.matrixViewContainer.innerHTML = "<p style='text-align:center; opacity:0.5;'>Connecting to cloud...</p>";
         return;
     }
@@ -1399,7 +1399,7 @@ async function fetchAndRenderMatrix(matrixTimeframe = null) {
     try {
         const matrixData = {};
 
-        const standingsRef = collection(db, "standings");
+        const standingsRef = collection(getDb(), "standings");
         const q = query(standingsRef, where("periodId", "==", idValue), where("type", "==", typeKey));
 
         const snap = await getDocsFromServer(q);

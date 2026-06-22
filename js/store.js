@@ -1,5 +1,5 @@
 // prettier-ignore
-import { auth, db, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
+import { auth, getDb, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
 import { showToast, triggerHaptic } from "./ui.js";
 import { elements } from "./dom.js";
 
@@ -781,12 +781,12 @@ window.nukeCloudData = async function () {
         console.log("🧨 Starting Cloud Nuke for UID:", uid);
 
         // 1. Delete Main User Doc
-        const userRef = doc(db, "users", uid);
+        const userRef = doc(getDb(), "users", uid);
         await deleteDoc(userRef);
 
         // 2. Find and Delete ALL Standings (Daily + Historical)
         // We query by 'uid' field we added to the documents earlier
-        const standingsRef = collection(db, "standings");
+        const standingsRef = collection(getDb(), "standings");
         const q = query(standingsRef, where("uid", "==", uid));
         const snapshot = await getDocs(q);
 
@@ -826,7 +826,7 @@ window.nukeExerciseCloudData = async function (exerciseId) {
         console.log(`🧨 Starting Cloud Nuke for ${exerciseName} (UID: ${uid})`);
 
         // 1. Update the Main User Doc to drop this specific exercise data from the workouts object
-        const userRef = doc(db, "users", uid);
+        const userRef = doc(getDb(), "users", uid);
         const localData = loadData();
 
         // Strip exercise locally first to create a clean image payload
@@ -841,7 +841,7 @@ window.nukeExerciseCloudData = async function (exerciseId) {
         await setDoc(userRef, { workouts: localData, lastUpdated: localData.lastUpdated }, { merge: true });
 
         // 2. Query and delete ONLY the standings documents matching this user AND this exercise
-        const standingsRef = collection(db, "standings");
+        const standingsRef = collection(getDb(), "standings");
         const q = query(standingsRef, where("uid", "==", uid), where("exerciseId", "==", exerciseId));
         const snapshot = await getDocs(q);
 
