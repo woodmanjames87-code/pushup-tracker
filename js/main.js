@@ -1,5 +1,5 @@
 // prettier-ignore
-import { auth, getDb, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener, reconcileData } from "./init-firebase.js";
+import { auth, getDb, signInWithEmailAndPassword, updateProfile, doc, setDoc, initAuthListener, reconcileData, determineNetworkAndInit } from "./init-firebase.js";
 import { elements } from "./dom.js";
 import * as UI from "./ui.js";
 import * as Store from "./store.js";
@@ -43,6 +43,13 @@ async function initApp() {
     }
     // --- 2. Wake-up Refresh ---
     console.log("App wake-up refresh triggered...");
+
+    // 🕵️‍♂️ Check if our network grid changed while we were traveling
+    try {
+        await determineNetworkAndInit(true); 
+    } catch (e) {
+        console.error("Wake-up network check failed:", e);
+    }
     UI.refreshStateAndUI();
 }
 

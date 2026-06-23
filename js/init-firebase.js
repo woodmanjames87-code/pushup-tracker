@@ -42,21 +42,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Change 'db' to an internal variable, and export a getter function instead
 let underlyingDb = null;
+let currentMode = null; // 🕵️‍♂️ Track if we are currently 'websocket' or 'long-polling'
+
 export function getDb() {
-    // If the 1.5s network check hasn't finished yet, initialize it immediately with standard cache
     if (!underlyingDb) {
         console.log("⏱️ Database accessed before network test finished. Defaulting immediately.");
         underlyingDb = initializeFirestore(app, { localCache: persistentLocalCache() });
+        currentMode = 'websocket';
     }
     return underlyingDb;
 }
 
-// 🕵️‍♂️ Async Network Probe (Completely non-blocking)
-async function determineNetworkAndInit() {
-    if (underlyingDb) return; // Already initialized by an early call
-    
+// 🎯 EXPORT THIS: So main.js can call it during a wake-up refresh
+export async function determineNetworkAndInit(isWakeUp = false) {
     let forceLongPolling = false;
     try {
         const controller = new AbortController();
@@ -69,19 +68,42 @@ async function determineNetworkAndInit() {
         if (response.status !== 401 && response.status !== 200) {
             throw new Error("Network hijacked");
         }
-        console.log("🚀 Connection clear. Using standard WebSockets.");
+        console.log("🚀 Connection clear. Preferring WebSockets.");
     } catch (err) {
         forceLongPolling = true;
-        console.warn("⚠️ Corporate network restriction detected. Routing via HTTPS long-polling fallback.");
+        console.warn("⚠️ Corporate network restriction detected. Preferring HTTPS long-polling.");
     }
 
-    underlyingDb = initializeFirestore(app, {
-        localCache: persistentLocalCache(),
-        ...(forceLongPolling && { experimentalForceLongPolling: true })
-    });
+    const targetMode = forceLongPolling ? 'long-polling' : 'websocket';
+
+// 🔄 Only reconstruct the DB instance if our network environment actually CHANGED
+    if (!underlyingDb || currentMode !== targetMode) {
+        console.log(`🔄 Configuring Firestore instance for environment: ${targetMode}`);
+        
+        // 🚀 SAFETYSNAP: If an instance already exists, kill it cleanly so the new settings take hold
+        if (underlyingDb) {
+            try {
+                await terminate(underlyingDb);
+            } catch (e) {
+                console.warn("Error shutting down previous Firestore instance:", e);
+            }
+        }
+        
+        underlyingDb = initializeFirestore(app, {
+            localCache: persistentLocalCache(),
+            ...(forceLongPolling && { experimentalForceLongPolling: true })
+        });
+        currentMode = targetMode;
+
+        if (isWakeUp) {
+            reconcileData();
+        }
+    }
 }
 
+// Kick it off on initial boot
 determineNetworkAndInit();
+
 export const googleProvider = new GoogleAuthProvider();
 
 // 2. Export methods directly so other files can import them
