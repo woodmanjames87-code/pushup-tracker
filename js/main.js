@@ -44,12 +44,21 @@ async function initApp() {
     // --- 2. Wake-up Refresh ---
     console.log("App wake-up refresh triggered...");
 
-    // 🕵️‍♂️ Check if our network grid changed while we were traveling
     try {
+        // 1. Re-evaluate the network grid for Firestore
         await determineNetworkAndInit(true); 
+
+        // 2. FORCE AUTH TO RE-VERIFY ACTIVE SESSION (Fixes slow/stalled handshakes)
+        if (auth.currentUser) {
+            console.log("⏳ Slow network detected. Verifying background auth token status...");
+            // This forces a background ping to Google's auth servers to wake up the auth pipe
+            await auth.currentUser.getIdToken(true); 
+            console.log("🔒 Auth state validated successfully.");
+        }
     } catch (e) {
-        console.error("Wake-up network check failed:", e);
+        console.error("Wake-up network/auth recovery failed:", e);
     }
+
     UI.refreshStateAndUI();
 }
 
