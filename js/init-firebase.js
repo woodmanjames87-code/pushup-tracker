@@ -14,6 +14,7 @@ import {
     getFirestore,
     initializeFirestore,
     persistentLocalCache, // 🚀 Keeps background upload queueing active
+    terminate,
     doc,
     setDoc,
     getDoc,
@@ -76,19 +77,28 @@ export async function determineNetworkAndInit(isWakeUp = false) {
 
     const targetMode = forceLongPolling ? 'long-polling' : 'websocket';
 
-// 🔄 Only reconstruct the DB instance if our network environment actually CHANGED
-    if (!underlyingDb || currentMode !== targetMode) {
+    // 🔄 First boot: create the DB instance with the detected network mode
+    if (!underlyingDb) {
         console.log(`🔄 Configuring Firestore instance for environment: ${targetMode}`);
-        
-        // 🚀 SAFETYSNAP: If an instance already exists, kill it cleanly so the new settings take hold
-        if (underlyingDb) {
-            try {
-                await terminate(underlyingDb);
-            } catch (e) {
-                console.warn("Error shutting down previous Firestore instance:", e);
-            }
+        underlyingDb = initializeFirestore(app, {
+            localCache: persistentLocalCache(),
+            ...(forceLongPolling && { experimentalForceLongPolling: true })
+        });
+        currentMode = targetMode;
+        return;
+    }
+
+    // 🔄 Only reconstruct the DB instance if our network environment actually CHANGED
+    if (underlyingDb && currentMode !== targetMode) {
+        console.log(`🔄 Reconfiguring Firestore instance for environment: ${targetMode}`);
+
+        // 🚀 SAFETYSNAP: Kill the old instance cleanly so the new settings take hold
+        try {
+            await terminate(underlyingDb);
+        } catch (e) {
+            console.warn("Error shutting down previous Firestore instance:", e);
         }
-        
+
         underlyingDb = initializeFirestore(app, {
             localCache: persistentLocalCache(),
             ...(forceLongPolling && { experimentalForceLongPolling: true })
@@ -151,10 +161,15 @@ export async function initAuthListener() {
 
                 if (Object.keys(localData).length === 0) {
                     const userRef = doc(getDb(), "users", user.uid);
-                    const userSnap = await getDoc(userRef);
 
-                    if (userSnap.exists() && userSnap.data().workouts) {
-                        localStorage.setItem(storageKey, JSON.stringify(userSnap.data().workouts));
+                    try {
+                        const userSnap = await getDoc(userRef);
+
+                        if (userSnap.exists() && userSnap.data().workouts) {
+                            localStorage.setItem(storageKey, JSON.stringify(userSnap.data().workouts));
+                        }
+                    } catch (error) {
+                        console.warn("⚠️ Could not fetch cloud workout data; falling back to local cached data.", error);
                     }
                 }
 
@@ -273,29 +288,25 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
             sid: `${stats.monthId}_${exerciseId}_${userId}`,
         },
         { id: stats.yearId, score: stats.ytdTotal, type: "yearly", sid: `${stats.yearId}_${exerciseId}_${userId}` },
-    ];
+    ].filter((p) => p.score && p.score > 0);
 
     periods.forEach((p) => {
         const ref = doc(getDb(), "standings", p.sid);
-        if (p.score === undefined || p.score === null || p.score === 0) {
-            batch.delete(ref);
-        } else {
-            const standingsPayload = {
-                uid: userId,
-                username: confirmedUsername,
-                score: p.score,
-                periodId: p.id,
-                exerciseId,
-                type: p.type,
-                lastUpdated: new Date().toISOString(),
-                unit: storeModule.EXERCISE_LIB[exerciseId]?.unit || "reps",
-            };
-            if (p.type === "daily") {
-                standingsPayload.yestScore = stats.yesterdayTotal || 0;
-                standingsPayload.yestId = localYesterdayStr;
-            }
-            batch.set(ref, standingsPayload, { merge: true });
+        const standingsPayload = {
+            uid: userId,
+            username: confirmedUsername,
+            score: p.score,
+            periodId: p.id,
+            exerciseId,
+            type: p.type,
+            lastUpdated: new Date().toISOString(),
+            unit: storeModule.EXERCISE_LIB[exerciseId]?.unit || "reps",
+        };
+        if (p.type === "daily") {
+            standingsPayload.yestScore = stats.yesterdayTotal || 0;
+            standingsPayload.yestId = localYesterdayStr;
         }
+        batch.set(ref, standingsPayload, { merge: true });
     });
 
     try {
