@@ -268,7 +268,8 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
     const localTodayStr = storeModule.getTodayId();
     const localYesterdayStr = storeModule.getYesterdayId();
 
-    const periods = [
+    // 1. Define all tracking periods
+    const allPeriods = [
         {
             id: stats.todayTotal ? localTodayStr : "",
             score: stats.todayTotal,
@@ -287,26 +288,48 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
             type: "monthly",
             sid: `${stats.monthId}_${exerciseId}_${userId}`,
         },
-        { id: stats.yearId, score: stats.ytdTotal, type: "yearly", sid: `${stats.yearId}_${exerciseId}_${userId}` },
-    ].filter((p) => p.score && p.score > 0);
+        { 
+            id: stats.yearId, 
+            score: stats.ytdTotal, 
+            type: "yearly", 
+            sid: `${stats.yearId}_${exerciseId}_${userId}` 
+        },
+    ];
 
-    periods.forEach((p) => {
+    // 2. Process each period with custom rules for Daily vs. Historical ranges
+    allPeriods.forEach((p) => {
         const ref = doc(getDb(), "standings", p.sid);
-        const standingsPayload = {
-            uid: userId,
-            username: confirmedUsername,
-            score: p.score,
-            periodId: p.id,
-            exerciseId,
-            type: p.type,
-            lastUpdated: new Date().toISOString(),
-            unit: storeModule.EXERCISE_LIB[exerciseId]?.unit || "reps",
-        };
-        if (p.type === "daily") {
-            standingsPayload.yestScore = stats.yesterdayTotal || 0;
-            standingsPayload.yestId = localYesterdayStr;
+
+        if (p.score && p.score > 0) {
+            // --- CASE 1: HAS A SCORE -> UPDATE/CREATE STANDING ---
+            const standingsPayload = {
+                uid: userId,
+                username: confirmedUsername,
+                score: p.score,
+                periodId: p.id,
+                exerciseId,
+                type: p.type,
+                lastUpdated: new Date().toISOString(),
+                unit: storeModule.EXERCISE_LIB[exerciseId]?.unit || "reps",
+            };
+            if (p.type === "daily") {
+                standingsPayload.yestScore = stats.yesterdayTotal || 0;
+                standingsPayload.yestId = localYesterdayStr;
+            }
+            batch.set(ref, standingsPayload, { merge: true });
+
+        } else {
+            // --- CASE 2: SCORE IS 0 OR EMPTY ---
+            if (p.type === "daily") {
+                // ⚠️ CRITICAL: Do NOT delete the daily document if today's score is 0.
+                // Leaving it alone allows yesterday's record to remain active in the database
+                // so fetchLeaderboard() can still query it for yesterday's standings!
+                console.log("ℹ️ Skipping daily write (0 score today) to preserve yesterday's standings.");
+            } else {
+                // For weekly/monthly/yearly, we can safely delete them if they are 0
+                batch.delete(ref);
+            }
         }
-        batch.set(ref, standingsPayload, { merge: true });
     });
 
     try {
