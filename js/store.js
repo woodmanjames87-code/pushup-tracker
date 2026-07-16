@@ -1,5 +1,5 @@
 // prettier-ignore
-import { auth, getDb, doc, deleteDoc, collection, query, getDocs, where, syncLocalToCloud } from "./init-firebase.js";
+import { auth, getDb, doc, deleteDoc, collection, query, getDocs, setDoc, where, syncLocalToCloud } from "./init-firebase.js";
 import { showToast, triggerHaptic } from "./ui.js";
 import { elements } from "./dom.js";
 

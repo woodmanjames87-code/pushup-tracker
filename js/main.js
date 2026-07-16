@@ -8,6 +8,7 @@ import * as Store from "./store.js";
  *************************************************/
 async function initApp() {
     if (document.visibilityState === "hidden") return;
+    lastInitTime = Date.now();
 
     if (!Store.state.appInitialized) {
         console.log("App initialization triggered...");
@@ -20,7 +21,8 @@ async function initApp() {
         // --- Group B: Heavy/Background tasks ---
         setTimeout(() => {
             // Only run migration if the structure looks 'flat' (legacy)
-            Store.migrateToMultiExercise();
+            const data = Store.loadData();
+            Store.migrateToMultiExercise(data);
             UI.buildExerciseToggles();
             UI.buildExerciseMenu();
             initAuthListener();
@@ -718,11 +720,23 @@ function setupInstallBannerListeners() {
 }
 
 // --- THE IGNITION & OBSERVERS ---
+const INIT_COOLDOWN_MS = 30000;
+let lastInitTime = 0;
 addEventListener("DOMContentLoaded", initApp);
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") initApp();
+    if (document.visibilityState === "visible") {
+        const now = Date.now();
+        if (now - lastInitTime > INIT_COOLDOWN_MS) {
+            initApp();
+        }
+    }
 });
-addEventListener("focus", initApp);
+window.addEventListener("focus", () => {
+    const now = Date.now();
+    if (now - lastInitTime > INIT_COOLDOWN_MS) {
+        initApp();
+    }
+});
 addEventListener("hashchange", () => {
     const pageId = location.hash.substring(1).replace("-page", "");
     if (pageId && typeof UI.showPage === "function") {
