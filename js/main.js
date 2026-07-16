@@ -720,14 +720,20 @@ function setupInstallBannerListeners() {
 }
 
 // --- THE IGNITION & OBSERVERS ---
+const INIT_COOLDOWN_MS = 30000;
 let lastInitTime = 0;
 addEventListener("DOMContentLoaded", initApp);
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") initApp();
+    if (document.visibilityState === "visible") {
+        const now = Date.now();
+        if (now - lastInitTime > INIT_COOLDOWN_MS) {
+            initApp();
+        }
+    }
 });
 window.addEventListener("focus", () => {
     const now = Date.now();
-    if (now - lastInitTime > 30000) {
+    if (now - lastInitTime > INIT_COOLDOWN_MS) {
         initApp();
     }
 });
