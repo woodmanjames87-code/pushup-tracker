@@ -280,6 +280,42 @@ function releaseWakeLock() {
     }
 }
 
+function triggerTimerWithCountdown(onCompleteCallback) {
+    const overlay = document.getElementById("countdown-overlay");
+    const numberEl = document.getElementById("countdown-number");
+    const cancelBtn = document.getElementById("cancel-countdown-btn");
+
+    if (!overlay || !numberEl) {
+        // Fallback: if elements aren't in DOM, start timer immediately
+        onCompleteCallback();
+        return;
+    }
+
+    let count = 3;
+    numberEl.innerText = count;
+    overlay.hidden = false;
+
+    // Set up cancel action
+    cancelBtn.onclick = () => {
+        clearInterval(state.countdownIntervalId);
+        overlay.hidden = true;
+    };
+
+    state.countdownIntervalId = setInterval(() => {
+        count--;
+        if (count > 0) {
+            numberEl.innerText = count;
+        } else if (count === 0) {
+            numberEl.innerText = "GO!";
+        } else {
+            // Countdown finished! Clean up and launch timer
+            clearInterval(state.countdownIntervalId);
+            overlay.hidden = true;
+            onCompleteCallback(); // This triggers the actual stopwatch/timer start logic
+        }
+    }, 1000);
+}
+
 function toggleModalTimer() {
     const toggleBtn = elements.modal.timerToggle;
     const timerDisplay = elements.modal.timerDisplay;
@@ -1688,4 +1724,5 @@ export {
     toggleModalTimer,
     resetModalTimer,
     setTimerUIMode,
+    triggerTimerWithCountdown,
 };

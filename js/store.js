@@ -39,6 +39,7 @@ export const state = {
     monthlyChartTimeout: null,
     trendChartInstance: null,
     isManualTimerMode: false,
+    countdownIntervalId: null,
 };
 
 /*************************************************

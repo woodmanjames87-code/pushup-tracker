@@ -182,7 +182,7 @@ function setupModalListeners() {
 
     // --- 4. INTERACTIVE STOPWATCH CONTROLS ---
     if (timerToggle) {
-        timerToggle.addEventListener("click", UI.toggleModalTimer);
+        timerToggle.addEventListener("click", UI.triggerTimerWithCountdown(() => {UI.toggleModalTimer();}));
     }
 
     if (timerModeSwitch) {
