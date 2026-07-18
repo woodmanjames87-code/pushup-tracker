@@ -38,6 +38,11 @@
     flex-direction: column;
     z-index: 1001;
 }
+/* Hide the dropdown menu ONLY when the overview-page is visible (not hidden) */
+body:has(#overview-page:not([hidden])) .exercise-dropdown-container {
+    display: none !important;
+}
+
 .menu-trigger {
     background: none;
     border: none;
