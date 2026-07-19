@@ -11,7 +11,9 @@
     justify-content: center;
     align-items: center;
     opacity: 1;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
 }
 
 #app-init-screen.fade-out {
@@ -44,7 +46,9 @@
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =================================================
@@ -54,7 +58,9 @@
 #app-wrapper {
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
 }
 
 /* 🎯 Smoothly fade in everything at once when initialization completes */
@@ -154,24 +160,30 @@ header {
     backdrop-filter: var(--glass-blur);
     border-bottom: var(--glass-border);
     z-index: 100;
+    transition:
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease,
+        max-height 0.3s ease;
+
+    transform: translateY(0);
+    opacity: 1; 
+    max-height: 100px; 
 }
 
-.page-header {
-    position: sticky;
-    top: 0;
-    margin: 0 -20px 0 -20px;
-    padding: 20px 20px 0 20px;
-    padding-top: calc (20px + env(safe-area-inset-top));
-    width: calc(100% + 40px);
-    min-height: var(--header-height);
+/* When the overview page is visible, slide the header up off the screen */
+body:has(#overview-page[style*="display: flex"]) .main-header {
+    transform: translateY(-100%); 
+    opacity: 0; 
+    max-height: 0;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+}
+#tracker-page, #settings-page, #leaderboard-page {
+    padding-top: calc(var(--header-height) + env(safe-area-inset-top));
 }
 
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
+
 
 #settings-page {
     display: none; /* Default to hidden */
@@ -490,8 +502,8 @@ header {
 }
 /* Specific styling overrides for the exercise logging flow */
 #log-modal {
-    align-items: flex-start !important; 
-    padding-top: 15vh; 
+    align-items: flex-start !important;
+    padding-top: 15vh;
 }
 
 .modal-overlay.is-timer-mode {

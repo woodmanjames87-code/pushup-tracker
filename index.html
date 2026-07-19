@@ -65,10 +65,6 @@
 
             <!-- TRACKER PAGE -->
             <section id="tracker-page" class="app-container" data-page="tracker">
-                <header class="page-header">
-                    <div class="header-content"></div>
-                </header>
-
                 <main>
                     <h3>Daily Progress</h3>
                     <div class="widget-card">
@@ -299,10 +295,6 @@
 
             <!-- SETTINGS PAGE -->
             <section id="settings-page" class="app-container" data-page="settings" hidden>
-                <header class="page-header">
-                    <div class="header-content"></div>
-                </header>
-
                 <main>
                     <section class="settings-section">
                         <h1>Settings</h1>
@@ -497,10 +489,6 @@
 
             <!--LEADERBOARD PAGE-->
             <section id="leaderboard-page" class="app-container" data-page="leaderboard" hidden>
-                <header class="page-header">
-                    <div class="header-content"></div>
-                </header>
-
                 <div class="leaderboard-nav">
                     <div class="segmented-control mode-selector" id="lb-mode-selector">
                         <button class="seg-btn active" data-mode="single" type="button">Single Exercise</button>
@@ -536,9 +524,6 @@
 
             <!-- OVERVIEW PAGE -->
             <section id="overview-page" class="app-container" data-page="overview" hidden>
-                <header class="page-header">
-                    <div class="header-content"></div>
-                </header>
                 <main>
                     <div id="overview-content" class="overview-grid">
                         <!-- Exercise cards will be injected here -->
@@ -604,6 +589,13 @@
                             <button id="modal-ok" class="btn-primary-small" type="submit">OK</button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- COUNTDOWN OVERLAY -->
+            <div id="countdown-overlay" class="countdown-overlay" hidden>
+                <div class="countdown-circle-wrap">
+                    <div id="countdown-number" class="countdown-number">3</div>
                 </div>
             </div>
 

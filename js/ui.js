@@ -92,8 +92,9 @@ function refreshActivePage() {
         syncLeaderboardDOMWithStorage();
 
         // Let the engines look at the DOM themselves to execute
-        const activeMode = elements.leaderboard.modeSelector?.querySelector(".seg-btn.active")?.getAttribute("data-mode") || "single";
-        
+        const activeMode =
+            elements.leaderboard.modeSelector?.querySelector(".seg-btn.active")?.getAttribute("data-mode") || "single";
+
         if (activeMode === "matrix" && typeof fetchAndRenderMatrix === "function") {
             fetchAndRenderMatrix(); // 🌟 No middleman variables needed!
         } else if (typeof fetchLeaderboard === "function") {
@@ -115,7 +116,7 @@ function syncLeaderboardDOMWithStorage() {
 
     // 3. Align DOM with saved mode selector
     if (lb.modeSelector) {
-        lb.modeSelector.querySelectorAll(".seg-btn").forEach(btn => {
+        lb.modeSelector.querySelectorAll(".seg-btn").forEach((btn) => {
             const isTarget = btn.getAttribute("data-mode") === savedMode;
             btn.classList.toggle("active", isTarget);
         });
@@ -131,8 +132,8 @@ function syncLeaderboardDOMWithStorage() {
 
         if (lb.matrixFilterContainer) {
             // If no filter matches or exists, fallback to your default layout target
-            const targetFilter = savedFilter || "yearly"; 
-            lb.matrixFilterContainer.querySelectorAll(".seg-btn").forEach(btn => {
+            const targetFilter = savedFilter || "yearly";
+            lb.matrixFilterContainer.querySelectorAll(".seg-btn").forEach((btn) => {
                 const isTarget = btn.getAttribute("data-matrix-filter") === targetFilter;
                 btn.classList.toggle("active", isTarget);
                 if (isTarget) activeBtnElement = btn;
@@ -146,7 +147,7 @@ function syncLeaderboardDOMWithStorage() {
 
         if (lb.filterContainer) {
             const targetFilter = savedFilter || "stats.daily";
-            lb.filterContainer.querySelectorAll(".seg-btn").forEach(btn => {
+            lb.filterContainer.querySelectorAll(".seg-btn").forEach((btn) => {
                 const isTarget = btn.getAttribute("data-filter") === targetFilter;
                 btn.classList.toggle("active", isTarget);
                 if (isTarget) activeBtnElement = btn;
@@ -280,7 +281,78 @@ function releaseWakeLock() {
     }
 }
 
-function toggleModalTimer() {
+function triggerTimerWithCountdown() {
+    return new Promise((resolve) => {
+        if (state.countdownIntervalId) return;
+
+        const overlay = document.getElementById("countdown-overlay");
+        const numberEl = document.getElementById("countdown-number");
+        const circleWrap = document.querySelector(".countdown-circle-wrap");
+
+        if (!overlay || !numberEl) {
+            resolve();
+            return;
+        }
+
+        let count = 3;
+        numberEl.innerText = count;
+        if (circleWrap) circleWrap.style.setProperty('--progress', '0%');
+        overlay.hidden = false;
+
+        // Track animation frames so we can clear them on cancel
+        let animationFrameId = null;
+        const startTime = performance.now();
+        const duration = 3000; // 3 seconds in milliseconds
+
+        // 🔄 60FPS Smooth Circle Animator Loop
+        function animateCircle(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progressPercentage = Math.min((elapsed / duration) * 100, 100);
+
+            if (circleWrap) {
+                circleWrap.style.setProperty('--progress', `${progressPercentage}%`);
+            }
+
+            if (elapsed < duration) {
+                animationFrameId = requestAnimationFrame(animateCircle);
+            }
+        }
+        // Start the smooth ring fill immediately
+        animationFrameId = requestAnimationFrame(animateCircle);
+
+        // Overlay click cancels everything cleanly
+        overlay.onclick = () => {
+            if (state.countdownIntervalId) {
+                clearInterval(state.countdownIntervalId);
+                state.countdownIntervalId = null;
+            }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            overlay.hidden = true;
+        };
+
+        // ⏱️ 1-Second Text Ticker (Handles just the numbers 3 -> 2 -> 1 -> GO!)
+        state.countdownIntervalId = setInterval(() => {
+            count--;
+
+            if (count > 0) {
+                numberEl.innerText = count;
+            } else if (count === 0) {
+                numberEl.innerText = "GO!";
+
+                clearInterval(state.countdownIntervalId);
+                state.countdownIntervalId = null;
+
+                resolve(); // 🟢 Starts stopwatch background tracking instantly
+
+                setTimeout(() => {
+                    overlay.hidden = true;
+                }, 800);
+            }
+        }, 1000);
+    });
+}
+
+async function toggleModalTimer() {
     const toggleBtn = elements.modal.timerToggle;
     const timerDisplay = elements.modal.timerDisplay;
     const okBtn = elements.modal.okBtn;
@@ -290,7 +362,11 @@ function toggleModalTimer() {
     if (!toggleBtn || !timerDisplay) return;
 
     if (modalTimerInterval === null) {
-        // 🚀 START TIMER
+        // 🚀 START PATH
+
+        // 🛑 PAUSE HERE: Wait for the 3-second countdown to finish completely
+        await triggerTimerWithCountdown();
+
         toggleBtn.innerText = "Pause";
         toggleBtn.classList.add("running");
 
@@ -763,7 +839,7 @@ function updateTrackerDisplay() {
 
 function renderTrendLineChart(labels, values, dailyGoal) {
     const rootStyles = getComputedStyle(document.documentElement);
-    
+
     // Pull theme colors
     const lineColor = rootStyles.getPropertyValue("--fitness-green").trim();
     const gridColor = rootStyles.getPropertyValue("--border-color").trim();
@@ -797,7 +873,7 @@ function renderTrendLineChart(labels, values, dailyGoal) {
                     borderColor: lineColor,
                     borderWidth: 2,
                     pointRadius: 0,
-                    hoverRadius: 0, 
+                    hoverRadius: 0,
                     tension: 0.2,
                     fill: true,
                     backgroundColor: "#39e63933", // 20% opacity for the clean green fill
@@ -807,10 +883,10 @@ function renderTrendLineChart(labels, values, dailyGoal) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            events: ['click'], 
-            plugins: { 
+            events: ["click"],
+            plugins: {
                 legend: { display: false },
-                tooltip: { enabled: false } 
+                tooltip: { enabled: false },
             },
             scales: {
                 x: {
@@ -1384,7 +1460,7 @@ async function fetchAndRenderMatrix(matrixTimeframe = null) {
     if (timeframe === "weekly") {
         idValue = getWeekId(now);
         typeKey = "weekly";
-    } else if (timeframe === "monthly") { 
+    } else if (timeframe === "monthly") {
         idValue = getMonthId(now);
         typeKey = "monthly";
     } else {
@@ -1688,4 +1764,5 @@ export {
     toggleModalTimer,
     resetModalTimer,
     setTimerUIMode,
+    triggerTimerWithCountdown,
 };
