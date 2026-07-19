@@ -48,13 +48,13 @@ async function initApp() {
 
     try {
         // 1. Re-evaluate the network grid for Firestore
-        await determineNetworkAndInit(true); 
+        await determineNetworkAndInit(true);
 
         // 2. FORCE AUTH TO RE-VERIFY ACTIVE SESSION (Fixes slow/stalled handshakes)
         if (auth.currentUser) {
             console.log("⏳ Slow network detected. Verifying background auth token status...");
             // This forces a background ping to Google's auth servers to wake up the auth pipe
-            await auth.currentUser.getIdToken(true); 
+            await auth.currentUser.getIdToken(true);
             console.log("🔒 Auth state validated successfully.");
         }
     } catch (e) {
@@ -141,14 +141,7 @@ function setupOverviewListeners() {
 
 function setupModalListeners() {
     // 🎯 THE PRO CLEANUP: Destructure everything we need straight out of elements.modal
-    const { 
-        form, 
-        input, 
-        cancelBtn, 
-        container, 
-        timerToggle, 
-        timerModeSwitch 
-    } = elements.modal;
+    const { form, input, cancelBtn, container, timerToggle, timerModeSwitch } = elements.modal;
 
     // --- 1. OPENING THE MODAL ---
     elements.floatingLogBtn.onclick = () => {
@@ -182,7 +175,9 @@ function setupModalListeners() {
 
     // --- 4. INTERACTIVE STOPWATCH CONTROLS ---
     if (timerToggle) {
-        timerToggle.addEventListener("click", UI.triggerTimerWithCountdown(() => {UI.toggleModalTimer();}));
+        timerToggle.addEventListener("click", () => {
+            UI.toggleModalTimer();
+        });
     }
 
     if (timerModeSwitch) {
@@ -288,7 +283,7 @@ function setupLeaderboardListeners() {
 
         // Trigger Fetch with the specific filter
         const filterValue = btn.getAttribute("data-filter");
-        
+
         // 🌟 SAVE STATE: Remember the last selected single filter
         localStorage.setItem("dg_lb_filter", filterValue);
 
