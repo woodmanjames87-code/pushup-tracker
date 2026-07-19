@@ -130,6 +130,7 @@ main {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    margin-top: 20px;
 }
 .overview-grid {
     width: 100%;
@@ -153,14 +154,10 @@ header {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* Make sure it spans the full viewport width */
-    
-    /* Keep base height stable, padding handles the notch safe zone internally */
-    height: var(--header-height); 
+    height: var(--header-height);
+    height: calc(var(--header-height) + env(safe-area-inset-top));
     padding: 0 15px;
     padding-top: env(safe-area-inset-top);
-    box-sizing: content-box; /* 🌟 Keeps the height locked to var(--header-height) inclusive of padding */
-
     background: var(--layer-1);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
@@ -186,7 +183,7 @@ body:has(#overview-page[style*="display: flex"]) .main-header {
     border: none !important;
 }
 #tracker-page, #settings-page, #leaderboard-page {
-    padding-top: calc(var(--header-height) + env(safe-area-inset-top));
+    padding-top: calc(var(--header-height) + env(safe-area-inset-top)) !important;
 }
 
 
