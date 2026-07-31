@@ -1,4 +1,4 @@
-const VERSION = "v5.0.6.8"; // Increment this to update the app
+const VERSION = "v5.0.6.9"; // Increment this to update the app
 const CACHE_NAME = `DailyGrind-${VERSION}`;
 
 const ASSETS = [
@@ -76,19 +76,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     const url = event.request.url;
 
-    // ONLY skip actual external API calls.
-    // We check for "googleapis.com" and "firebaseapp.com" (the hosted domains),
-    // but we ALLOW files like "init-firebase.js" that are on your own domain.
+    // Skip external Firebase/Google API calls
     if (url.includes("googleapis.com") || url.includes("firebaseapp.com")) {
         return;
     }
 
+    // Only handle GET requests
+    if (event.request.method !== "GET") return;
+
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            // Stale-while-revalidate logic
+            
+            // 1. Fire off the background revalidation check
             const fetchPromise = fetch(event.request)
                 .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
                         const responseToCache = networkResponse.clone();
                         caches.open(CACHE_NAME).then((cache) => {
                             cache.put(event.request, responseToCache);
@@ -96,10 +98,25 @@ self.addEventListener("fetch", (event) => {
                     }
                     return networkResponse;
                 })
-                .catch(() => cachedResponse);
+                .catch(() => {
+                    // Silently absorb network errors when offline or on poor connection
+                });
 
-            return cachedResponse || fetchPromise;
-        }),
+            // 2. IF WE HAVE A CACHED MATCH: Return it instantly (0ms)
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // 3. IF CACHE MISSED & IT'S A PAGE NAVIGATION: Fall back to index.html immediately!
+            if (event.request.mode === "navigate") {
+                return caches.match("index.html").then((indexResponse) => {
+                    return indexResponse || fetchPromise;
+                });
+            }
+
+            // 4. Otherwise wait for network (for unexpected external assets)
+            return fetchPromise;
+        })
     );
 });
 
