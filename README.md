@@ -1,55 +1,94 @@
 # DailyGrind: Bodyweight Workout Tracker 🏋️‍♂️
 
-DailyGrind is built for the "living room athlete" who prioritizes consistency and volume over heart rate and distance.
-Currently hosted on GitHub: https://woodmanjames87-code.github.io/pushup-tracker/
+DailyGrind is a rep-focused workout tracker built for bodyweight training.  
+Live app: https://woodmanjames87-code.github.io/pushup-tracker/
 
 ## 📝 Project Vision
 
-Most fitness trackers are designed for cardio, time, or gym-based weights. DailyGrind fills the gap for those who prefer the simplicity of calisthenics. We focus on tracking exercise reps that use an individual's own body weight as resistance to build muscle, strength, and flexibility with little to no equipment.
+Most fitness trackers prioritize cardio distance/time or gym-machine workflows. DailyGrind is designed for calisthenics and volume tracking: pushups, pullups, squats, situps, lunges, dips, and planks.
 
-By focusing on compound, multi-joint movements—such as push-ups, pull-ups, and squats—DailyGrind helps users improve body awareness and overall fitness through the "daily grind" of high-volume rep tracking.
+The goal is simple: make daily consistency visible through sets, totals, streaks, trends, and leaderboard comparison.
 
 ## ✨ Key Features
 
-Rep-Centric Tracking: Unlike Apple Fitness or GPS trackers, we prioritize the count.
-
-Compound Movement Focus: Optimized for push-ups, pull-ups, and squats.
-
-No-Equipment Freedom: Built for workouts that can be done anywhere—no gym membership required.
-
-Real-Time Leaderboard: Stay motivated by seeing how your total volume compares to the community.
-
-PWA Reliability: Installable on iOS/Android for a native app feel with offline support.
+- Rep- and volume-centric tracking
+- Multi-exercise logging with exercise-specific goals
+- Overview, tracker, leaderboard, and settings pages
+- Local-first data persistence with optional cloud sync
+- Real-time leaderboard data powered by Firestore
+- PWA installability and offline caching via Service Worker
+- Import/export JSON backups
 
 ## 🛠 Tech Stack
 
-Frontend: HTML5, CSS3, Vanilla JavaScript.
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES modules)
+- **Data/Auth:** Firebase Authentication + Firestore (CDN SDK imports)
+- **Charts:** Chart.js (`js/vendor/chart.js`)
+- **PWA:** Web App Manifest + Service Worker
 
-Backend: Firebase Authentication & Firestore.
+## 📁 Repository Structure
 
-PWA: Service Worker API for versioning and offline caching.
+```text
+pushup-tracker/
+├── index.html
+├── sw.js
+├── webmanifest.json
+├── css/
+│   ├── variables.css
+│   ├── base.css
+│   ├── layout.css
+│   └── components.css
+├── js/
+│   ├── main.js
+│   ├── dom.js
+│   ├── store.js
+│   ├── ui.js
+│   ├── init-firebase.js
+│   └── vendor/chart.js
+└── docs/
+    └── matrix-feature-changes.md
+```
 
-# Project Architecture
-DailyGrind follows a modular separation of concerns to ensure the codebase remains scalable and easy to maintain.
+## 🧠 Code Organization
 
-## JavaScript (Global Module Pattern)
-The logic is split into four core files. Functions are defined locally and exposed to the window object for cross-file communication.
+### JavaScript modules
 
-js/init-firebase.js: The Foundation. Initializes the Firebase SDK, configures the database connection, and provides the authentication state.
+- **`js/main.js`**  
+  App entry point. Boots the app, wires event listeners, initializes PWA helpers, and coordinates page lifecycle behavior.
 
-js/store.js: The Brain. Uses the connection from init-firebase.js to sync your reps and streaks to the cloud.
+- **`js/dom.js`**  
+  Centralized DOM element map used by UI and controller logic.
 
-js/ui.js: The Hands. Listens for data changes from the Store and renders the charts and logs.
+- **`js/store.js`**  
+  Local data/state layer. Handles localStorage persistence, exercise metadata, goal logic, stat computation (`computeStats`), import/export, and data mutation helpers.
 
-js/main.js: The Conductor. The entry point that waits for the DOM to load, then triggers the initial data fetch and sets up the button listeners.
+- **`js/ui.js`**  
+  Rendering and interaction layer. Updates all page views, charts, modal flows, leaderboard/matrix views, and theme/install UX.
 
-## CSS (Modular Architecture)
-Styles are categorized into four specific files to improve performance via parallel loading and to make UI customization straightforward.
+- **`js/init-firebase.js`**  
+  Firebase bootstrap and cloud layer. Manages auth listeners, Firestore configuration, reconciliation between local and cloud data, and leaderboard sync writes.
 
-css/variables.css: Global design tokens (colors, spacing, transitions).
+### CSS architecture
 
-css/base.css: CSS resets, typography, and core element styles.
+- **`css/variables.css`**: Design tokens (colors, spacing, transitions)
+- **`css/base.css`**: Global resets and base element styling
+- **`css/layout.css`**: App/page layout and structure
+- **`css/components.css`**: Reusable UI component styles
 
-css/layout.css: Structural containers, navigation, and page wrappers.
+## ⚙️ Runtime Architecture (high level)
 
-css/components.css: Reusable UI elements (buttons, cards, modals, charts).
+1. `index.html` loads `js/main.js` as a module.
+2. `main.js` triggers initial render and listener setup.
+3. `store.js` computes stats and persists local data.
+4. `ui.js` renders tracker/overview/leaderboard/settings from store state.
+5. `init-firebase.js` handles authentication and cloud sync/reconciliation.
+6. `sw.js` provides offline caching and app update flow.
+
+## 🗃️ Data Model Summary
+
+- Local storage key: `workout-data`
+- Workout entries are date-keyed (`YYYY-MM-DD`)
+- Each day stores per-exercise set arrays
+- Firestore collections:
+  - `users/{uid}` for user profile + workout snapshot
+  - `standings/{period_exercise_uid}` for leaderboard periods
