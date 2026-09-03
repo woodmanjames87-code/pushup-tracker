@@ -172,7 +172,7 @@ header {
 
     transform: translateY(0);
     opacity: 1; 
-    max-height: 100px; 
+    max-height: 110px; 
 }
 
 /* When the overview page is visible, slide the header up off the screen */
