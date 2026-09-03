@@ -156,7 +156,8 @@ header {
     left: 0;
     height: var(--header-height);
     height: calc(var(--header-height) + env(safe-area-inset-top));
-    padding: 0 15px;
+    padding-left: 15px;
+    padding-right: 15px;
     padding-top: env(safe-area-inset-top);
     padding-bottom: 5px;
     background: var(--layer-1);
@@ -184,7 +185,7 @@ body:has(#overview-page[style*="display: flex"]) .main-header {
     border: none !important;
 }
 #tracker-page, #settings-page, #leaderboard-page {
-    padding-top: calc(var(--header-height) + env(safe-area-inset-top)) !important;
+    padding-top: var(--header-height) !important;
 }
 
 
