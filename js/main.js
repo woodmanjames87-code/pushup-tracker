@@ -31,16 +31,16 @@ async function initApp() {
             // 🎯 Lift the curtain now that Group B UI renders and Firebase listeners are bound!
             finishAppInitialization(initStartTime);
         }, 0);
-        UI.triggerFeatureAnnouncement(
-            "v5.0.4.2",
-            "⏱\n New Built in Stopwatch for Planks! \n \n Dont forget to check out previously added features:",
-            [
-                "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
-                "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
-                "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings.",
-                "🌟 <strong>Leaderboard Filters:</strong> More ways to compare your progress with the community.",
-            ],
-        );
+        // UI.triggerFeatureAnnouncement(
+        //     "v5.0.4.2",
+        //     "⏱\n New Built in Stopwatch for Planks! \n \n Dont forget to check out previously added features:",
+        //     [
+        //         "⚡ <strong>Quick Log:</strong> Log sets for any exercise from the Overview Page.",
+        //         "🔄 <strong>Smart Tap:</strong> Click on an exercise to jump straight to its details.",
+        //         "⚙️ <strong>Exercise Controls:</strong> Hide exercises you don't track via Settings.",
+        //         "🌟 <strong>Leaderboard Filters:</strong> More ways to compare your progress with the community.",
+        //     ],
+        // );
         return;
     }
     // --- 2. Wake-up Refresh ---
@@ -393,8 +393,86 @@ function setupSettingsAccordionListeners() {
 
 function setupSettingsListeners() {
     const settingsPage = document.getElementById("settings-page");
-    const { settings } = elements;
+    const { settings, emailLogin } = elements;
     if (!settingsPage || !settings) return; // Defensive guard clause
+
+    let emailLoginOpener = null;
+    let emailLoginSubmitting = false;
+
+    const closeEmailLogin = () => {
+        if (emailLoginSubmitting) return;
+        emailLogin.container.style.display = "none";
+        emailLogin.passwordInput.value = "";
+        emailLogin.error.textContent = "";
+        emailLogin.error.hidden = true;
+        emailLoginOpener?.focus();
+    };
+
+    const showEmailLoginError = (message) => {
+        emailLogin.error.textContent = message;
+        emailLogin.error.hidden = false;
+        UI.triggerHaptic?.("warning");
+    };
+
+    settings.emailLoginBtn.onclick = () => {
+        emailLoginOpener = settings.emailLoginBtn;
+        emailLogin.form.reset();
+        emailLogin.error.textContent = "";
+        emailLogin.error.hidden = true;
+        emailLogin.container.style.display = "flex";
+        emailLogin.emailInput.focus();
+    };
+
+    emailLogin.cancelBtn.onclick = closeEmailLogin;
+    emailLogin.container.addEventListener("click", (event) => {
+        if (event.target === emailLogin.container) closeEmailLogin();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && emailLogin.container.style.display === "flex") {
+            closeEmailLogin();
+        }
+    });
+
+    emailLogin.form.onsubmit = async (event) => {
+        event.preventDefault();
+
+        const email = emailLogin.emailInput.value.trim();
+        const password = emailLogin.passwordInput.value;
+        const originalLabel = emailLogin.submitBtn.textContent;
+
+        emailLogin.error.hidden = true;
+        emailLoginSubmitting = true;
+        emailLogin.submitBtn.disabled = true;
+        emailLogin.submitBtn.textContent = "Logging In...";
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            await reconcileData();
+            emailLoginSubmitting = false;
+            closeEmailLogin();
+            UI.refreshStateAndUI();
+            UI.triggerHaptic?.("success");
+            UI.showToast("Logged in successfully.");
+        } catch (error) {
+            console.error("Email login failed:", error);
+
+            const messages = {
+                "auth/invalid-email": "Enter a valid email address.",
+                "auth/invalid-credential": "The email or password is incorrect.",
+                "auth/user-disabled": "This account has been disabled.",
+                "auth/too-many-requests": "Too many attempts. Please try again later.",
+                "auth/network-request-failed": "Unable to connect. Check your internet connection.",
+            };
+
+            emailLogin.passwordInput.value = "";
+            showEmailLoginError(messages[error.code] || "Unable to log in. Please try again.");
+            emailLogin.passwordInput.focus();
+        } finally {
+            emailLoginSubmitting = false;
+            emailLogin.submitBtn.disabled = false;
+            emailLogin.submitBtn.textContent = originalLabel;
+        }
+    };
 
     // --- 1. PROFILE & DISPLAY NAME UPDATES ---
     settings.updateNameBtn.onclick = async () => {

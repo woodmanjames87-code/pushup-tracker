@@ -185,6 +185,19 @@
     display: none;
 }
 
+.account-initial {
+    display: none;
+}
+
+.btn-login-pill.logged-in:not(.has-photo) .account-initial {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
 /* =========================
      Install Banner 
    ========================= */
@@ -1295,6 +1308,58 @@ input:checked + .slider:before {
     width: 90%;
     max-width: 320px;
     text-align: center;
+}
+
+.email-login-btn {
+    width: 100%;
+    margin-top: 16px;
+}
+
+#email-login-modal {
+    z-index: 1003;
+}
+
+.credential-form {
+    display: grid;
+    gap: 16px;
+    margin-top: 20px;
+    text-align: left;
+}
+
+.credential-field {
+    display: grid;
+    gap: 6px;
+}
+
+.credential-field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.credential-field input {
+    width: 100%;
+    padding: 12px;
+    border: var(--glass-border);
+    border-radius: 8px;
+    background: var(--secondary-bg);
+    color: var(--text);
+    box-shadow: inset var(--shadow-2);
+    font: inherit;
+}
+
+.credential-field input:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.credential-error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.85rem;
+}
+
+.credential-form .modal-buttons > button {
+    flex: 1;
 }
 
 #modal-input {

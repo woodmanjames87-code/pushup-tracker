@@ -39,6 +39,16 @@ export const elements = {
         btnRow: document.getElementById("timer-btn-row"),
     },
 
+    emailLogin: {
+        container: document.getElementById("email-login-modal"),
+        form: document.getElementById("email-login-form"),
+        emailInput: document.getElementById("email-login-input"),
+        passwordInput: document.getElementById("password-login-input"),
+        error: document.getElementById("email-login-error"),
+        submitBtn: document.getElementById("email-login-submit"),
+        cancelBtn: document.getElementById("email-login-cancel"),
+    },
+
     // Notifications & Banners
     toastContainer: document.getElementById("toast-container"),
     installBanner: {
@@ -94,6 +104,7 @@ export const elements = {
         themeButtons: document.getElementById("theme-selector")?.querySelectorAll(".seg-btn") || [],
         exerciseCheckboxList: document.getElementById("exercise-checkbox-list"),
         exportDataBtn: document.getElementById("export-data-btn"),
+        emailLoginBtn: document.getElementById("btn-email-login"),
     },
 
     // Visualization & Bars

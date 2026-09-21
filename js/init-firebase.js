@@ -148,7 +148,17 @@ export async function initAuthListener() {
 
             if (user) {
                 elements.ui.authBtn.classList.add("logged-in");
-                elements.ui.authBtn.style.backgroundImage = `url('${user.photoURL}')`;
+                elements.settings.emailLoginBtn.hidden = true;
+                elements.ui.authBtn.title = "Sign out";
+                elements.ui.authBtn.setAttribute("aria-label", "Sign out");
+
+                const accountInitial = elements.ui.authBtn.querySelector(".account-initial");
+                const hasProfilePhoto = Boolean(user.photoURL);
+                elements.ui.authBtn.classList.toggle("has-photo", hasProfilePhoto);
+                elements.ui.authBtn.style.backgroundImage = hasProfilePhoto ? `url('${user.photoURL}')` : "none";
+                if (accountInitial) {
+                    accountInitial.textContent = (user.displayName || user.email || "U").charAt(0).toUpperCase();
+                }
                 elements.ui.authBtn.onclick = () => {
                     if (confirm("Sign out?")) auth.signOut();
                 };
@@ -178,7 +188,11 @@ export async function initAuthListener() {
                 }
             } else {
                 elements.ui.authBtn.classList.remove("logged-in");
+                elements.ui.authBtn.classList.remove("has-photo");
                 elements.ui.authBtn.style.backgroundImage = "none";
+                elements.ui.authBtn.title = "Log in with Google";
+                elements.ui.authBtn.setAttribute("aria-label", "Log in with Google");
+                elements.settings.emailLoginBtn.hidden = false;
                 elements.ui.authBtn.onclick = startCloudSync;
             }
         });

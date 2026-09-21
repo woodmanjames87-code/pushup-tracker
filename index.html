@@ -60,6 +60,7 @@
                 <button id="auth-button" class="btn-login-pill" type="button">
                     <span class="login-text">Login to &nbsp;</span>
                     <img src="img/Google_G_logo.png" alt="G" class="google-icon" />
+                    <span class="account-initial" aria-hidden="true"></span>
                 </button>
             </header>
 
@@ -311,6 +312,10 @@
                                     <input type="text" id="username-input" maxlength="20" placeholder="Enter name..." />
                                     <button id="btn-update-username" class="btn-secondary" type="button">Update</button>
                                 </div>
+
+                                <button id="btn-email-login" class="btn-secondary email-login-btn" type="button" hidden>
+                                    Log in without Google
+                                </button>
 
                                 <hr class="divider" />
 
@@ -587,6 +592,36 @@
                         <div class="modal-buttons">
                             <button id="modal-cancel" class="btn-secondary" type="button">Cancel</button>
                             <button id="modal-ok" class="btn-primary-small" type="submit">OK</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- EMAIL LOGIN MODAL -->
+            <div id="email-login-modal" class="modal-overlay">
+                <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="email-login-title">
+                    <h3 id="email-login-title">Log in without Google</h3>
+                    <form id="email-login-form" class="credential-form">
+                        <div class="credential-field">
+                            <label for="email-login-input">Email</label>
+                            <input
+                                type="email"
+                                id="email-login-input"
+                                autocomplete="email"
+                                required />
+                        </div>
+                        <div class="credential-field">
+                            <label for="password-login-input">Password</label>
+                            <input
+                                type="password"
+                                id="password-login-input"
+                                autocomplete="current-password"
+                                required />
+                        </div>
+                        <p id="email-login-error" class="credential-error" role="alert" hidden></p>
+                        <div class="modal-buttons">
+                            <button id="email-login-cancel" class="btn-secondary" type="button">Cancel</button>
+                            <button id="email-login-submit" class="btn-primary-small" type="submit">Log In</button>
                         </div>
                     </form>
                 </div>
