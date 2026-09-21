@@ -50,7 +50,7 @@ export function getDb() {
     if (!underlyingDb) {
         console.log("⏱️ Database accessed before network test finished. Defaulting immediately.");
         underlyingDb = initializeFirestore(app, { localCache: persistentLocalCache() });
-        currentMode = 'websocket';
+        currentMode = "websocket";
     }
     return underlyingDb;
 }
@@ -75,14 +75,14 @@ export async function determineNetworkAndInit(isWakeUp = false) {
         console.warn("⚠️ Corporate network restriction detected. Preferring HTTPS long-polling.");
     }
 
-    const targetMode = forceLongPolling ? 'long-polling' : 'websocket';
+    const targetMode = forceLongPolling ? "long-polling" : "websocket";
 
     // 🔄 First boot: create the DB instance with the detected network mode
     if (!underlyingDb) {
         console.log(`🔄 Configuring Firestore instance for environment: ${targetMode}`);
         underlyingDb = initializeFirestore(app, {
             localCache: persistentLocalCache(),
-            ...(forceLongPolling && { experimentalForceLongPolling: true })
+            ...(forceLongPolling && { experimentalForceLongPolling: true }),
         });
         currentMode = targetMode;
         return;
@@ -101,7 +101,7 @@ export async function determineNetworkAndInit(isWakeUp = false) {
 
         underlyingDb = initializeFirestore(app, {
             localCache: persistentLocalCache(),
-            ...(forceLongPolling && { experimentalForceLongPolling: true })
+            ...(forceLongPolling && { experimentalForceLongPolling: true }),
         });
         currentMode = targetMode;
 
@@ -179,7 +179,10 @@ export async function initAuthListener() {
                             localStorage.setItem(storageKey, JSON.stringify(userSnap.data().workouts));
                         }
                     } catch (error) {
-                        console.warn("⚠️ Could not fetch cloud workout data; falling back to local cached data.", error);
+                        console.warn(
+                            "⚠️ Could not fetch cloud workout data; falling back to local cached data.",
+                            error,
+                        );
                     }
                 }
 
@@ -302,11 +305,11 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
             type: "monthly",
             sid: `${stats.monthId}_${exerciseId}_${userId}`,
         },
-        { 
-            id: stats.yearId, 
-            score: stats.ytdTotal, 
-            type: "yearly", 
-            sid: `${stats.yearId}_${exerciseId}_${userId}` 
+        {
+            id: stats.yearId,
+            score: stats.ytdTotal,
+            type: "yearly",
+            sid: `${stats.yearId}_${exerciseId}_${userId}`,
         },
     ];
 
@@ -331,7 +334,6 @@ export async function syncLocalToCloud(userId, compiledStats, localData, extraDa
                 standingsPayload.yestId = localYesterdayStr;
             }
             batch.set(ref, standingsPayload, { merge: true });
-
         } else {
             // --- CASE 2: SCORE IS 0 OR EMPTY ---
             if (p.type === "daily") {

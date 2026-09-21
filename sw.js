@@ -86,7 +86,6 @@ self.addEventListener("fetch", (event) => {
 
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            
             // 1. Fire off the background revalidation check
             const fetchPromise = fetch(event.request)
                 .then((networkResponse) => {
@@ -116,7 +115,7 @@ self.addEventListener("fetch", (event) => {
 
             // 4. Otherwise wait for network (for unexpected external assets)
             return fetchPromise;
-        })
+        }),
     );
 });
 
